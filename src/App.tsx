@@ -316,8 +316,8 @@ export default function App(): JSX.Element {
           2주 탄력근무 근태 계산기
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          데이터가 유실되지 않도록 [저장] 버튼을 누르세요.
-          디바이스별로 Data를 저장하고 공유되지 않습니다.
+          데이터가 유실되지 않도록 [저장] 버튼을 누르세요.<br/>
+          디바이스별로 Data를 저장하고 공유되지 않습니다.<br/>
           필요시 [전체 데이터 초기화]로 용량을 확보하세요.
         </p>
       </header>
