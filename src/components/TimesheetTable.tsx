@@ -19,21 +19,28 @@ interface TimesheetTableProps {
 function TimeInputCell({
   value,
   buttonLabel,
+  min,
+  max,
   onChange,
   onClickNow,
 }: {
   value: string;
   buttonLabel: string;
+  min?: string;
+  max?: string;
   onChange: (value: string) => void;
   onClickNow: () => void;
 }): JSX.Element {
   return (
-    <div className="flex min-w-[170px] items-center gap-1">
+    <div className="flex min-w-[180px] items-center gap-1">
       <input
         type="time"
         step={60}
+        min={min}
+        max={max}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        title="HH:mm (24시간 형식)"
         className="w-full rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-sm"
       />
       <button
@@ -56,13 +63,23 @@ export default function TimesheetTable({
   return (
     <section className="rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1220px] border-collapse text-sm">
+        <table className="w-full min-w-[1300px] border-collapse text-sm">
           <thead>
             <tr className="bg-slate-800 text-white">
               <th className="px-2 py-2">날짜</th>
               <th className="px-2 py-2">공휴일</th>
-              <th className="px-2 py-2">출근시간</th>
-              <th className="px-2 py-2">퇴근시간</th>
+              <th className="px-2 py-2">
+                <span className="block">출근시간</span>
+                <span className="block text-[10px] font-normal text-slate-200">
+                  HH:mm (24시간)
+                </span>
+              </th>
+              <th className="px-2 py-2">
+                <span className="block">퇴근시간</span>
+                <span className="block text-[10px] font-normal text-slate-200">
+                  HH:mm (24시간)
+                </span>
+              </th>
               <th className="px-2 py-2">근무시간</th>
               <th className="px-2 py-2">정규 업무시간</th>
               <th className="px-2 py-2">추가 근무시간</th>
@@ -111,6 +128,8 @@ export default function TimesheetTable({
                     <TimeInputCell
                       value={record.clockIn}
                       buttonLabel="출근"
+                      min="06:00"
+                      max="23:59"
                       onChange={(value) => onPatchRecord(index, { clockIn: value })}
                       onClickNow={() => onSetNow(index, 'clockIn')}
                     />
@@ -120,6 +139,8 @@ export default function TimesheetTable({
                     <TimeInputCell
                       value={record.clockOut}
                       buttonLabel="퇴근"
+                      min="00:00"
+                      max="23:59"
                       onChange={(value) => onPatchRecord(index, { clockOut: value })}
                       onClickNow={() => onSetNow(index, 'clockOut')}
                     />

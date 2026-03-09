@@ -14,7 +14,11 @@ import {
   PeriodCalculationResult,
   SummaryValues,
 } from '../types';
-import { parseTimeToMinutes } from './time';
+import {
+  CLOCK_IN_MIN_MINUTES,
+  computeWorkedMinutes,
+  parseTime24,
+} from './time';
 
 function isWeekday(dateIso: string): boolean {
   const day = dayjs(dateIso).day();
@@ -40,27 +44,26 @@ export function recalculateDayRecord(source: DayRecord): {
   const hasClockIn = source.clockIn.trim() !== '';
   const hasClockOut = source.clockOut.trim() !== '';
 
-  const clockInMinutes = hasClockIn ? parseTimeToMinutes(source.clockIn) : null;
-  const clockOutMinutes = hasClockOut ? parseTimeToMinutes(source.clockOut) : null;
+  const parsedClockIn = hasClockIn ? parseTime24(source.clockIn) : null;
+  const parsedClockOut = hasClockOut ? parseTime24(source.clockOut) : null;
+
+  const clockInMinutes = parsedClockIn?.totalMinutes ?? null;
+  const clockOutMinutes = parsedClockOut?.totalMinutes ?? null;
 
   if (hasClockIn && clockInMinutes === null) {
-    validationErrors.push('출근시간 형식은 HH:mm 입니다.');
+    validationErrors.push('출근시간 형식은 HH:mm (24시간) 이어야 합니다.');
   }
 
   if (hasClockOut && clockOutMinutes === null) {
-    validationErrors.push('퇴근시간 형식은 HH:mm 입니다.');
+    validationErrors.push('퇴근시간 형식은 HH:mm (24시간) 이어야 합니다.');
+  }
+
+  if (clockInMinutes !== null && clockInMinutes < CLOCK_IN_MIN_MINUTES) {
+    validationErrors.push('출근시간은 06:00~23:59 범위만 입력할 수 있습니다.');
   }
 
   if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
     validationErrors.push('출근시간과 퇴근시간을 모두 입력하세요.');
-  }
-
-  if (
-    clockInMinutes !== null &&
-    clockOutMinutes !== null &&
-    clockOutMinutes < clockInMinutes
-  ) {
-    validationErrors.push('퇴근시간은 출근시간 이후여야 합니다.');
   }
 
   let workMinutes: number | null = null;
@@ -72,10 +75,14 @@ export function recalculateDayRecord(source: DayRecord): {
   const canCalculate =
     clockInMinutes !== null &&
     clockOutMinutes !== null &&
-    clockOutMinutes >= clockInMinutes;
+    clockInMinutes >= CLOCK_IN_MIN_MINUTES;
 
   if (canCalculate) {
-    workMinutes = clockOutMinutes - clockInMinutes - LUNCH_BREAK_MINUTES;
+    workMinutes = computeWorkedMinutes(
+      clockInMinutes,
+      clockOutMinutes,
+      LUNCH_BREAK_MINUTES,
+    );
     regularMinutes = Math.max(0, workMinutes - claimedOtMinutes);
     overtimeMinutes = Math.max(0, workMinutes - DAILY_REGULAR_MINUTES);
     recommendedOtMinutes =
