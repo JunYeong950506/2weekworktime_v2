@@ -41,7 +41,7 @@ function TimeInputCell({
   const hasValue = value.trim() !== '';
 
   return (
-    <div className="relative mx-auto w-[72%] min-w-[95px]">
+    <div className="relative mx-auto w-[80%] min-w-[150px]">
       <input
         type="time"
         step={60}
@@ -50,8 +50,8 @@ function TimeInputCell({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         title="HH:mm (24시간 형식)"
-        className={`h-8 w-full min-w-[150px] rounded-md border border-slate-300 bg-sky-50 py-1 pl-2 text-xs table-time-input ${
-          hasValue ? 'pr-2' : 'pr-2'
+        className={`h-8 w-full min-w-0 rounded-md border border-slate-300 bg-sky-50 py-1 pl-2 text-xs table-time-input ${
+          hasValue ? 'pr-6' : 'pr-6'
         }`}
       />
 
