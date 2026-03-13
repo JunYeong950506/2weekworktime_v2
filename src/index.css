@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -15,6 +15,6 @@ body {
 
 /* 2주 기록표 시간 입력 폰트 스케일(12px) */
 .table-time-input {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.1;
 }
