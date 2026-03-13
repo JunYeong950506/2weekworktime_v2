@@ -1,7 +1,8 @@
-import { DayRecord, TimeField } from '../types';
+﻿import { DayRecord, TimeField } from '../types';
 import { formatMinutesAsClock } from '../utils/time';
 
-interface TodayQuickEntryCardProps {  targetLabel: string;
+interface TodayQuickEntryCardProps {
+  targetLabel: string;
   isTodayTarget: boolean;
   record: DayRecord | null;
   onPatchRecord: (
@@ -55,7 +56,7 @@ function TimeInputWithButton({
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-slate-700">{label}</p>
-      <div className="grid grid-cols-[1fr_auto] gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-[minmax(0,1fr)_auto]">
         <input
           type="time"
           step={60}
@@ -64,12 +65,12 @@ function TimeInputWithButton({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           title="HH:mm (24시간 형식)"
-          className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-base text-slate-800"
+          className="h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 text-base text-slate-800"
         />
         <button
           type="button"
           onClick={onButtonClick}
-          className="h-11 min-w-[72px] rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 min-[480px]:w-auto min-[480px]:min-w-[72px]"
         >
           {buttonLabel}
         </button>
@@ -100,7 +101,8 @@ function ResultChip({
   );
 }
 
-export default function TodayQuickEntryCard({  targetLabel,
+export default function TodayQuickEntryCard({
+  targetLabel,
   isTodayTarget,
   record,
   onPatchRecord,
@@ -118,7 +120,7 @@ export default function TodayQuickEntryCard({  targetLabel,
           </div>
 
           <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600">
-            오늘 날짜: {targetLabel}
+            현재 편집 대상: {targetLabel}
           </span>
         </div>
 
@@ -168,9 +170,7 @@ export default function TodayQuickEntryCard({  targetLabel,
               <input
                 type="checkbox"
                 checked={record.dinnerChecked}
-                onChange={(event) =>
-                  onPatchRecord({ dinnerChecked: event.target.checked })
-                }
+                onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
                 className="h-4 w-4 rounded border-slate-300"
               />
               석식

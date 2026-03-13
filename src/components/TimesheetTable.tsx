@@ -1,4 +1,4 @@
-﻿import { DayRecord, DayRecordMeta } from '../types';
+import { DayRecord, DayRecordMeta } from '../types';
 import {
   formatDateCell,
   formatMinutesAsClock,
@@ -29,24 +29,44 @@ function TimeInputCell({
   value,
   min,
   max,
+  clearLabel,
   onChange,
 }: {
   value: string;
   min?: string;
   max?: string;
+  clearLabel: string;
   onChange: (value: string) => void;
 }): JSX.Element {
+  const hasValue = value.trim() !== '';
+
   return (
-    <input
-      type="time"
-      step={60}
-      min={min}
-      max={max}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      title="HH:mm (24시간 형식)"
-      className="w-full min-w-[150px] rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-sm"
-    />
+    <div className="relative min-w-[166px]">
+      <input
+        type="time"
+        step={60}
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        title="HH:mm (24시간 형식)"
+        className={`h-9 w-full min-w-0 rounded-md border border-slate-300 bg-sky-50 py-1 pl-2 text-sm ${
+          hasValue ? 'pr-16' : 'pr-2'
+        }`}
+      />
+
+      {hasValue ? (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          title={clearLabel}
+          aria-label={clearLabel}
+          className="absolute right-8 top-1/2 inline-flex h-6 -translate-y-1/2 items-center border-l border-slate-300 pl-2 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+        >
+          <span aria-hidden="true" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 leading-none">×</span>
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -115,6 +135,7 @@ export default function TimesheetTable({
                     value={record.clockIn}
                     min="06:00"
                     max="23:59"
+                    clearLabel="출근시간 지우기"
                     onChange={(value) => onPatchRecord(index, { clockIn: value })}
                   />
                 </td>
@@ -124,6 +145,7 @@ export default function TimesheetTable({
                     value={record.clockOut}
                     min="00:00"
                     max="23:59"
+                    clearLabel="퇴근시간 지우기"
                     onChange={(value) => onPatchRecord(index, { clockOut: value })}
                   />
                 </td>
