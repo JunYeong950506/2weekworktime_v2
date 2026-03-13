@@ -1,4 +1,4 @@
-﻿import { SummaryValues } from '../types';
+import { SummaryValues } from '../types';
 import { formatMinutesAsClock, formatSignedMinutesAsClock } from '../utils/time';
 
 interface SummaryCardsProps {
@@ -35,14 +35,16 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
   ];
 
   return (
-    <section className="grid max-[360px]:grid-cols-1 grid-cols-2 gap-3.5 sm:gap-3 lg:grid-cols-5">
+    <section className="grid max-[360px]:grid-cols-1 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-5">
       {cards.map((card) => (
         <article
           key={card.title}
-          className={`rounded-2xl bg-gradient-to-br p-4 shadow-soft ${card.color}`}
+          className={`rounded-2xl bg-gradient-to-br p-3 sm:p-4 shadow-soft ${card.color}`}
         >
-          <p className="text-xs font-semibold tracking-wide text-slate-600">{card.title}</p>
-          <p className="mt-2 text-2xl font-bold">{card.value}</p>
+          <p className="text-[11px] sm:text-xs font-semibold tracking-wide text-slate-600">
+            {card.title}
+          </p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold">{card.value}</p>
         </article>
       ))}
     </section>

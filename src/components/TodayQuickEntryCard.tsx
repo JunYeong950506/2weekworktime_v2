@@ -54,9 +54,9 @@ function TimeInputWithButton({
   onButtonClick: () => void;
 }): JSX.Element {
   return (
-    <div className="space-y-2">
-      <p className="text-base font-semibold text-slate-700">{label}</p>
-      <div className="grid grid-cols-[1fr_auto] gap-3">
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-slate-700">{label}</p>
+      <div className="grid grid-cols-[1fr_auto] gap-2">
         <input
           type="time"
           step={60}
@@ -65,12 +65,12 @@ function TimeInputWithButton({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           title="HH:mm (24시간 형식)"
-          className="h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-base text-slate-800"
+          className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-base text-slate-800"
         />
         <button
           type="button"
           onClick={onButtonClick}
-          className="h-14 min-w-[104px] rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-700 hover:bg-slate-50"
+          className="h-11 min-w-[72px] rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
           {buttonLabel}
         </button>
@@ -94,9 +94,9 @@ function ResultChip({
       : 'border-amber-100 bg-amber-50 text-amber-900';
 
   return (
-    <div className={`min-h-[92px] rounded-2xl border px-4 py-3 ${toneClass}`}>
-      <p className="text-sm font-semibold text-slate-600">{title}</p>
-      <p className="mt-2 text-2xl font-bold leading-none">{value}</p>
+    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
+      <p className="text-xs font-semibold text-slate-600">{title}</p>
+      <p className="mt-1 text-xl font-bold leading-none">{value}</p>
     </div>
   );
 }
@@ -109,9 +109,9 @@ export default function TodayQuickEntryCard({
   onSetNow,
 }: TodayQuickEntryCardProps): JSX.Element {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
       <header>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-slate-900">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 text-indigo-600">
               <CalendarIcon className="h-4 w-4" />
@@ -119,25 +119,25 @@ export default function TodayQuickEntryCard({
             <h2 className="text-xl font-bold sm:text-2xl">오늘 근무 입력</h2>
           </div>
 
-          <span className="inline-flex rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">
-            현재 편집 대상: {targetLabel}
+          <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600">
+            오늘 날짜: {targetLabel}
           </span>
         </div>
 
         {!isTodayTarget ? (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-2 text-xs text-slate-500">
             오늘 날짜가 현재 구간에 없어 가장 가까운 날짜와 연결했습니다.
           </p>
         ) : null}
       </header>
 
       {!record ? (
-        <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           편집 가능한 행이 없습니다.
         </p>
       ) : (
-        <div className="mt-5 space-y-4 border-t border-slate-200 pt-5">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <TimeInputWithButton
               label="출근시간"
               value={record.clockIn}
@@ -159,9 +159,9 @@ export default function TodayQuickEntryCard({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-5 md:items-end">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-5 md:items-end">
             <label
-              className={`inline-flex h-14 items-center gap-2 rounded-xl border px-4 text-base font-medium transition-colors ${
+              className={`inline-flex h-11 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors ${
                 record.dinnerChecked
                   ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                   : 'border-slate-300 bg-white text-slate-700'
@@ -176,8 +176,8 @@ export default function TodayQuickEntryCard({
               석식
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-600">비업무시간(분)</span>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold text-slate-600">비업무시간(분)</span>
               <input
                 type="number"
                 min={0}
@@ -193,12 +193,12 @@ export default function TodayQuickEntryCard({
                     nonWorkMinutes: Number(event.target.value || 0),
                   })
                 }
-                className="h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-right text-base"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base"
               />
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-600">실제 야근결재(분)</span>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold text-slate-600">실제 야근결재(분)</span>
               <input
                 type="number"
                 min={0}
@@ -214,7 +214,7 @@ export default function TodayQuickEntryCard({
                     claimedOtMinutes: Number(event.target.value || 0),
                   })
                 }
-                className="h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-right text-base"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base"
               />
             </label>
 

@@ -395,7 +395,7 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6">
       <header>
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">2주 자율출퇴근 계산기</h1>
         <p className="mt-1 text-sm text-slate-600">
