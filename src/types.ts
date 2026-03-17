@@ -34,6 +34,9 @@ export interface PersistedAppState extends AppState {
 
 export interface DayRecordMeta {
   isWeekday: boolean;
+  isSaturday: boolean;
+  isSunday: boolean;
+  isSpecialWorkMode: boolean;
   validationErrors: string[];
 }
 
@@ -56,3 +59,4 @@ export interface CreatePeriodPayload {
   startDate: string;
   copyValues: boolean;
 }
+

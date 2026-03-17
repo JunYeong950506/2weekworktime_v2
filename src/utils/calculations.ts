@@ -1,4 +1,4 @@
-﻿import dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import {
   DAILY_REGULAR_MINUTES,
@@ -21,9 +21,18 @@ import {
   parseTime24,
 } from './time';
 
-function isWeekday(dateIso: string): boolean {
+function getDayFlags(dateIso: string): {
+  isWeekday: boolean;
+  isSaturday: boolean;
+  isSunday: boolean;
+} {
   const day = dayjs(dateIso).day();
-  return day >= 1 && day <= 5;
+
+  return {
+    isWeekday: day >= 1 && day <= 5,
+    isSaturday: day === 6,
+    isSunday: day === 0,
+  };
 }
 
 function sanitizeMinutes(value: number): number {
@@ -40,32 +49,39 @@ export function recalculateDayRecord(source: DayRecord): {
 } {
   const claimedOtMinutes = sanitizeMinutes(source.claimedOtMinutes);
   const nonWorkMinutes = sanitizeMinutes(source.nonWorkMinutes);
-  const weekday = isWeekday(source.date);
+  const dayFlags = getDayFlags(source.date);
+  const isSpecialWorkMode =
+    dayFlags.isSaturday || dayFlags.isSunday || source.isHoliday;
   const validationErrors: string[] = [];
 
   const hasClockIn = source.clockIn.trim() !== '';
   const hasClockOut = source.clockOut.trim() !== '';
 
-  const parsedClockIn = hasClockIn ? parseTime24(source.clockIn) : null;
-  const parsedClockOut = hasClockOut ? parseTime24(source.clockOut) : null;
+  let clockInMinutes: number | null = null;
+  let clockOutMinutes: number | null = null;
 
-  const clockInMinutes = parsedClockIn?.totalMinutes ?? null;
-  const clockOutMinutes = parsedClockOut?.totalMinutes ?? null;
+  if (!isSpecialWorkMode) {
+    const parsedClockIn = hasClockIn ? parseTime24(source.clockIn) : null;
+    const parsedClockOut = hasClockOut ? parseTime24(source.clockOut) : null;
 
-  if (hasClockIn && clockInMinutes === null) {
-    validationErrors.push('출근시간 형식은 HH:mm (24시간) 이어야 합니다.');
-  }
+    clockInMinutes = parsedClockIn?.totalMinutes ?? null;
+    clockOutMinutes = parsedClockOut?.totalMinutes ?? null;
 
-  if (hasClockOut && clockOutMinutes === null) {
-    validationErrors.push('퇴근시간 형식은 HH:mm (24시간) 이어야 합니다.');
-  }
+    if (hasClockIn && clockInMinutes === null) {
+      validationErrors.push('출근시간 형식은 HH:mm (24시간) 이어야 합니다.');
+    }
 
-  if (clockInMinutes !== null && clockInMinutes < CLOCK_IN_MIN_MINUTES) {
-    validationErrors.push('출근시간은 06:00~23:59 범위만 입력할 수 있습니다.');
-  }
+    if (hasClockOut && clockOutMinutes === null) {
+      validationErrors.push('퇴근시간 형식은 HH:mm (24시간) 이어야 합니다.');
+    }
 
-  if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
-    validationErrors.push('미입력된 시간이 있습니다.');
+    if (clockInMinutes !== null && clockInMinutes < CLOCK_IN_MIN_MINUTES) {
+      validationErrors.push('출근시간은 06:00~23:59 범위만 입력할 수 있습니다.');
+    }
+
+    if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
+      validationErrors.push('미입력된 시간이 있습니다.');
+    }
   }
 
   let workMinutes: number | null = null;
@@ -75,11 +91,12 @@ export function recalculateDayRecord(source: DayRecord): {
   let earlyLeaveBalanceMinutes: number | null = null;
 
   const canCalculate =
+    !isSpecialWorkMode &&
     clockInMinutes !== null &&
     clockOutMinutes !== null &&
     clockInMinutes >= CLOCK_IN_MIN_MINUTES;
 
-  if (canCalculate) {
+  if (canCalculate && clockInMinutes !== null && clockOutMinutes !== null) {
     const dinnerDeductionMinutes = source.dinnerChecked ? DINNER_BREAK_MINUTES : 0;
     const totalDeductionMinutes =
       LUNCH_BREAK_MINUTES + dinnerDeductionMinutes + nonWorkMinutes;
@@ -97,7 +114,7 @@ export function recalculateDayRecord(source: DayRecord): {
       OVERTIME_APPROVAL_UNIT_MINUTES;
 
     const dailyTargetMinutes =
-      weekday && !source.isHoliday ? DAILY_REGULAR_MINUTES : 0;
+      dayFlags.isWeekday && !source.isHoliday ? DAILY_REGULAR_MINUTES : 0;
     earlyLeaveBalanceMinutes =
       Math.round(workMinutes - dailyTargetMinutes) - claimedOtMinutes;
   }
@@ -114,7 +131,10 @@ export function recalculateDayRecord(source: DayRecord): {
       earlyLeaveBalanceMinutes,
     },
     meta: {
-      isWeekday: weekday,
+      isWeekday: dayFlags.isWeekday,
+      isSaturday: dayFlags.isSaturday,
+      isSunday: dayFlags.isSunday,
+      isSpecialWorkMode,
       validationErrors,
     },
   };
@@ -196,3 +216,4 @@ export function recalculatePeriod(period: Period): PeriodCalculationResult {
     summary: calculateSummary(records, rowMeta),
   };
 }
+

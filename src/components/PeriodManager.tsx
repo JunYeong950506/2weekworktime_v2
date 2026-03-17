@@ -70,7 +70,7 @@ export default function PeriodManager({
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            구간 선택
+            2주 단위 구간 선택
             <select
               value={selectedPeriodId ?? ''}
               onChange={(event) => onSelectPeriod(event.target.value)}
@@ -101,7 +101,7 @@ export default function PeriodManager({
                 onClick={() => setIsCreateOpen((prev) => !prev)}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
               >
-                새 구간 생성
+                새 2주 구간 생성
               </button>
               <button
                 type="button"
@@ -114,7 +114,7 @@ export default function PeriodManager({
             <p className="mt-2 text-xs text-slate-500">
               데이터는 브라우저 로컬 캐시로 저장됩니다.
               <br />
-              데이터 변경 시 3초 후에 자동 저장됩니다.
+              새로운 2주 구간을 생성한 경우 저장 버튼을 눌러주세요.
             </p>
           </div>
         </div>

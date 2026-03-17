@@ -292,7 +292,7 @@ export default function App(): JSX.Element {
 
     const timer = window.setTimeout(() => {
       persistState(appState);
-    }, 3000);
+    }, 1500);
 
     return () => {
       window.clearTimeout(timer);

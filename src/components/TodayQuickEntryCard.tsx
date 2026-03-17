@@ -16,7 +16,7 @@ interface TodayQuickEntryCardProps {
   onSetNow: (field: TimeField) => void;
 }
 
-function CalendarIcon({ className }: { className?: string }): JSX.Element {
+function ClockIcon({ className }: { className?: string }): JSX.Element {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -28,10 +28,8 @@ function CalendarIcon({ className }: { className?: string }): JSX.Element {
       className={className}
       aria-hidden="true"
     >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 16 14" />
     </svg>
   );
 }
@@ -114,7 +112,7 @@ export default function TodayQuickEntryCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-slate-900">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 text-indigo-600">
-              <CalendarIcon className="h-4 w-4" />
+              <ClockIcon className="h-4 w-4" />
             </span>
             <h2 className="text-xl font-bold sm:text-2xl">오늘 근무 입력</h2>
           </div>
