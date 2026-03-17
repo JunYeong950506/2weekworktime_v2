@@ -101,7 +101,7 @@ export default function PeriodManager({
                 onClick={() => setIsCreateOpen((prev) => !prev)}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
               >
-                새 2주 구간 생성
+                새 구간 생성
               </button>
               <button
                 type="button"
