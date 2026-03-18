@@ -1,7 +1,13 @@
-import dayjs from 'dayjs';
+﻿import dayjs from 'dayjs';
 
 import { APP_STORAGE_KEY } from '../constants';
-import { AppState, DayRecord, PersistedAppState, Period } from '../types';
+import {
+  AnnualLeaveType,
+  AppState,
+  DayRecord,
+  PersistedAppState,
+  Period,
+} from '../types';
 
 const APP_STORAGE_KEYS = [APP_STORAGE_KEY] as const;
 
@@ -25,6 +31,14 @@ function toNonNegativeInteger(value: unknown): number {
   return Math.max(0, Math.round(value));
 }
 
+function normalizeAnnualLeaveType(value: unknown): AnnualLeaveType {
+  if (value === 'quarter' || value === 'half' || value === 'full') {
+    return value;
+  }
+
+  return 'none';
+}
+
 function normalizeDayRecord(raw: unknown): DayRecord | null {
   if (!isValidObject(raw)) {
     return null;
@@ -33,6 +47,7 @@ function normalizeDayRecord(raw: unknown): DayRecord | null {
   return {
     date: typeof raw.date === 'string' ? raw.date : '',
     isHoliday: Boolean(raw.isHoliday),
+    annualLeaveType: normalizeAnnualLeaveType(raw.annualLeaveType),
     clockIn: typeof raw.clockIn === 'string' ? raw.clockIn : '',
     clockOut: typeof raw.clockOut === 'string' ? raw.clockOut : '',
     dinnerChecked:

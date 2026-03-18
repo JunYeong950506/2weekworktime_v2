@@ -1,8 +1,11 @@
-export type TimeField = 'clockIn' | 'clockOut';
+﻿export type TimeField = 'clockIn' | 'clockOut';
+
+export type AnnualLeaveType = 'none' | 'quarter' | 'half' | 'full';
 
 export interface DayRecord {
   date: string;
   isHoliday: boolean;
+  annualLeaveType: AnnualLeaveType;
   clockIn: string;
   clockOut: string;
   dinnerChecked: boolean;
@@ -37,6 +40,10 @@ export interface DayRecordMeta {
   isSaturday: boolean;
   isSunday: boolean;
   isSpecialWorkMode: boolean;
+  isAnnualLeaveFullMode: boolean;
+  effectiveAnnualLeaveType: AnnualLeaveType;
+  leaveNotice: string | null;
+  leaveWarning: string | null;
   validationErrors: string[];
 }
 
@@ -59,4 +66,3 @@ export interface CreatePeriodPayload {
   startDate: string;
   copyValues: boolean;
 }
-

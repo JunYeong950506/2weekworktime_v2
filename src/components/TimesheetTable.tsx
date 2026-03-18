@@ -1,4 +1,4 @@
-import { DayRecord, DayRecordMeta } from '../types';
+﻿import { AnnualLeaveType, DayRecord, DayRecordMeta } from '../types';
 import {
   formatDateCell,
   formatMinutesAsClock,
@@ -15,6 +15,7 @@ interface TimesheetTableProps {
       Pick<
         DayRecord,
         | 'isHoliday'
+        | 'annualLeaveType'
         | 'clockIn'
         | 'clockOut'
         | 'dinnerChecked'
@@ -24,6 +25,13 @@ interface TimesheetTableProps {
     >,
   ) => void;
 }
+
+const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
+  { value: 'none', label: '없음' },
+  { value: 'quarter', label: '반반차 (2시간)' },
+  { value: 'half', label: '반차 (4시간)' },
+  { value: 'full', label: '연차 (8시간)' },
+];
 
 function TimeInputCell({
   value,
@@ -94,11 +102,12 @@ export default function TimesheetTable({
 }: TimesheetTableProps): JSX.Element {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className="w-full min-w-[1300px] border-collapse text-xs">
+      <table className="w-full min-w-[1380px] border-collapse text-xs">
         <thead>
           <tr className="bg-slate-800 text-white">
             <th className="px-1.5 py-1.5">날짜</th>
             <th className="px-1.5 py-1.5">공휴일</th>
+            <th className="px-1.5 py-1.5">연차</th>
             <th className="px-1.5 py-1.5">출근시간</th>
             <th className="px-1.5 py-1.5">퇴근시간</th>
             <th className="px-1.5 py-1.5">석식</th>
@@ -117,7 +126,11 @@ export default function TimesheetTable({
             const meta = rowMeta[index];
             const hasError = (meta?.validationErrors.length ?? 0) > 0;
             const isSpecialWorkMode = meta?.isSpecialWorkMode ?? false;
+            const isAnnualLeaveFullMode = meta?.isAnnualLeaveFullMode ?? false;
             const dateToneClass = getDateToneClass(record, meta);
+            const annualLeaveValue: AnnualLeaveType = isSpecialWorkMode
+              ? 'none'
+              : record.annualLeaveType;
 
             return (
               <tr
@@ -132,12 +145,21 @@ export default function TimesheetTable({
               >
                 <td className="px-1.5 py-1.5 font-medium">
                   <div className={dateToneClass}>{formatDateCell(record.date)}</div>
+
                   {hasError ? (
                     <div className="mt-1 space-y-0.5 text-xs text-rose-600">
                       {meta.validationErrors.map((error, errorIndex) => (
                         <p key={`${record.date}-error-${errorIndex}`}>{error}</p>
                       ))}
                     </div>
+                  ) : null}
+
+                  {meta?.leaveNotice ? (
+                    <p className="mt-1 text-xs text-amber-600">{meta.leaveNotice}</p>
+                  ) : null}
+
+                  {meta?.leaveWarning ? (
+                    <p className="mt-1 text-xs text-rose-600">{meta.leaveWarning}</p>
                   ) : null}
                 </td>
 
@@ -146,17 +168,41 @@ export default function TimesheetTable({
                     type="checkbox"
                     checked={record.isHoliday}
                     onChange={(event) =>
-                      onPatchRecord(index, { isHoliday: event.target.checked })
+                      onPatchRecord(index, {
+                        isHoliday: event.target.checked,
+                        annualLeaveType: event.target.checked
+                          ? 'none'
+                          : record.annualLeaveType,
+                      })
                     }
                     className="h-4 w-4 rounded border-slate-300"
                   />
+                </td>
+
+                <td className="px-1.5 py-1.5 text-center">
+                  <select
+                    value={annualLeaveValue}
+                    disabled={isSpecialWorkMode}
+                    onChange={(event) =>
+                      onPatchRecord(index, {
+                        annualLeaveType: event.target.value as AnnualLeaveType,
+                      })
+                    }
+                    className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {ANNUAL_LEAVE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </td>
 
                 {isSpecialWorkMode ? (
                   <>
                     <td className="px-1.5 py-1.5" colSpan={8}>
                       <div className="min-h-[32px] rounded-md px-1 text-xs text-slate-400">
-                        *HR시스템을 참고해서 특근 시간을 야근결재에 직접 입력하세요.
+                        *HR시스템을 참고해서 실제 특근 시간을 야근 결재에 입력하세요.
                       </div>
                     </td>
 
@@ -181,6 +227,28 @@ export default function TimesheetTable({
                     </td>
 
                     <td className="px-1.5 py-1.5" />
+                  </>
+                ) : isAnnualLeaveFullMode ? (
+                  <>
+                    <td className="px-1.5 py-1.5" colSpan={5}>
+                      <div className="min-h-[32px] rounded-md px-1 text-xs text-slate-400">
+                        연차 사용일은 출퇴근 입력이 필요 없습니다.
+                      </div>
+                    </td>
+
+                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
+                      {formatMinutesAsClock(record.regularMinutes)}
+                    </td>
+
+                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
+                      {formatMinutesAsClock(record.overtimeMinutes)}
+                    </td>
+
+                    <td className="bg-slate-100 px-1.5 py-1.5 text-center" />
+
+                    <td className="px-1.5 py-1.5 text-center" />
+
+                    <td className="bg-slate-100 px-1.5 py-1.5 text-center" />
                   </>
                 ) : (
                   <>
@@ -284,5 +352,3 @@ export default function TimesheetTable({
     </div>
   );
 }
-
-

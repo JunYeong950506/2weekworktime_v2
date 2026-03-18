@@ -53,6 +53,7 @@ export function createRecordsFromStartDate(startDate: string): DayRecord[] {
     return {
       date,
       isHoliday: isKoreanPublicHoliday(date),
+      annualLeaveType: 'none',
       clockIn: '',
       clockOut: '',
       dinnerChecked: false,
@@ -85,6 +86,7 @@ export function copyRecordsWithNewDate(
     return {
       ...record,
       isHoliday: shouldKeepSourceHoliday ? source.isHoliday : record.isHoliday,
+      annualLeaveType: source?.annualLeaveType ?? 'none',
       clockIn: source?.clockIn ?? '',
       clockOut: source?.clockOut ?? '',
       dinnerChecked: source?.dinnerChecked ?? false,
@@ -108,6 +110,7 @@ export function rebaseRecordDates(
     return {
       ...record,
       isHoliday: shouldKeepSourceHoliday ? source.isHoliday : record.isHoliday,
+      annualLeaveType: source?.annualLeaveType ?? 'none',
       clockIn: source?.clockIn ?? '',
       clockOut: source?.clockOut ?? '',
       dinnerChecked: source?.dinnerChecked ?? false,
