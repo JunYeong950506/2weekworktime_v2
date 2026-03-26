@@ -16,6 +16,7 @@ interface TimesheetTableProps {
         DayRecord,
         | 'isHoliday'
         | 'annualLeaveType'
+        | 'officialLeaveMinutes'
         | 'clockIn'
         | 'clockOut'
         | 'dinnerChecked'
@@ -27,10 +28,11 @@ interface TimesheetTableProps {
 }
 
 const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
-  { value: 'none', label: '없음' },
+  { value: 'none', label: '정상근무' },
   { value: 'quarter', label: '반반차 (2시간)' },
   { value: 'half', label: '반차 (4시간)' },
   { value: 'full', label: '연차 (8시간)' },
+  { value: 'official', label: '공가' },
 ];
 
 function TimeInputCell({
@@ -107,7 +109,7 @@ export default function TimesheetTable({
           <tr className="bg-slate-800 text-white">
             <th className="px-1.5 py-1.5">날짜</th>
             <th className="px-1.5 py-1.5">공휴일</th>
-            <th className="px-1.5 py-1.5">연차</th>
+            <th className="px-1.5 py-1.5">근무 형태</th>
             <th className="px-1.5 py-1.5">출근시간</th>
             <th className="px-1.5 py-1.5">퇴근시간</th>
             <th className="px-1.5 py-1.5">석식</th>
@@ -131,6 +133,7 @@ export default function TimesheetTable({
             const annualLeaveValue: AnnualLeaveType = isSpecialWorkMode
               ? 'none'
               : record.annualLeaveType;
+            const isOfficialLeaveMode = annualLeaveValue === 'official';
 
             return (
               <tr
@@ -173,36 +176,65 @@ export default function TimesheetTable({
                         annualLeaveType: event.target.checked
                           ? 'none'
                           : record.annualLeaveType,
+                        officialLeaveMinutes: event.target.checked
+                          ? 0
+                          : record.officialLeaveMinutes,
                       })
                     }
                     className="h-4 w-4 rounded border-slate-300"
                   />
                 </td>
 
-                <td className="px-1.5 py-1.5 text-center">
-                  <select
-                    value={annualLeaveValue}
-                    disabled={isSpecialWorkMode}
-                    onChange={(event) =>
-                      onPatchRecord(index, {
-                        annualLeaveType: event.target.value as AnnualLeaveType,
-                      })
-                    }
-                    className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    {ANNUAL_LEAVE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                <td className="px-1.5 py-1.5 text-center align-top">
+                  <div className="mx-auto flex w-28 flex-col gap-1">
+                    <select
+                      value={annualLeaveValue}
+                      disabled={isSpecialWorkMode}
+                      onChange={(event) =>
+                        onPatchRecord(index, {
+                          annualLeaveType: event.target.value as AnnualLeaveType,
+                        })
+                      }
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      {ANNUAL_LEAVE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {isOfficialLeaveMode ? (
+                      <input
+                        type="number"
+                        min={0}
+                        max={480}
+                        step={1}
+                        value={record.officialLeaveMinutes}
+                        onFocus={(event) => {
+                          if (record.officialLeaveMinutes === 0) {
+                            event.currentTarget.select();
+                          }
+                        }}
+                        onChange={(event) =>
+                          onPatchRecord(index, {
+                            officialLeaveMinutes: Math.min(
+                              480,
+                              Math.max(0, Number(event.target.value || 0)),
+                            ),
+                          })
+                        }
+                        className="w-full rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-right text-xs"
+                      />
+                    ) : null}
+                  </div>
                 </td>
 
                 {isSpecialWorkMode ? (
                   <>
                     <td className="px-1.5 py-1.5" colSpan={8}>
                       <div className="min-h-[32px] rounded-md px-1 text-xs text-slate-400">
-                        *HR시스템을 참고해서 실제 특근 시간을 야근 결재에 입력하세요.
+                        💡 HR시스템을 참고해서 실제 특근 시간을 야근 결재에 입력하세요.
                       </div>
                     </td>
 

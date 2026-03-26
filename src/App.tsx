@@ -172,7 +172,7 @@ export default function App(): JSX.Element {
     patch: Partial<
       Pick<
         DayRecord,
-        'isHoliday' | 'annualLeaveType' | 'clockIn' | 'clockOut' | 'dinnerChecked' | 'nonWorkMinutes' | 'claimedOtMinutes'
+        'isHoliday' | 'annualLeaveType' | 'officialLeaveMinutes' | 'clockIn' | 'clockOut' | 'dinnerChecked' | 'nonWorkMinutes' | 'claimedOtMinutes'
       >
     >,
   ): void {
@@ -198,7 +198,7 @@ export default function App(): JSX.Element {
     patch: Partial<
       Pick<
         DayRecord,
-        'annualLeaveType' | 'clockIn' | 'clockOut' | 'dinnerChecked' | 'nonWorkMinutes' | 'claimedOtMinutes'
+        'annualLeaveType' | 'officialLeaveMinutes' | 'clockIn' | 'clockOut' | 'dinnerChecked' | 'nonWorkMinutes' | 'claimedOtMinutes'
       >
     >,
   ): void {

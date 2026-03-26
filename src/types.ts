@@ -1,11 +1,17 @@
 ﻿export type TimeField = 'clockIn' | 'clockOut';
 
-export type AnnualLeaveType = 'none' | 'quarter' | 'half' | 'full';
+export type AnnualLeaveType =
+  | 'none'
+  | 'quarter'
+  | 'half'
+  | 'full'
+  | 'official';
 
 export interface DayRecord {
   date: string;
   isHoliday: boolean;
   annualLeaveType: AnnualLeaveType;
+  officialLeaveMinutes: number;
   clockIn: string;
   clockOut: string;
   dinnerChecked: boolean;

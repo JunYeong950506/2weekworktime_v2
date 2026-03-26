@@ -1,4 +1,4 @@
-﻿import dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import {
   DAILY_REGULAR_MINUTES,
@@ -48,8 +48,17 @@ function sanitizeMinutes(value: number): number {
   return Math.max(0, Math.round(value));
 }
 
+function clampOfficialLeaveMinutes(value: number): number {
+  return Math.min(480, sanitizeMinutes(value));
+}
+
 function normalizeAnnualLeaveType(value: unknown): AnnualLeaveType {
-  if (value === 'quarter' || value === 'half' || value === 'full') {
+  if (
+    value === 'quarter' ||
+    value === 'half' ||
+    value === 'full' ||
+    value === 'official'
+  ) {
     return value;
   }
 
@@ -85,11 +94,18 @@ export function recalculateDayRecord(source: DayRecord): {
 } {
   const dayFlags = getDayFlags(source.date);
   const selectedAnnualLeaveType = normalizeAnnualLeaveType(source.annualLeaveType);
+  const sanitizedOfficialLeaveMinutes = clampOfficialLeaveMinutes(
+    source.officialLeaveMinutes,
+  );
   const isSpecialWorkMode =
     dayFlags.isSaturday || dayFlags.isSunday || source.isHoliday;
+
   const effectiveAnnualLeaveType: AnnualLeaveType = isSpecialWorkMode
     ? 'none'
     : selectedAnnualLeaveType;
+  const effectiveOfficialLeaveMinutes = isSpecialWorkMode
+    ? 0
+    : sanitizedOfficialLeaveMinutes;
   const isAnnualLeaveFullMode = effectiveAnnualLeaveType === 'full';
 
   const claimedOtMinutes = isAnnualLeaveFullMode
@@ -115,25 +131,32 @@ export function recalculateDayRecord(source: DayRecord): {
     clockOutMinutes = parsedClockOut?.totalMinutes ?? null;
 
     if (hasClockIn && clockInMinutes === null) {
-      validationErrors.push('출근시간 형식은 HH:mm (24시간) 이어야 합니다.');
+      validationErrors.push('\uCD9C\uADFC\uC2DC\uAC04 \uD615\uC2DD\uC740 HH:mm (24\uC2DC\uAC04) \uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4.');
     }
 
     if (hasClockOut && clockOutMinutes === null) {
-      validationErrors.push('퇴근시간 형식은 HH:mm (24시간) 이어야 합니다.');
+      validationErrors.push('\uD1F4\uADFC\uC2DC\uAC04 \uD615\uC2DD\uC740 HH:mm (24\uC2DC\uAC04) \uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4.');
     }
 
     if (clockInMinutes !== null && clockInMinutes < CLOCK_IN_MIN_MINUTES) {
-      validationErrors.push('출근시간은 06:00~23:59 범위만 입력할 수 있습니다.');
+      validationErrors.push('\uCD9C\uADFC\uC2DC\uAC04\uC740 06:00~23:59 \uBC94\uC704\uB9CC \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.');
     }
 
     if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
-      validationErrors.push('미입력된 시간이 있습니다.');
+      validationErrors.push('\uBBF8\uC785\uB825\uB41C \uC2DC\uAC04\uC774 \uC788\uC2B5\uB2C8\uB2E4.');
     }
+  }
+
+  if (
+    effectiveAnnualLeaveType === 'official' &&
+    effectiveOfficialLeaveMinutes <= 0
+  ) {
+    leaveNotice = '\uACF5\uAC00 \uC2DC\uAC04\uC740 \uBD84 \uB2E8\uC704\uB85C \uC785\uB825\uD558\uC138\uC694.';
   }
 
   if (isPartialLeave(effectiveAnnualLeaveType) && !isAnnualLeaveFullMode) {
     if (!hasClockIn || !hasClockOut) {
-      leaveNotice = '반차/반반차는 실제 근무시간 4시간 이상일 때 인정됩니다.';
+      leaveNotice = '\uBC18\uCC28/\uBC18\uBC18\uCC28\uB294 \uC2E4\uC81C \uADFC\uBB34\uC2DC\uAC04 4\uC2DC\uAC04 \uC774\uC0C1\uC77C \uB54C \uC778\uC815\uB429\uB2C8\uB2E4.';
     }
   }
 
@@ -148,15 +171,17 @@ export function recalculateDayRecord(source: DayRecord): {
     overtimeMinutes = 0;
     recommendedOtMinutes = null;
     earlyLeaveBalanceMinutes = null;
-    leaveNotice = '연차 사용일은 출퇴근 입력이 필요 없습니다.';
+    leaveNotice = '\uC5F0\uCC28 \uC0AC\uC6A9\uC77C\uC740 \uCD9C\uD1F4\uADFC \uC785\uB825\uC774 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.';
   } else {
-    const canCalculate =
+    const canCalculateFromClock =
       !isSpecialWorkMode &&
       clockInMinutes !== null &&
       clockOutMinutes !== null &&
       clockInMinutes >= CLOCK_IN_MIN_MINUTES;
 
-    if (canCalculate && clockInMinutes !== null && clockOutMinutes !== null) {
+    let actualWorkedMinutes: number | null = null;
+
+    if (canCalculateFromClock && clockInMinutes !== null && clockOutMinutes !== null) {
       const normalizedClockOutMinutes = normalizeOvernightCheckout(
         clockInMinutes,
         clockOutMinutes,
@@ -164,25 +189,36 @@ export function recalculateDayRecord(source: DayRecord): {
       const stayedMinutes = Math.max(0, normalizedClockOutMinutes - clockInMinutes);
       const breakMinutes = getBreakMinutesFromStayed(stayedMinutes);
       const dinnerDeductionMinutes = source.dinnerChecked ? DINNER_BREAK_MINUTES : 0;
-      const actualWorkedMinutes = Math.max(
+
+      actualWorkedMinutes = Math.max(
         0,
         stayedMinutes - breakMinutes - dinnerDeductionMinutes - nonWorkMinutes,
       );
-
       workMinutes = actualWorkedMinutes;
+    } else if (effectiveAnnualLeaveType === 'official' && !hasClockIn && !hasClockOut) {
+      actualWorkedMinutes = 0;
+      workMinutes = 0;
+    }
 
-      let appliedAnnualLeaveMinutes = getAnnualLeaveMinutes(effectiveAnnualLeaveType);
+    if (actualWorkedMinutes !== null) {
+      let appliedLeaveMinutes = 0;
+
+      if (effectiveAnnualLeaveType === 'official') {
+        appliedLeaveMinutes = effectiveOfficialLeaveMinutes;
+      } else {
+        appliedLeaveMinutes = getAnnualLeaveMinutes(effectiveAnnualLeaveType);
+      }
 
       if (
         isPartialLeave(effectiveAnnualLeaveType) &&
         actualWorkedMinutes < MIN_WORK_MINUTES_FOR_PARTIAL_LEAVE
       ) {
-        appliedAnnualLeaveMinutes = 0;
+        appliedLeaveMinutes = 0;
         leaveWarning =
-          '반차/반반차는 실제 근무시간 4시간 이상일 때만 사용할 수 있습니다.';
+          '\uBC18\uCC28/\uBC18\uBC18\uCC28\uB294 \uC2E4\uC81C \uADFC\uBB34\uC2DC\uAC04 4\uC2DC\uAC04 \uC774\uC0C1\uC77C \uB54C\uB9CC \uC0AC\uC6A9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.';
       }
 
-      const recognizedWorkedMinutes = actualWorkedMinutes + appliedAnnualLeaveMinutes;
+      const recognizedWorkedMinutes = actualWorkedMinutes + appliedLeaveMinutes;
 
       regularMinutes = Math.min(recognizedWorkedMinutes, DAILY_REGULAR_MINUTES);
       overtimeMinutes = Math.max(0, recognizedWorkedMinutes - DAILY_REGULAR_MINUTES);
@@ -201,6 +237,7 @@ export function recalculateDayRecord(source: DayRecord): {
     record: {
       ...source,
       annualLeaveType: effectiveAnnualLeaveType,
+      officialLeaveMinutes: effectiveOfficialLeaveMinutes,
       claimedOtMinutes,
       nonWorkMinutes,
       workMinutes,
@@ -299,3 +336,4 @@ export function recalculatePeriod(period: Period): PeriodCalculationResult {
     summary: calculateSummary(records, rowMeta),
   };
 }
+

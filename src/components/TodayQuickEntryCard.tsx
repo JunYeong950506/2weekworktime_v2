@@ -12,6 +12,7 @@ interface TodayQuickEntryCardProps {
       Pick<
         DayRecord,
         | 'annualLeaveType'
+        | 'officialLeaveMinutes'
         | 'clockIn'
         | 'clockOut'
         | 'dinnerChecked'
@@ -24,10 +25,11 @@ interface TodayQuickEntryCardProps {
 }
 
 const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
-  { value: 'none', label: '없음' },
+  { value: 'none', label: '정상근무' },
   { value: 'quarter', label: '반반차 (2시간)' },
   { value: 'half', label: '반차 (4시간)' },
   { value: 'full', label: '연차 (8시간)' },
+  { value: 'official', label: '공가' },
 ];
 
 function ClockIcon({ className }: { className?: string }): JSX.Element {
@@ -47,6 +49,7 @@ function ClockIcon({ className }: { className?: string }): JSX.Element {
     </svg>
   );
 }
+
 function TimeInputWithButton({
   label,
   value,
@@ -133,6 +136,7 @@ export default function TodayQuickEntryCard({
   const annualLeaveValue: AnnualLeaveType =
     record === null || isSpecialWorkMode ? 'none' : record.annualLeaveType;
   const isAnnualLeaveFullMode = annualLeaveValue === 'full';
+  const isOfficialLeaveMode = annualLeaveValue === 'official';
   const disableTimeAndDeductionInputs = isSpecialWorkMode || isAnnualLeaveFullMode;
 
   const showPartialLeaveNotice =
@@ -173,6 +177,12 @@ export default function TodayQuickEntryCard({
         {record && isAnnualLeaveFullMode ? (
           <p className="mt-2 text-xs text-slate-500">
             연차 사용일은 출퇴근 입력이 필요 없습니다.
+          </p>
+        ) : null}
+
+        {record && isOfficialLeaveMode && record.officialLeaveMinutes <= 0 ? (
+          <p className="mt-2 text-xs text-slate-500">
+            공가 시간은 분 단위로 입력하세요.
           </p>
         ) : null}
 
@@ -219,113 +229,138 @@ export default function TodayQuickEntryCard({
             />
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <div className="min-w-[280px] flex-1">
-              <div className="grid grid-cols-2 gap-2.5 items-end">
-                <label className="space-y-1">
-                  <span className="text-xs font-semibold text-slate-600">연차</span>
-                  <select
-                    value={annualLeaveValue}
-                    disabled={isSpecialWorkMode}
-                    onChange={(event) =>
-                      onPatchRecord({
-                        annualLeaveType: event.target.value as AnnualLeaveType,
-                      })
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    {ANNUAL_LEAVE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-2.5 items-end">
+              <label className="space-y-1 block">
+                <span className="text-xs font-semibold text-slate-600">연차 사용</span>
+                <select
+                  value={annualLeaveValue}
+                  disabled={isSpecialWorkMode}
+                  onChange={(event) =>
+                    onPatchRecord({
+                      annualLeaveType: event.target.value as AnnualLeaveType,
+                    })
+                  }
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {ANNUAL_LEAVE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-                <label className="space-y-1">
-                  <span className="text-xs font-semibold text-slate-600">석식 여부</span>
-                  <span
-                    className={`inline-flex h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors ${
-                      record.dinnerChecked
-                        ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                        : 'border-slate-300 bg-white text-slate-700'
-                    } ${disableTimeAndDeductionInputs ? 'opacity-60' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={record.dinnerChecked}
-                      disabled={disableTimeAndDeductionInputs}
-                      onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300"
-                    />
-                    석식
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div className="min-w-[280px] flex-1">
-              <div className="grid grid-cols-2 gap-2.5 items-end">
-                <label className="space-y-1">
-                  <span className="text-xs font-semibold text-slate-600">비업무시간(분)</span>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">석식 여부</span>
+                <span
+                  className={`inline-flex h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors ${
+                    record.dinnerChecked
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-300 bg-white text-slate-700'
+                  } ${disableTimeAndDeductionInputs ? 'opacity-60' : ''}`}
+                >
                   <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={disableTimeAndDeductionInputs ? 0 : record.nonWorkMinutes}
+                    type="checkbox"
+                    checked={record.dinnerChecked}
                     disabled={disableTimeAndDeductionInputs}
-                    onFocus={(event) => {
-                      if (record.nonWorkMinutes === 0) {
-                        event.currentTarget.select();
-                      }
-                    }}
-                    onChange={(event) =>
-                      onPatchRecord({
-                        nonWorkMinutes: Number(event.target.value || 0),
-                      })
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300"
                   />
-                </label>
+                  석식 먹음
+                </span>
+              </label>
+            </div>
 
-                <label className="space-y-1">
-                  <span className="text-xs font-semibold text-slate-600">실제 야근결재(분)</span>
+            {isOfficialLeaveMode ? (
+              <div className="grid grid-cols-2 gap-2.5 items-end">
+                <label className="space-y-1 block">
+                  <span className="text-xs font-semibold text-slate-600">공가시간(분)</span>
                   <input
                     type="number"
                     min={0}
+                    max={480}
                     step={1}
-                    value={isAnnualLeaveFullMode ? 0 : record.claimedOtMinutes}
-                    disabled={isAnnualLeaveFullMode}
+                    value={record.officialLeaveMinutes}
                     onFocus={(event) => {
-                      if (record.claimedOtMinutes === 0) {
+                      if (record.officialLeaveMinutes === 0) {
                         event.currentTarget.select();
                       }
                     }}
                     onChange={(event) =>
                       onPatchRecord({
-                        claimedOtMinutes: Number(event.target.value || 0),
+                        officialLeaveMinutes: Math.min(
+                          480,
+                          Math.max(0, Number(event.target.value || 0)),
+                        ),
                       })
                     }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base"
                   />
                 </label>
+
+                <div aria-hidden="true" className="h-11" />
               </div>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-2.5 items-end">
+              <label className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">비업무시간(분)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={disableTimeAndDeductionInputs ? 0 : record.nonWorkMinutes}
+                  disabled={disableTimeAndDeductionInputs}
+                  onFocus={(event) => {
+                    if (record.nonWorkMinutes === 0) {
+                      event.currentTarget.select();
+                    }
+                  }}
+                  onChange={(event) =>
+                    onPatchRecord({
+                      nonWorkMinutes: Number(event.target.value || 0),
+                    })
+                  }
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">실제 야근결재(분)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={isAnnualLeaveFullMode ? 0 : record.claimedOtMinutes}
+                  disabled={isAnnualLeaveFullMode}
+                  onFocus={(event) => {
+                    if (record.claimedOtMinutes === 0) {
+                      event.currentTarget.select();
+                    }
+                  }}
+                  onChange={(event) =>
+                    onPatchRecord({
+                      claimedOtMinutes: Number(event.target.value || 0),
+                    })
+                  }
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-right text-base disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                />
+              </label>
             </div>
 
-            <div className="min-w-[280px] flex-1">
-              <div className="grid grid-cols-2 gap-2.5 items-end">
-                <ResultChip
-                  title="오늘 근무시간"
-                  value={formatMinutesAsClock(record.workMinutes)}
-                  tone="blue"
-                />
+            <div className="grid grid-cols-2 gap-2.5 items-end">
+              <ResultChip
+                title="오늘 근무시간"
+                value={formatMinutesAsClock(record.workMinutes)}
+                tone="blue"
+              />
 
-                <ResultChip
-                  title="권장 야근결재"
-                  value={formatMinutesAsClock(record.recommendedOtMinutes)}
-                  tone="amber"
-                />
-              </div>
+              <ResultChip
+                title="권장 야근결재"
+                value={formatMinutesAsClock(record.recommendedOtMinutes)}
+                tone="amber"
+              />
             </div>
           </div>
         </div>
@@ -333,3 +368,4 @@ export default function TodayQuickEntryCard({
     </section>
   );
 }
+

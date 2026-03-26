@@ -31,8 +31,17 @@ function toNonNegativeInteger(value: unknown): number {
   return Math.max(0, Math.round(value));
 }
 
+function clampOfficialLeaveMinutes(value: unknown): number {
+  return Math.min(480, toNonNegativeInteger(value));
+}
+
 function normalizeAnnualLeaveType(value: unknown): AnnualLeaveType {
-  if (value === 'quarter' || value === 'half' || value === 'full') {
+  if (
+    value === 'quarter' ||
+    value === 'half' ||
+    value === 'full' ||
+    value === 'official'
+  ) {
     return value;
   }
 
@@ -48,6 +57,7 @@ function normalizeDayRecord(raw: unknown): DayRecord | null {
     date: typeof raw.date === 'string' ? raw.date : '',
     isHoliday: Boolean(raw.isHoliday),
     annualLeaveType: normalizeAnnualLeaveType(raw.annualLeaveType),
+    officialLeaveMinutes: clampOfficialLeaveMinutes(raw.officialLeaveMinutes),
     clockIn: typeof raw.clockIn === 'string' ? raw.clockIn : '',
     clockOut: typeof raw.clockOut === 'string' ? raw.clockOut : '',
     dinnerChecked:

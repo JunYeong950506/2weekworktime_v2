@@ -101,14 +101,14 @@ export default function PeriodManager({
                 onClick={() => setIsCreateOpen((prev) => !prev)}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
               >
-                새 구간 생성
+                ✦ 새 구간 생성
               </button>
               <button
                 type="button"
                 onClick={onSave}
                 className="min-w-[220px] rounded-lg bg-emerald-600 px-6 py-2.5 text-base font-semibold text-white hover:bg-emerald-500"
               >
-                저장
+                💾 저장
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
@@ -180,7 +180,7 @@ export default function PeriodManager({
       ) : null}
 
       <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-3">
-        <p className="text-xs font-semibold tracking-wide text-rose-700">데이터 관리</p>
+        <p className="text-xs font-semibold tracking-wide text-rose-700">⚙ 데이터 관리</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
