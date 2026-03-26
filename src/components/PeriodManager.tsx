@@ -101,12 +101,12 @@ export default function PeriodManager({
                 onClick={() => setIsCreateOpen((prev) => !prev)}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
               >
-                ✦ 새 구간 생성
+                + 새 구간 생성
               </button>
               <button
                 type="button"
                 onClick={onSave}
-                className="min-w-[220px] rounded-lg bg-emerald-600 px-6 py-2.5 text-base font-semibold text-white hover:bg-emerald-500"
+                className="min-w-[180px] rounded-lg bg-emerald-600 px-6 py-2.5 text-base font-semibold text-white hover:bg-emerald-500"
               >
                 💾 저장
               </button>
