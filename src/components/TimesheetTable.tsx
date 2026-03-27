@@ -71,19 +71,19 @@ function getWorkTypeLabel(record: DayRecord, meta?: DayRecordMeta): string {
 
 function getWorkTypeBadgeClass(record: DayRecord, meta?: DayRecordMeta): string {
   if (meta?.isSpecialWorkMode) {
-    return 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]';
+    return 'border-transparent bg-[#FAEEDA] text-[#633806]';
   }
 
   switch (record.annualLeaveType) {
     case 'full':
-      return 'border-[#A7F3D0] bg-[#ECFDF5] text-[#047857]';
+      return 'border-transparent bg-[#E1F5EE] text-[#085041]';
     case 'quarter':
     case 'half':
-      return 'border-[#DDD6FE] bg-[#F5F3FF] text-[#6D28D9]';
+      return 'border-transparent bg-[#EEEDFE] text-[#3C3489]';
     case 'official':
-      return 'border-[#FED7AA] bg-[#FFF7ED] text-[#C2410C]';
+      return 'border-transparent bg-[#EAF3DE] text-[#27500A]';
     default:
-      return 'border-[#BFDBFE] bg-[#EBF5FF] text-[#1E40AF]';
+      return 'border-transparent bg-[#E6F1FB] text-[#0C447C]';
   }
 }
 
