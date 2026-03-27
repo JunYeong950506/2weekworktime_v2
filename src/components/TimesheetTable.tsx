@@ -185,7 +185,7 @@ export default function TimesheetTable({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain] [touch-action:pan-x]">
           <table className="w-full whitespace-nowrap text-left">
             <thead className="border-b border-slate-100 bg-slate-50/80 text-[13px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
@@ -316,25 +316,18 @@ export default function TimesheetTable({
       </section>
 
       {editingIndex !== null && draft && modalRecord ? (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              closeModal();
-            }
-          }}
-        >
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4">
           <div className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]">
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">
                   {formatDateCell(modalRecord.date)}
                 </h3>
-                <p className="mt-1 text-sm font-bold text-slate-400">상세 근무 기록 수정</p>
+                <p className="mt-1 text-sm font-bold text-slate-400">상세 근무 기록 수정 후 저장하기</p>
               </div>
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={saveModal}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
                 aria-label="팝업 닫기"
               >
@@ -456,6 +449,11 @@ export default function TimesheetTable({
                     step={1}
                     value={disableTimeAndDeduction ? 0 : modalRecord.nonWorkMinutes}
                     disabled={disableTimeAndDeduction}
+                    onFocus={(event) => {
+                      if (modalRecord.nonWorkMinutes === 0) {
+                        event.currentTarget.select();
+                      }
+                    }}
                     onChange={(event) =>
                       patchDraft({ nonWorkMinutes: Number(event.target.value || 0) })
                     }
@@ -473,6 +471,11 @@ export default function TimesheetTable({
                     step={1}
                     value={modalFullLeave ? 0 : modalRecord.claimedOtMinutes}
                     disabled={modalFullLeave}
+                    onFocus={(event) => {
+                      if (modalRecord.claimedOtMinutes === 0) {
+                        event.currentTarget.select();
+                      }
+                    }}
                     onChange={(event) =>
                       patchDraft({ claimedOtMinutes: Number(event.target.value || 0) })
                     }
