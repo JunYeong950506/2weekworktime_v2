@@ -69,6 +69,24 @@ function getWorkTypeLabel(record: DayRecord, meta?: DayRecordMeta): string {
   }
 }
 
+function getWorkTypeBadgeClass(record: DayRecord, meta?: DayRecordMeta): string {
+  if (meta?.isSpecialWorkMode) {
+    return 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]';
+  }
+
+  switch (record.annualLeaveType) {
+    case 'full':
+      return 'border-[#A7F3D0] bg-[#ECFDF5] text-[#047857]';
+    case 'quarter':
+    case 'half':
+      return 'border-[#DDD6FE] bg-[#F5F3FF] text-[#6D28D9]';
+    case 'official':
+      return 'border-[#FED7AA] bg-[#FFF7ED] text-[#C2410C]';
+    default:
+      return 'border-[#BFDBFE] bg-[#EBF5FF] text-[#1E40AF]';
+  }
+}
+
 function formatClockRange(record: DayRecord, meta?: DayRecordMeta): string {
   if (meta?.isAnnualLeaveFullMode) {
     return '연차 사용';
@@ -185,7 +203,7 @@ export default function TimesheetTable({
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain] [touch-action:pan-x]">
+        <div className="overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain]">
           <table className="w-full whitespace-nowrap text-left">
             <thead className="border-b border-slate-100 bg-slate-50/80 text-[13px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
@@ -212,6 +230,7 @@ export default function TimesheetTable({
                 const isCurrentRow = isToday(record.date);
                 const isSpecialRow = meta?.isSpecialWorkMode ?? false;
                 const isSpecialInfoOpen = specialInfoOpenDate === record.date;
+                const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
 
                 return (
                   <tr
@@ -259,7 +278,7 @@ export default function TimesheetTable({
                             onKeyDown={(event) => event.stopPropagation()}
                             aria-label="특근 안내 보기"
                             aria-expanded={isSpecialInfoOpen}
-                            className="peer rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+                            className={`peer rounded-lg border px-3 py-1 text-xs font-bold transition hover:opacity-90 ${workTypeBadgeClass}`}
                           >
                             {workType}
                           </button>
@@ -274,7 +293,7 @@ export default function TimesheetTable({
                           </div>
                         </div>
                       ) : (
-                        <span className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+                        <span className={`rounded-lg border px-3 py-1 text-xs font-bold ${workTypeBadgeClass}`}>
                           {workType}
                         </span>
                       )}
