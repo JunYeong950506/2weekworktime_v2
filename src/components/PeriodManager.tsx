@@ -103,7 +103,7 @@ export default function PeriodManager({
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
             2주 자율출퇴근 계산기 ⏱️
           </h1>
-          <div className="mb-3 flex min-w-0 items-center gap-3">
+          <div className="mb-3 flex min-w-0 items-center gap-3 max-[520px]:flex-col max-[520px]:items-stretch">
             <div className="relative min-w-0 flex-1">
               <button
                 type="button"
@@ -139,7 +139,7 @@ export default function PeriodManager({
               />
             </div>
 
-            <div className="w-40 shrink-0 sm:w-56">
+            <div className="w-40 shrink-0 sm:w-56 max-[520px]:w-full">
               <label className="sr-only" htmlFor="period-selector">
                 2주 단위 구간 선택
               </label>

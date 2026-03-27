@@ -180,8 +180,8 @@ export default function TimesheetTable({
             최근 2주 근무기록
           </h3>
           <div className="text-xs text-slate-400 md:text-right">
-            <p>계산은 분(minute) 단위로 HR시스템과 오차가 발생할 수 있습니다.</p>
-            <p>임시 공휴일은 직접 수정해주세요.</p>
+            <p>계산은 분 단위라 HR과 오차가 있을 수 있습니다.</p>
+            <p>임시 공휴일은 직접 수정해 주세요.</p>
           </div>
         </div>
 
@@ -264,7 +264,7 @@ export default function TimesheetTable({
                             {workType}
                           </button>
                           <div
-                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-40 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
+                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-56 max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
                               isSpecialInfoOpen
                                 ? 'opacity-100'
                                 : 'opacity-0 md:peer-hover:opacity-100 md:peer-focus-visible:opacity-100'
@@ -346,14 +346,14 @@ export default function TimesheetTable({
 
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:p-8">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
-                    <label className="block text-xs font-bold text-slate-400">출근 시간</label>
+                <div className="min-w-0 w-full flex-1">
+                  <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
+                    <label className="block min-w-0 text-xs font-bold text-slate-400">출근 시간</label>
                     <button
                       type="button"
                       onClick={() => patchDraft({ clockIn: '' })}
                       disabled={disableTimeAndDeduction || modalRecord.clockIn.length === 0}
-                      className="text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                      className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
                     >
                       초기화
                     </button>
@@ -366,18 +366,18 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockIn: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                    className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
                 <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
-                    <label className="block text-xs font-bold text-slate-400">퇴근 시간</label>
+                <div className="min-w-0 w-full flex-1">
+                  <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
+                    <label className="block min-w-0 text-xs font-bold text-slate-400">퇴근 시간</label>
                     <button
                       type="button"
                       onClick={() => patchDraft({ clockOut: '' })}
                       disabled={disableTimeAndDeduction || modalRecord.clockOut.length === 0}
-                      className="text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                      className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
                     >
                       초기화
                     </button>
@@ -390,7 +390,7 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockOut: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                    className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
               </div>
@@ -505,13 +505,6 @@ export default function TimesheetTable({
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between rounded-2xl bg-slate-800 p-5 text-white shadow-lg">
-                <span className="text-sm font-bold text-slate-300">최종 근무시간</span>
-                <span className="text-3xl font-extrabold tracking-tight">
-                  {formatMinutesAsClock(modalRecord.workMinutes)}
-                </span>
-              </div>
-
               {modalMeta && modalMeta.validationErrors.length > 0 ? (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
                   {modalMeta.validationErrors.map((message, idx) => (
@@ -519,23 +512,30 @@ export default function TimesheetTable({
                   ))}
                 </div>
               ) : null}
-            </div>
 
-            <div className="flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:gap-3 sm:px-8 sm:pb-8">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="w-full rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200 sm:flex-1"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={saveModal}
-                className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700 sm:flex-[2]"
-              >
-                기록 저장하기
-              </button>
+              <div className="flex items-center justify-between rounded-2xl bg-slate-800 p-5 text-white shadow-lg">
+                <span className="text-sm font-bold text-slate-300">최종 근무시간</span>
+                <span className="text-3xl font-extrabold tracking-tight">
+                  {formatMinutesAsClock(modalRecord.workMinutes)}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="w-full rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200 sm:flex-1"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={saveModal}
+                  className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700 sm:flex-[2]"
+                >
+                  기록 저장하기
+                </button>
+              </div>
             </div>
           </div>
         </div>
