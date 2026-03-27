@@ -1,4 +1,7 @@
-﻿import { AnnualLeaveType, DayRecord, DayRecordMeta } from '../types';
+import { useEffect, useMemo, useState } from 'react';
+
+import { recalculateDayRecord } from '../utils/calculations';
+import { AnnualLeaveType, DayRecord, DayRecordMeta } from '../types';
 import {
   formatDateCell,
   formatMinutesAsClock,
@@ -35,56 +38,6 @@ const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
   { value: 'official', label: '공가' },
 ];
 
-function TimeInputCell({
-  value,
-  min,
-  max,
-  clearLabel,
-  onChange,
-}: {
-  value: string;
-  min?: string;
-  max?: string;
-  clearLabel: string;
-  onChange: (value: string) => void;
-}): JSX.Element {
-  const hasValue = value.trim() !== '';
-
-  return (
-    <div className="relative mx-auto w-fit">
-      <input
-        type="time"
-        step={60}
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        title="HH:mm (24시간 형식)"
-        className={`h-8 w-[11rem] max-w-full rounded-md border border-slate-300 bg-sky-50 py-1 pl-2 text-xs table-time-input ${
-          hasValue ? 'pr-2' : 'pr-2'
-        }`}
-      />
-
-      {hasValue ? (
-        <button
-          type="button"
-          onClick={() => onChange('')}
-          title={clearLabel}
-          aria-label={clearLabel}
-          className="absolute right-10 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-xs font-semibold text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-        >
-          <span
-            aria-hidden="true"
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 leading-none"
-          >
-            &times;
-          </span>
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 function getDateToneClass(record: DayRecord, meta?: DayRecordMeta): string {
   if (record.isHoliday || meta?.isSunday) {
     return 'text-rose-600';
@@ -94,7 +47,41 @@ function getDateToneClass(record: DayRecord, meta?: DayRecordMeta): string {
     return 'text-blue-600';
   }
 
-  return 'text-slate-800';
+  return 'text-slate-700';
+}
+
+function getWorkTypeLabel(record: DayRecord, meta?: DayRecordMeta): string {
+  if (meta?.isSpecialWorkMode) {
+    return '특근/휴일';
+  }
+
+  switch (record.annualLeaveType) {
+    case 'quarter':
+      return '반반차';
+    case 'half':
+      return '반차';
+    case 'full':
+      return '연차';
+    case 'official':
+      return '공가';
+    default:
+      return '정상근무';
+  }
+}
+
+function formatClockRange(record: DayRecord, meta?: DayRecordMeta): string {
+  if (meta?.isAnnualLeaveFullMode) {
+    return '연차 사용';
+  }
+
+  if (meta?.isSpecialWorkMode) {
+    return '특근/휴일';
+  }
+
+  const inValue = record.clockIn.trim() || '--:--';
+  const outValue = record.clockOut.trim() || '--:--';
+
+  return `${inValue} - ${outValue}`;
 }
 
 export default function TimesheetTable({
@@ -102,285 +89,397 @@ export default function TimesheetTable({
   rowMeta,
   onPatchRecord,
 }: TimesheetTableProps): JSX.Element {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [draft, setDraft] = useState<DayRecord | null>(null);
+
+  const preview = useMemo(() => {
+    if (!draft) {
+      return null;
+    }
+
+    return recalculateDayRecord(draft);
+  }, [draft]);
+
+  function openModal(index: number): void {
+    const source = records[index];
+    if (!source) {
+      return;
+    }
+
+    setEditingIndex(index);
+    setDraft({ ...source });
+  }
+
+  function closeModal(): void {
+    setEditingIndex(null);
+    setDraft(null);
+  }
+
+  function patchDraft(patch: Partial<DayRecord>): void {
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  function saveModal(): void {
+    if (editingIndex === null || !draft) {
+      return;
+    }
+
+    onPatchRecord(editingIndex, {
+      isHoliday: draft.isHoliday,
+      annualLeaveType: draft.annualLeaveType,
+      officialLeaveMinutes: draft.officialLeaveMinutes,
+      clockIn: draft.clockIn,
+      clockOut: draft.clockOut,
+      dinnerChecked: draft.dinnerChecked,
+      nonWorkMinutes: draft.nonWorkMinutes,
+      claimedOtMinutes: draft.claimedOtMinutes,
+    });
+
+    closeModal();
+  }
+
+  useEffect(() => {
+    if (editingIndex === null) {
+      return;
+    }
+
+    function handleEscape(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [editingIndex]);
+
+  const modalMeta = preview?.meta ?? null;
+  const modalRecord = preview?.record ?? null;
+  const modalSpecialMode = modalMeta?.isSpecialWorkMode ?? false;
+  const modalAnnualLeaveValue: AnnualLeaveType = modalRecord
+    ? modalSpecialMode
+      ? 'none'
+      : modalRecord.annualLeaveType
+    : 'none';
+  const modalFullLeave = modalMeta?.isAnnualLeaveFullMode ?? false;
+  const disableTimeAndDeduction = modalSpecialMode || modalFullLeave;
+  const showOfficialInput = modalAnnualLeaveValue === 'official' && !modalSpecialMode;
+
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className="w-full min-w-[1380px] border-collapse text-xs">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-1.5 py-1.5">날짜</th>
-            <th className="px-1.5 py-1.5">공휴일</th>
-            <th className="px-1.5 py-1.5">근무 형태</th>
-            <th className="px-1.5 py-1.5">출근시간</th>
-            <th className="px-1.5 py-1.5">퇴근시간</th>
-            <th className="px-1.5 py-1.5">석식</th>
-            <th className="px-1.5 py-1.5">비업무시간(분)</th>
-            <th className="px-1.5 py-1.5">근무시간</th>
-            <th className="px-1.5 py-1.5">정규 업무시간</th>
-            <th className="px-1.5 py-1.5">추가 근무시간</th>
-            <th className="px-1.5 py-1.5">권장 야근결재</th>
-            <th className="px-1.5 py-1.5">실제 야근결재(분)</th>
-            <th className="px-1.5 py-1.5">조기퇴근 적립/부족</th>
-          </tr>
-        </thead>
+    <>
+      <section className="surface-panel overflow-hidden px-0 py-0">
+        <div className="flex flex-col gap-2 border-b border-slate-100 px-8 py-6 md:flex-row md:items-center md:justify-between">
+          <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-800">
+            <span className="icon-pill" aria-hidden="true">
+              📅
+            </span>
+            최근 2주 근무기록
+          </h3>
+          <div className="text-sm text-slate-400 md:text-right">
+            <p>계산은 분(minute) 단위로 HR시스템과 오차가 발생할 수 있습니다.</p>
+            <p>임시 공휴일은 직접 수정해주세요.</p>
+          </div>
+        </div>
 
-        <tbody>
-          {records.map((record, index) => {
-            const meta = rowMeta[index];
-            const hasError = (meta?.validationErrors.length ?? 0) > 0;
-            const isSpecialWorkMode = meta?.isSpecialWorkMode ?? false;
-            const isAnnualLeaveFullMode = meta?.isAnnualLeaveFullMode ?? false;
-            const dateToneClass = getDateToneClass(record, meta);
-            const annualLeaveValue: AnnualLeaveType = isSpecialWorkMode
-              ? 'none'
-              : record.annualLeaveType;
-            const isOfficialLeaveMode = annualLeaveValue === 'official';
+        <div className="overflow-x-auto">
+          <table className="w-full whitespace-nowrap text-left">
+            <thead className="border-b border-slate-100 bg-slate-50/80 text-[13px] font-bold uppercase tracking-wider text-slate-400">
+              <tr>
+                <th className="px-8 py-4">날짜</th>
+                <th className="px-4 py-4">출근 - 퇴근</th>
+                <th className="px-4 py-4 text-center">근무 형태</th>
+                <th className="px-4 py-4 text-center">근무 시간</th>
+                <th className="px-4 py-4 text-center">실제 야근결재</th>
+                <th className="px-4 py-4 text-center">조기/초과</th>
+                <th className="px-6 py-4 text-right" />
+              </tr>
+            </thead>
 
-            return (
-              <tr
-                key={record.date}
-                className={`${
-                  isToday(record.date)
-                    ? 'bg-amber-50/80'
-                    : index % 2 === 0
-                      ? 'bg-white'
-                      : 'bg-slate-50/60'
-                } border-b border-slate-200 align-top`}
+            <tbody className="text-sm">
+              {records.map((record, index) => {
+                const meta = rowMeta[index];
+                const hasError = (meta?.validationErrors.length ?? 0) > 0;
+                const dateToneClass = getDateToneClass(record, meta);
+                const workType = getWorkTypeLabel(record, meta);
+                const clockRange = formatClockRange(record, meta);
+                const workLabel = formatMinutesAsClock(record.workMinutes);
+                const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
+                const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
+                const isCurrentRow = isToday(record.date);
+
+                return (
+                  <tr
+                    key={record.date}
+                    onClick={() => openModal(index)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openModal(index);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    className={`group cursor-pointer border-b border-slate-50 transition ${
+                      isCurrentRow ? 'bg-indigo-50/70' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <td className="px-8 py-5">
+                      <div className={`text-base font-bold ${dateToneClass}`}>
+                        {formatDateCell(record.date)}
+                      </div>
+                      {hasError ? (
+                        <p className="mt-1 text-xs text-rose-500">입력 검증 메시지 확인 필요</p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-5 text-base font-extrabold text-slate-700">{clockRange}</td>
+                    <td className="px-4 py-5 text-center">
+                      <span className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+                        {workType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-5 text-center text-base font-bold text-indigo-600">
+                      {workLabel}
+                    </td>
+                    <td className="px-4 py-5 text-center text-base font-bold text-orange-500">
+                      {claimedLabel}
+                    </td>
+                    <td className="px-4 py-5 text-center text-base font-bold text-pink-500">
+                      {balanceLabel}
+                    </td>
+                    <td className="px-6 py-5 text-right text-slate-300 transition group-hover:text-indigo-500">
+                      <span className="mr-1 text-xs font-bold opacity-0 transition group-hover:opacity-100">
+                        수정
+                      </span>
+                      <svg
+                        className="inline h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2.5"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {editingIndex !== null && draft && modalRecord ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closeModal();
+            }
+          }}
+        >
+          <div className="relative w-full max-w-md overflow-hidden rounded-[32px] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100/80 px-8 pb-5 pt-8">
+              <div>
+                <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                  {formatDateCell(modalRecord.date)}
+                </h3>
+                <p className="mt-1 text-sm font-bold text-slate-400">상세 근무 기록 수정</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+                aria-label="팝업 닫기"
               >
-                <td className="px-1.5 py-1.5 font-medium">
-                  <div className={dateToneClass}>{formatDateCell(record.date)}</div>
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-                  {hasError ? (
-                    <div className="mt-1 space-y-0.5 text-xs text-rose-600">
-                      {meta.validationErrors.map((error, errorIndex) => (
-                        <p key={`${record.date}-error-${errorIndex}`}>{error}</p>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {meta?.leaveNotice ? (
-                    <p className="mt-1 text-xs text-amber-600">{meta.leaveNotice}</p>
-                  ) : null}
-
-                  {meta?.leaveWarning ? (
-                    <p className="mt-1 text-xs text-rose-600">{meta.leaveWarning}</p>
-                  ) : null}
-                </td>
-
-                <td className="px-1.5 py-1.5 text-center">
+            <div className="space-y-6 p-8">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">출근 시간</label>
                   <input
-                    type="checkbox"
-                    checked={record.isHoliday}
+                    type="time"
+                    step={60}
+                    min="06:00"
+                    max="23:59"
+                    value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
+                    disabled={disableTimeAndDeduction}
+                    onChange={(event) => patchDraft({ clockIn: event.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                  />
+                </div>
+                <div className="mt-5 text-xl font-bold text-slate-300">→</div>
+                <div className="flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">퇴근 시간</label>
+                  <input
+                    type="time"
+                    step={60}
+                    min="00:00"
+                    max="23:59"
+                    value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
+                    disabled={disableTimeAndDeduction}
+                    onChange={(event) => patchDraft({ clockOut: event.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                <div>
+                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">연차 사용</label>
+                  <select
+                    value={modalAnnualLeaveValue}
+                    disabled={modalSpecialMode}
                     onChange={(event) =>
-                      onPatchRecord(index, {
-                        isHoliday: event.target.checked,
-                        annualLeaveType: event.target.checked
-                          ? 'none'
-                          : record.annualLeaveType,
-                        officialLeaveMinutes: event.target.checked
-                          ? 0
-                          : record.officialLeaveMinutes,
+                      patchDraft({ annualLeaveType: event.target.value as AnnualLeaveType })
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {ANNUAL_LEAVE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">석식 먹음</label>
+                  <label className="ml-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={modalRecord.dinnerChecked}
+                      disabled={disableTimeAndDeduction}
+                      onChange={(event) => patchDraft({ dinnerChecked: event.target.checked })}
+                      className="peer sr-only"
+                    />
+                    <span className="relative block h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-transform peer-checked:bg-indigo-500 peer-checked:after:translate-x-full peer-disabled:cursor-not-allowed peer-disabled:opacity-60" />
+                  </label>
+                </div>
+
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    id="holiday-checkbox-modal"
+                    type="checkbox"
+                    checked={modalRecord.isHoliday}
+                    onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
+                    className="field-check"
+                  />
+                  <label
+                    htmlFor="holiday-checkbox-modal"
+                    className="text-xs font-bold text-slate-500"
+                  >
+                    공휴일로 처리
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">
+                    비업무 시간 (분)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={disableTimeAndDeduction ? 0 : modalRecord.nonWorkMinutes}
+                    disabled={disableTimeAndDeduction}
+                    onChange={(event) =>
+                      patchDraft({ nonWorkMinutes: Number(event.target.value || 0) })
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-right text-lg font-bold text-slate-700 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold text-indigo-500">
+                    실제 야근결재 (분)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={modalFullLeave ? 0 : modalRecord.claimedOtMinutes}
+                    disabled={modalFullLeave}
+                    onChange={(event) =>
+                      patchDraft({ claimedOtMinutes: Number(event.target.value || 0) })
+                    }
+                    className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-right text-lg font-bold text-indigo-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                  />
+                </div>
+              </div>
+
+              {showOfficialInput ? (
+                <div>
+                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">
+                    공가 시간 (분)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={480}
+                    step={1}
+                    value={modalRecord.officialLeaveMinutes}
+                    onChange={(event) =>
+                      patchDraft({
+                        officialLeaveMinutes: Math.min(
+                          480,
+                          Math.max(0, Number(event.target.value || 0)),
+                        ),
                       })
                     }
-                    className="h-4 w-4 rounded border-slate-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-right text-lg font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
-                </td>
+                </div>
+              ) : null}
 
-                <td className="px-1.5 py-1.5 text-center align-top">
-                  <div className="mx-auto flex w-28 flex-col gap-1">
-                    <select
-                      value={annualLeaveValue}
-                      disabled={isSpecialWorkMode}
-                      onChange={(event) =>
-                        onPatchRecord(index, {
-                          annualLeaveType: event.target.value as AnnualLeaveType,
-                        })
-                      }
-                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                    >
-                      {ANNUAL_LEAVE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+              <div className="flex items-center justify-between rounded-2xl bg-slate-800 p-5 text-white shadow-lg">
+                <span className="text-sm font-bold text-slate-300">최종 근무시간</span>
+                <span className="text-3xl font-extrabold tracking-tight">
+                  {formatMinutesAsClock(modalRecord.workMinutes)}
+                </span>
+              </div>
 
-                    {isOfficialLeaveMode ? (
-                      <input
-                        type="number"
-                        min={0}
-                        max={480}
-                        step={1}
-                        value={record.officialLeaveMinutes}
-                        onFocus={(event) => {
-                          if (record.officialLeaveMinutes === 0) {
-                            event.currentTarget.select();
-                          }
-                        }}
-                        onChange={(event) =>
-                          onPatchRecord(index, {
-                            officialLeaveMinutes: Math.min(
-                              480,
-                              Math.max(0, Number(event.target.value || 0)),
-                            ),
-                          })
-                        }
-                        className="w-full rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-right text-xs"
-                      />
-                    ) : null}
-                  </div>
-                </td>
+              {modalMeta && modalMeta.validationErrors.length > 0 ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
+                  {modalMeta.validationErrors.map((message, idx) => (
+                    <p key={`modal-error-${idx}`}>{message}</p>
+                  ))}
+                </div>
+              ) : null}
+            </div>
 
-                {isSpecialWorkMode ? (
-                  <>
-                    <td className="px-1.5 py-1.5" colSpan={8}>
-                      <div className="min-h-[32px] rounded-md px-1 text-xs text-slate-400">
-                        💡 HR시스템을 참고해서 실제 특근 시간을 야근 결재에 입력하세요.
-                      </div>
-                    </td>
-
-                    <td className="px-1.5 py-1.5 text-center">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={record.claimedOtMinutes}
-                        onFocus={(event) => {
-                          if (record.claimedOtMinutes === 0) {
-                            event.currentTarget.select();
-                          }
-                        }}
-                        onChange={(event) =>
-                          onPatchRecord(index, {
-                            claimedOtMinutes: Number(event.target.value || 0),
-                          })
-                        }
-                        className="w-20 rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-right text-xs"
-                      />
-                    </td>
-
-                    <td className="px-1.5 py-1.5" />
-                  </>
-                ) : isAnnualLeaveFullMode ? (
-                  <>
-                    <td className="px-1.5 py-1.5" colSpan={5}>
-                      <div className="min-h-[32px] rounded-md px-1 text-xs text-slate-400">
-                        연차 사용일은 출퇴근 입력이 필요 없습니다.
-                      </div>
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.regularMinutes)}
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.overtimeMinutes)}
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center" />
-
-                    <td className="px-1.5 py-1.5 text-center" />
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center" />
-                  </>
-                ) : (
-                  <>
-                    <td className="px-1.5 py-1.5">
-                      <TimeInputCell
-                        value={record.clockIn}
-                        min="06:00"
-                        max="23:59"
-                        clearLabel="출근시간 지우기"
-                        onChange={(value) => onPatchRecord(index, { clockIn: value })}
-                      />
-                    </td>
-
-                    <td className="px-1.5 py-1.5">
-                      <TimeInputCell
-                        value={record.clockOut}
-                        min="00:00"
-                        max="23:59"
-                        clearLabel="퇴근시간 지우기"
-                        onChange={(value) => onPatchRecord(index, { clockOut: value })}
-                      />
-                    </td>
-
-                    <td className="px-1.5 py-1.5 text-center">
-                      <input
-                        type="checkbox"
-                        checked={record.dinnerChecked}
-                        onChange={(event) =>
-                          onPatchRecord(index, { dinnerChecked: event.target.checked })
-                        }
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                    </td>
-
-                    <td className="px-1.5 py-1.5 text-center">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={record.nonWorkMinutes}
-                        onFocus={(event) => {
-                          if (record.nonWorkMinutes === 0) {
-                            event.currentTarget.select();
-                          }
-                        }}
-                        onChange={(event) =>
-                          onPatchRecord(index, {
-                            nonWorkMinutes: Number(event.target.value || 0),
-                          })
-                        }
-                        className="w-20 rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-right text-xs"
-                      />
-                    </td>
-
-                    <td className="px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.workMinutes)}
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.regularMinutes)}
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.overtimeMinutes)}
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatMinutesAsClock(record.recommendedOtMinutes)}
-                    </td>
-
-                    <td className="px-1.5 py-1.5 text-center">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={record.claimedOtMinutes}
-                        onFocus={(event) => {
-                          if (record.claimedOtMinutes === 0) {
-                            event.currentTarget.select();
-                          }
-                        }}
-                        onChange={(event) =>
-                          onPatchRecord(index, {
-                            claimedOtMinutes: Number(event.target.value || 0),
-                          })
-                        }
-                        className="w-20 rounded-md border border-slate-300 bg-sky-50 px-2 py-1 text-right text-xs"
-                      />
-                    </td>
-
-                    <td className="bg-slate-100 px-1.5 py-1.5 text-center font-semibold text-slate-700">
-                      {formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes)}
-                    </td>
-                  </>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            <div className="flex gap-3 px-8 pb-8">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="flex-1 rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={saveModal}
+                className="flex-[2] rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700"
+              >
+                기록 저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 import { CreatePeriodPayload, Period } from '../types';
 import { formatSavedAt } from '../utils/time';
@@ -66,15 +66,21 @@ export default function PeriodManager({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-soft">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            2주 단위 구간 선택
+    <section className="surface-panel">
+      <header className="flex flex-col gap-4 border-b border-slate-200/80 pb-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
+            2주 자율출퇴근 계산기 ⏱️
+          </h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="sr-only" htmlFor="period-selector">
+              2주 단위 구간 선택
+            </label>
             <select
+              id="period-selector"
               value={selectedPeriodId ?? ''}
               onChange={(event) => onSelectPeriod(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="field-select h-11 min-w-[220px]"
             >
               {periods.map((period) => (
                 <option key={period.id} value={period.id}>
@@ -82,124 +88,114 @@ export default function PeriodManager({
                 </option>
               ))}
             </select>
-          </label>
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            2주 시작일
+            <label className="sr-only" htmlFor="period-start-date">
+              2주 시작일
+            </label>
             <input
+              id="period-start-date"
               type="date"
               value={selectedStartDate}
               onChange={(event) => onChangeStartDate(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-sky-50 px-3 py-2"
+              className="field-input h-11 min-w-[180px]"
             />
-          </label>
-
-          <div>
-            <div className="flex flex-wrap items-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen((prev) => !prev)}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-              >
-                + 새 구간 생성
-              </button>
-              <button
-                type="button"
-                onClick={onSave}
-                className="min-w-[180px] rounded-lg bg-emerald-600 px-6 py-2.5 text-base font-semibold text-white hover:bg-emerald-500"
-              >
-                💾 저장
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              데이터는 브라우저 로컬 캐시로 저장됩니다.
-              <br />
-              새로운 2주 구간을 생성한 경우 저장 버튼을 눌러주세요.
-            </p>
           </div>
         </div>
 
-        <div className="text-right text-xs text-slate-500">
-          <p>{isDirty ? '저장되지 않은 변경사항 있음' : '저장 상태 최신'}</p>
-          <p>마지막 저장: {formatSavedAt(lastSavedAt)}</p>
+        <div className="flex flex-col items-start gap-2.5 md:items-end">
+          <p className="text-xs font-medium text-slate-400">
+            마지막 저장: {formatSavedAt(lastSavedAt)}
+          </p>
+          <p
+            className={`inline-flex items-center rounded-xl px-3 py-1 text-xs font-semibold ${
+              isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+            }`}
+          >
+            {isDirty ? '저장되지 않은 변경사항 있음' : '저장 상태 최신'}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onDeleteCurrentPeriod}
+              disabled={!canDeleteCurrentPeriod}
+              className="btn-danger"
+            >
+              현재 구간 삭제
+            </button>
+            <button
+              type="button"
+              onClick={onResetAllData}
+              disabled={!canResetAllData}
+              className="btn-danger"
+            >
+              데이터 초기화
+            </button>
+            <div className="mx-1 h-4 w-px bg-slate-300" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen((prev) => !prev)}
+              className="btn-secondary"
+            >
+              새 구간 생성
+            </button>
+            <button type="button" onClick={onSave} className="btn-primary">
+              전체 저장
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
       {isCreateOpen ? (
         <form
           onSubmit={submitCreate}
-          className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4"
+          className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:grid-cols-4"
         >
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 md:col-span-2">
+          <label className="field-label md:col-span-2">
             구간 이름
             <input
               value={labelInput}
               onChange={(event) => setLabelInput(event.target.value)}
               placeholder={defaultCreateLabel}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="field-input"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          <label className="field-label">
             시작일
             <input
               type="date"
               value={startDateInput}
               onChange={(event) => setStartDateInput(event.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="field-input"
               required
             />
           </label>
 
-          <label className="flex items-center gap-2 self-end text-sm font-medium text-slate-700">
+          <label className="flex items-center gap-2 self-end rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600">
             <input
               type="checkbox"
               checked={copyValues}
               onChange={(event) => setCopyValues(event.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
+              className="field-check"
             />
             현재 구간 값 복사
           </label>
 
-          <div className="md:col-span-4 flex items-center gap-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-            >
+          <div className="md:col-span-4 mt-1 flex items-center gap-2">
+            <button type="submit" className="btn-primary">
               생성
             </button>
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              className="btn-quiet"
             >
               취소
             </button>
           </div>
         </form>
       ) : null}
-
-      <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/70 p-3">
-        <p className="text-xs font-semibold tracking-wide text-rose-700">⚙ 데이터 관리</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onDeleteCurrentPeriod}
-            disabled={!canDeleteCurrentPeriod}
-            className="rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            현재 구간 삭제
-          </button>
-          <button
-            type="button"
-            onClick={onResetAllData}
-            disabled={!canResetAllData}
-            className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            전체 데이터 초기화
-          </button>
-        </div>
-      </div>
     </section>
   );
 }
