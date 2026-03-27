@@ -177,7 +177,7 @@ export default function TimesheetTable({
             </span>
             최근 2주 근무기록
           </h3>
-          <div className="text-sm text-slate-400 md:text-right">
+          <div className="text-xs text-slate-400 md:text-right">
             <p>계산은 분(minute) 단위로 HR시스템과 오차가 발생할 수 있습니다.</p>
             <p>임시 공휴일은 직접 수정해주세요.</p>
           </div>
@@ -230,7 +230,7 @@ export default function TimesheetTable({
                         {formatDateCell(record.date)}
                       </div>
                       {hasError ? (
-                        <p className="mt-1 text-xs text-rose-500">입력 검증 메시지 확인 필요</p>
+                        <p className="mt-1 text-xs text-rose-500">상세 메세지를 확인하세요.</p>
                       ) : null}
                     </td>
                     <td className="px-4 py-5 text-base font-extrabold text-slate-700">{clockRange}</td>
@@ -277,15 +277,15 @@ export default function TimesheetTable({
 
       {editingIndex !== null && draft && modalRecord ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               closeModal();
             }
           }}
         >
-          <div className="relative w-full max-w-md overflow-hidden rounded-[32px] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100/80 px-8 pb-5 pt-8">
+          <div className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-[32px]">
+            <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">
                   {formatDateCell(modalRecord.date)}
@@ -304,9 +304,9 @@ export default function TimesheetTable({
               </button>
             </div>
 
-            <div className="space-y-6 p-8">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:p-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                <div className="min-w-0 flex-1">
                   <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
                     <label className="block text-xs font-bold text-slate-400">출근 시간</label>
                     <button
@@ -329,8 +329,8 @@ export default function TimesheetTable({
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xl font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300"
                   />
                 </div>
-                <div className="mt-5 text-xl font-bold text-slate-300">→</div>
-                <div className="flex-1">
+                <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
+                <div className="min-w-0 flex-1">
                   <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
                     <label className="block text-xs font-bold text-slate-400">퇴근 시간</label>
                     <button
@@ -356,7 +356,7 @@ export default function TimesheetTable({
               </div>
 
               <div className="grid grid-cols-2 gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                <div>
+                <div className="min-w-0">
                   <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">연차 사용</label>
                   <select
                     value={modalAnnualLeaveValue}
@@ -374,7 +374,7 @@ export default function TimesheetTable({
                   </select>
                 </div>
 
-                <div className="flex flex-col justify-center">
+                <div className="min-w-0 flex flex-col justify-center">
                   <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">석식 먹음</label>
                   <label className="ml-1 cursor-pointer">
                     <input
@@ -406,7 +406,7 @@ export default function TimesheetTable({
               </div>
 
               <div className="flex gap-4">
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">
                     비업무 시간 (분)
                   </label>
@@ -423,7 +423,7 @@ export default function TimesheetTable({
                   />
                 </div>
 
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <label className="mb-1.5 ml-1 block text-xs font-bold text-indigo-500">
                     실제 야근결재 (분)
                   </label>
@@ -481,18 +481,18 @@ export default function TimesheetTable({
               ) : null}
             </div>
 
-            <div className="flex gap-3 px-8 pb-8">
+            <div className="flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:gap-3 sm:px-8 sm:pb-8">
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200"
+                className="w-full rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200 sm:flex-1"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={saveModal}
-                className="flex-[2] rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700"
+                className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700 sm:flex-[2]"
               >
                 기록 저장하기
               </button>

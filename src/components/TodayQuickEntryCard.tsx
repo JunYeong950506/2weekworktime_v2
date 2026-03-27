@@ -37,6 +37,26 @@ function clampOfficialLeaveMinutes(value: number): number {
   return Math.min(480, Math.max(0, Math.round(value)));
 }
 
+function formatOfficialLeaveDisplay(minutes: number): string {
+  const safeMinutes = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const remainMinutes = safeMinutes % 60;
+
+  if (safeMinutes === 0) {
+    return '0분';
+  }
+
+  if (remainMinutes === 0) {
+    return `${hours}시간`;
+  }
+
+  if (hours === 0) {
+    return `${remainMinutes}분`;
+  }
+
+  return `${hours}시간 ${remainMinutes}분`;
+}
+
 function TimePanel({
   label,
   value,
@@ -299,7 +319,7 @@ export default function TodayQuickEntryCard({
                     onClick={() => openOfficialDialog('official')}
                     className="mt-1 inline-flex w-fit rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
                   >
-                    공가 {record.officialLeaveMinutes}분 수정
+                    공가 {formatOfficialLeaveDisplay(record.officialLeaveMinutes)} 수정
                   </button>
                 ) : null}
               </label>

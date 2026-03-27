@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
@@ -41,6 +41,7 @@ export default function PeriodManager({
   const [labelInput, setLabelInput] = useState(defaultCreateLabel);
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
+  const startDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const periodRangeLabel = useMemo(() => {
     if (!selectedStartDate) {
@@ -49,7 +50,7 @@ export default function PeriodManager({
 
     const start = dayjs(selectedStartDate);
     const end = start.add(13, 'day');
-    return `${start.format('YYYY년 MM월 DD일')} ~ ${end.format('MM월 DD일')}`;
+    return `${start.format('MM월 DD일')} ~ ${end.format('MM월 DD일')}`;
   }, [selectedStartDate]);
 
   useEffect(() => {
@@ -76,6 +77,25 @@ export default function PeriodManager({
     setIsCreateOpen(false);
   }
 
+  function openStartDatePicker(): void {
+    const input = startDateInputRef.current;
+    if (!input) {
+      return;
+    }
+
+    try {
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+        return;
+      }
+    } catch {
+      // Fallback to focus/click when showPicker is blocked or unsupported.
+    }
+
+    input.focus();
+    input.click();
+  }
+
   return (
     <section className="surface-panel">
       <header className="flex flex-col gap-4 border-b border-slate-200/80 pb-4 md:flex-row md:items-end md:justify-between">
@@ -83,50 +103,59 @@ export default function PeriodManager({
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
             2주 자율출퇴근 계산기 ⏱️
           </h1>
-          <p className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-5 py-2 text-base font-extrabold text-slate-500 shadow-sm">
-            <svg
-              className="h-4 w-4 text-indigo-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+          <div className="mb-3 flex min-w-0 items-center gap-3">
+            <div className="relative min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={openStartDatePicker}
+                className="inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40"
+                aria-label="2주 시작일 선택"
+              >
+                <svg
+                  className="h-4 w-4 shrink-0 text-indigo-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+                  />
+                </svg>
+                <span className="truncate">{periodRangeLabel}</span>
+              </button>
+              <input
+                ref={startDateInputRef}
+                id="period-start-date"
+                type="date"
+                value={selectedStartDate}
+                onChange={(event) => onChangeStartDate(event.target.value)}
+                className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+                tabIndex={-1}
+                aria-hidden="true"
               />
-            </svg>
-            {periodRangeLabel}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="sr-only" htmlFor="period-selector">
-              2주 단위 구간 선택
-            </label>
-            <select
-              id="period-selector"
-              value={selectedPeriodId ?? ''}
-              onChange={(event) => onSelectPeriod(event.target.value)}
-              className="field-select h-11 min-w-[220px]"
-            >
-              {periods.map((period) => (
-                <option key={period.id} value={period.id}>
-                  {period.label}
-                </option>
-              ))}
-            </select>
+            </div>
 
-            <label className="sr-only" htmlFor="period-start-date">
-              2주 시작일
-            </label>
-            <input
-              id="period-start-date"
-              type="date"
-              value={selectedStartDate}
-              onChange={(event) => onChangeStartDate(event.target.value)}
-              className="field-input h-11 min-w-[180px]"
-            />
+            <div className="w-40 shrink-0 sm:w-56">
+              <label className="sr-only" htmlFor="period-selector">
+                2주 단위 구간 선택
+              </label>
+              <select
+                id="period-selector"
+                value={selectedPeriodId ?? ''}
+                onChange={(event) => onSelectPeriod(event.target.value)}
+                className="field-select h-11 w-full min-w-0"
+              >
+                {periods.map((period) => (
+                  <option key={period.id} value={period.id}>
+                    {period.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
