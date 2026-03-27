@@ -334,22 +334,6 @@ export default function App(): JSX.Element {
               </button>
             </div>
 
-            <div className="danger-zone mt-5">
-              <p className="text-xs font-semibold tracking-wide text-rose-700">데이터 관리</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" disabled className="btn-secondary h-10 text-xs opacity-60">
-                  현재 구간 삭제
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetAllData}
-                  disabled={!canResetAllData}
-                  className="btn-danger h-10 text-xs"
-                >
-                  전체 데이터 초기화
-                </button>
-              </div>
-            </div>
           </div>
         </section>
       </main>
