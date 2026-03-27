@@ -130,17 +130,17 @@ export default function PeriodManager({
 
   return (
     <section className="surface-panel">
-      <header className="flex flex-col gap-4 border-b border-slate-200/80 pb-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <header className="flex flex-col gap-4 pb-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 flex-1">
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
             2주 자율출퇴근 계산기 ⏱️
           </h1>
-          <div className="mb-3 flex min-w-0 items-center gap-3 max-[520px]:flex-col max-[520px]:items-stretch">
-            <div className="relative min-w-0 flex-1">
+          <div className="mb-3 flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative min-w-0 w-full flex-1">
               <button
                 type="button"
                 onClick={openStartDatePicker}
-                className="inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 max-[520px]:pointer-events-none"
+                className="pointer-events-none inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 md:pointer-events-auto"
                 aria-label="2주 시작일 선택"
               >
                 <svg
@@ -163,7 +163,7 @@ export default function PeriodManager({
                 type="date"
                 value={selectedStartDate}
                 onChange={(event) => onChangeStartDate(event.target.value)}
-                className="absolute inset-0 z-10 hidden cursor-pointer opacity-0 max-[520px]:block"
+                className="absolute inset-0 z-10 cursor-pointer opacity-0 md:hidden"
                 aria-label="2주 시작일 선택"
               />
               <input
@@ -172,13 +172,13 @@ export default function PeriodManager({
                 type="date"
                 value={selectedStartDate}
                 onChange={(event) => onChangeStartDate(event.target.value)}
-                className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0 max-[520px]:hidden"
+                className="pointer-events-none absolute hidden h-px w-px overflow-hidden opacity-0 md:block"
                 tabIndex={-1}
                 aria-hidden="true"
               />
             </div>
 
-            <div className="w-40 shrink-0 sm:w-56 max-[520px]:w-full">
+            <div className="w-full md:w-56 md:shrink-0">
               <label className="sr-only" htmlFor="period-selector">
                 2주 단위 구간 선택
               </label>
@@ -198,19 +198,8 @@ export default function PeriodManager({
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-2.5 md:items-end">
-          <p className="text-xs text-slate-400">
-            마지막 저장: {formatSavedAt(lastSavedAt)}
-          </p>
-          <p
-            className={`inline-flex items-center rounded-xl px-3 py-1 text-xs font-semibold ${
-              isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-            }`}
-          >
-            {isDirty ? '저장되지 않은 변경사항 있음' : '저장 상태 최신'}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col items-start gap-2.5 md:w-auto md:items-end">
+          <div className="flex w-full items-center gap-2 md:w-auto md:justify-end">
             <button
               type="button"
               onClick={() => setIsCreateOpen((prev) => !prev)}
@@ -227,10 +216,21 @@ export default function PeriodManager({
                 onClick={() => setIsDangerMenuOpen((prev) => !prev)}
                 aria-expanded={isDangerMenuOpen}
                 aria-label="위험 작업 더보기"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" d="M12 5h.01M12 12h.01M12 19h.01" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.066c1.527-.94 3.31.843 2.37 2.37a1.724 1.724 0 001.065 2.592c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.591c.94 1.527-.843 3.31-2.37 2.37a1.724 1.724 0 00-2.592 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.591-1.066c-1.527.94-3.31-.843-2.37-2.37a1.724 1.724 0 00-1.065-2.592c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.591c-.94-1.527.843-3.31 2.37-2.37.995.607 2.295.069 2.591-1.066z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    d="M12 15.75A3.75 3.75 0 1112 8.25a3.75 3.75 0 010 7.5z"
+                  />
                 </svg>
               </button>
 
@@ -262,6 +262,19 @@ export default function PeriodManager({
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="flex w-full flex-col items-start gap-1 md:w-auto md:items-end">
+            <p className="text-xs text-slate-400">
+              마지막 저장: {formatSavedAt(lastSavedAt)}
+            </p>
+            <p
+              className={`inline-flex items-center rounded-xl px-3 py-1 text-xs font-semibold ${
+                isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+              }`}
+            >
+              {isDirty ? '저장되지 않은 변경사항 있음' : '저장 상태 최신'}
+            </p>
           </div>
         </div>
       </header>
