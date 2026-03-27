@@ -38,10 +38,12 @@ export default function PeriodManager({
   onResetAllData,
 }: PeriodManagerProps): JSX.Element {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isDangerMenuOpen, setIsDangerMenuOpen] = useState(false);
   const [labelInput, setLabelInput] = useState(defaultCreateLabel);
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
+  const dangerMenuRef = useRef<HTMLDivElement | null>(null);
 
   const periodRangeLabel = useMemo(() => {
     if (!selectedStartDate) {
@@ -60,6 +62,36 @@ export default function PeriodManager({
       setCopyValues(false);
     }
   }, [defaultCreateLabel, selectedStartDate, isCreateOpen]);
+
+  useEffect(() => {
+    if (!isDangerMenuOpen) {
+      return;
+    }
+
+    function handleWindowClick(event: MouseEvent): void {
+      if (!dangerMenuRef.current) {
+        return;
+      }
+
+      if (!dangerMenuRef.current.contains(event.target as Node)) {
+        setIsDangerMenuOpen(false);
+      }
+    }
+
+    function handleWindowKeydown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setIsDangerMenuOpen(false);
+      }
+    }
+
+    window.addEventListener('mousedown', handleWindowClick);
+    window.addEventListener('keydown', handleWindowKeydown);
+
+    return () => {
+      window.removeEventListener('mousedown', handleWindowClick);
+      window.removeEventListener('keydown', handleWindowKeydown);
+    };
+  }, [isDangerMenuOpen]);
 
   function submitCreate(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -181,23 +213,6 @@ export default function PeriodManager({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={onDeleteCurrentPeriod}
-              disabled={!canDeleteCurrentPeriod}
-              className="btn-danger"
-            >
-              현재 구간 삭제
-            </button>
-            <button
-              type="button"
-              onClick={onResetAllData}
-              disabled={!canResetAllData}
-              className="btn-danger"
-            >
-              데이터 초기화
-            </button>
-            <div className="mx-1 h-4 w-px bg-slate-300" aria-hidden="true" />
-            <button
-              type="button"
               onClick={() => setIsCreateOpen((prev) => !prev)}
               className="btn-secondary"
             >
@@ -206,6 +221,47 @@ export default function PeriodManager({
             <button type="button" onClick={onSave} className="btn-primary">
               전체 저장
             </button>
+            <div ref={dangerMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsDangerMenuOpen((prev) => !prev)}
+                aria-expanded={isDangerMenuOpen}
+                aria-label="위험 작업 더보기"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" d="M12 5h.01M12 12h.01M12 19h.01" />
+                </svg>
+              </button>
+
+              {isDangerMenuOpen ? (
+                <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDangerMenuOpen(false);
+                      onDeleteCurrentPeriod();
+                    }}
+                    disabled={!canDeleteCurrentPeriod}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    현재 구간 삭제
+                  </button>
+                  <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDangerMenuOpen(false);
+                      onResetAllData();
+                    }}
+                    disabled={!canResetAllData}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    데이터 초기화
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>

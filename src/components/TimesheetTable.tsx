@@ -317,14 +317,14 @@ export default function TimesheetTable({
 
       {editingIndex !== null && draft && modalRecord ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               closeModal();
             }
           }}
         >
-          <div className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-[32px]">
+          <div className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]">
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">
@@ -344,7 +344,7 @@ export default function TimesheetTable({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-5 py-5 sm:p-8">
+            <div className="space-y-6 overflow-x-hidden px-5 py-5 sm:p-8">
               <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
                 <div className="min-w-0 w-full flex-1 overflow-hidden">
                   <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
@@ -366,7 +366,7 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockIn: event.target.value })}
-                    className="w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className="h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
                 <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
@@ -390,7 +390,7 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockOut: event.target.value })}
-                    className="w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className="h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
               </div>
