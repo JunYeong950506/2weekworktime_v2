@@ -91,6 +91,7 @@ export default function TimesheetTable({
 }: TimesheetTableProps): JSX.Element {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<DayRecord | null>(null);
+  const [specialInfoOpenDate, setSpecialInfoOpenDate] = useState<string | null>(null);
 
   const preview = useMemo(() => {
     if (!draft) {
@@ -106,6 +107,7 @@ export default function TimesheetTable({
       return;
     }
 
+    setSpecialInfoOpenDate(null);
     setEditingIndex(index);
     setDraft({ ...source });
   }
@@ -208,6 +210,8 @@ export default function TimesheetTable({
                 const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
                 const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
                 const isCurrentRow = isToday(record.date);
+                const isSpecialRow = meta?.isSpecialWorkMode ?? false;
+                const isSpecialInfoOpen = specialInfoOpenDate === record.date;
 
                 return (
                   <tr
@@ -235,9 +239,45 @@ export default function TimesheetTable({
                     </td>
                     <td className="px-4 py-5 text-base font-extrabold text-slate-700">{clockRange}</td>
                     <td className="px-4 py-5 text-center">
-                      <span className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
-                        {workType}
-                      </span>
+                      {isSpecialRow ? (
+                        <div className="relative inline-flex">
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (
+                                typeof window !== 'undefined' &&
+                                !window.matchMedia('(hover: none), (pointer: coarse)').matches
+                              ) {
+                                return;
+                              }
+                              setSpecialInfoOpenDate((prev) =>
+                                prev === record.date ? null : record.date,
+                              );
+                            }}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            aria-label="특근 안내 보기"
+                            aria-expanded={isSpecialInfoOpen}
+                            className="peer rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+                          >
+                            {workType}
+                          </button>
+                          <div
+                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-40 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
+                              isSpecialInfoOpen
+                                ? 'opacity-100'
+                                : 'opacity-0 md:peer-hover:opacity-100 md:peer-focus-visible:opacity-100'
+                            }`}
+                          >
+                            특근 시간을 야근결재에 입력하세요.
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+                          {workType}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-5 text-center text-base font-bold text-indigo-600">
                       {workLabel}

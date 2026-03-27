@@ -160,7 +160,7 @@ export default function PeriodManager({
         </div>
 
         <div className="flex flex-col items-start gap-2.5 md:items-end">
-          <p className="text-xs font-medium text-slate-400">
+          <p className="text-xs text-slate-400">
             마지막 저장: {formatSavedAt(lastSavedAt)}
           </p>
           <p
