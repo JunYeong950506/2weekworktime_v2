@@ -264,7 +264,7 @@ export default function TimesheetTable({
                             {workType}
                           </button>
                           <div
-                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-56 max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
+                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-[180px] max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
                               isSpecialInfoOpen
                                 ? 'opacity-100'
                                 : 'opacity-0 md:peer-hover:opacity-100 md:peer-focus-visible:opacity-100'
@@ -344,9 +344,9 @@ export default function TimesheetTable({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:p-8">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-                <div className="min-w-0 w-full flex-1">
+            <div className="min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-5 py-5 sm:p-8">
+              <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                <div className="min-w-0 w-full flex-1 overflow-hidden">
                   <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
                     <label className="block min-w-0 text-xs font-bold text-slate-400">출근 시간</label>
                     <button
@@ -366,11 +366,11 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockIn: event.target.value })}
-                    className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className="w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
                 <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
-                <div className="min-w-0 w-full flex-1">
+                <div className="min-w-0 w-full flex-1 overflow-hidden">
                   <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
                     <label className="block min-w-0 text-xs font-bold text-slate-400">퇴근 시간</label>
                     <button
@@ -390,7 +390,7 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockOut: event.target.value })}
-                    className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className="w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
                   />
                 </div>
               </div>

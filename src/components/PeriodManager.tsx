@@ -108,7 +108,7 @@ export default function PeriodManager({
               <button
                 type="button"
                 onClick={openStartDatePicker}
-                className="inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40"
+                className="inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 max-[520px]:pointer-events-none"
                 aria-label="2주 시작일 선택"
               >
                 <svg
@@ -128,12 +128,19 @@ export default function PeriodManager({
                 <span className="truncate">{periodRangeLabel}</span>
               </button>
               <input
+                type="date"
+                value={selectedStartDate}
+                onChange={(event) => onChangeStartDate(event.target.value)}
+                className="absolute inset-0 z-10 hidden cursor-pointer opacity-0 max-[520px]:block"
+                aria-label="2주 시작일 선택"
+              />
+              <input
                 ref={startDateInputRef}
                 id="period-start-date"
                 type="date"
                 value={selectedStartDate}
                 onChange={(event) => onChangeStartDate(event.target.value)}
-                className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+                className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0 max-[520px]:hidden"
                 tabIndex={-1}
                 aria-hidden="true"
               />
