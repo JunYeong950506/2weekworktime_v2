@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
 import { formatSavedAt } from '../utils/time';
@@ -41,6 +42,16 @@ export default function PeriodManager({
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
 
+  const periodRangeLabel = useMemo(() => {
+    if (!selectedStartDate) {
+      return '-';
+    }
+
+    const start = dayjs(selectedStartDate);
+    const end = start.add(13, 'day');
+    return `${start.format('YYYY년 MM월 DD일')} ~ ${end.format('MM월 DD일')}`;
+  }, [selectedStartDate]);
+
   useEffect(() => {
     if (!isCreateOpen) {
       setLabelInput(defaultCreateLabel);
@@ -72,6 +83,23 @@ export default function PeriodManager({
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
             2주 자율출퇴근 계산기 ⏱️
           </h1>
+          <p className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-5 py-2 text-base font-extrabold text-slate-500 shadow-sm">
+            <svg
+              className="h-4 w-4 text-indigo-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.8}
+                d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+              />
+            </svg>
+            {periodRangeLabel}
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label className="sr-only" htmlFor="period-selector">
               2주 단위 구간 선택

@@ -307,7 +307,17 @@ export default function TimesheetTable({
             <div className="space-y-6 p-8">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">출근 시간</label>
+                  <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
+                    <label className="block text-xs font-bold text-slate-400">출근 시간</label>
+                    <button
+                      type="button"
+                      onClick={() => patchDraft({ clockIn: '' })}
+                      disabled={disableTimeAndDeduction || modalRecord.clockIn.length === 0}
+                      className="text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      초기화
+                    </button>
+                  </div>
                   <input
                     type="time"
                     step={60}
@@ -321,7 +331,17 @@ export default function TimesheetTable({
                 </div>
                 <div className="mt-5 text-xl font-bold text-slate-300">→</div>
                 <div className="flex-1">
-                  <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">퇴근 시간</label>
+                  <div className="mb-1.5 ml-1 flex items-center justify-between gap-2">
+                    <label className="block text-xs font-bold text-slate-400">퇴근 시간</label>
+                    <button
+                      type="button"
+                      onClick={() => patchDraft({ clockOut: '' })}
+                      disabled={disableTimeAndDeduction || modalRecord.clockOut.length === 0}
+                      className="text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      초기화
+                    </button>
+                  </div>
                   <input
                     type="time"
                     step={60}
