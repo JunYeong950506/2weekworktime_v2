@@ -38,12 +38,12 @@ export function getSupabaseEnvError(): string | null {
     return null;
   }
 
-  return `Supabase 환경변수가 없습니다: ${missingVars.join(', ')}`;
+  return `Supabase environment variables are missing: ${missingVars.join(', ')}`;
 }
 
 export function getSupabaseClient(): SupabaseClient {
   if (!client) {
-    throw new Error(getSupabaseEnvError() ?? 'Supabase client 초기화에 실패했습니다.');
+    throw new Error(getSupabaseEnvError() ?? 'Failed to initialize Supabase client.');
   }
 
   return client;

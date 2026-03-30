@@ -1,4 +1,4 @@
-﻿-- WorkTime v2: code-based sync schema (no auth)
+-- WorkTime v2: code-based sync schema (no auth)
 -- Apply in Supabase SQL editor.
 
 create table if not exists public.users (
@@ -41,7 +41,7 @@ create table if not exists public.work_records (
 create index if not exists idx_work_records_user_code on public.work_records(user_code);
 create index if not exists idx_work_records_period_id on public.work_records(period_id);
 
--- Optional: restrict work_type values
+-- Restrict work_type values.
 do $$
 begin
   if not exists (
@@ -55,7 +55,18 @@ begin
   end if;
 end $$;
 
--- Recommended cleanup policy (weekly job):
+-- No-auth code sync mode: allow anon CRUD on these tables.
+-- This app is intentionally code-based (not auth-based), so RLS is disabled.
+alter table public.users disable row level security;
+alter table public.periods disable row level security;
+alter table public.work_records disable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on table public.users to anon, authenticated;
+grant select, insert, update, delete on table public.periods to anon, authenticated;
+grant select, insert, update, delete on table public.work_records to anon, authenticated;
+
+-- Weekly cleanup function:
 -- 1) record_count = 0 and last_activity_at older than 30 days => delete user (cascade).
 -- 2) record_count > 0 and last_activity_at older than 30 days => set deleted_candidate_at.
 -- 3) record_count > 0 and last_activity_at older than 50 days => delete user (cascade).
@@ -84,3 +95,6 @@ $$;
 
 revoke all on function public.cleanup_inactive_user_codes() from public;
 grant execute on function public.cleanup_inactive_user_codes() to anon, authenticated;
+
+-- Optional but useful when PostgREST cache is stale.
+select pg_notify('pgrst', 'reload schema');

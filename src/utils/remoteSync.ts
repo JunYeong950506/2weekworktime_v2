@@ -176,11 +176,33 @@ function buildStateFromRemoteRows(
 }
 
 function toErrorMessage(error: unknown): string {
-  if (isValidObject(error) && typeof error.message === 'string') {
-    return error.message;
+  const rawMessage =
+    isValidObject(error) && typeof error.message === 'string'
+      ? error.message
+      : null;
+
+  if (!rawMessage) {
+    return '서버 동기화 중 오류가 발생했습니다.';
   }
 
-  return '서버 동기화 중 오류가 발생했습니다.';
+  const lower = rawMessage.toLowerCase();
+  if (
+    lower.includes("could not find the table 'public.users'") ||
+    lower.includes('relation "public.users" does not exist') ||
+    lower.includes('relation "users" does not exist')
+  ) {
+    return 'Supabase 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql을 실행해주세요.';
+  }
+
+  if (
+    lower.includes('permission denied') ||
+    lower.includes('row-level security') ||
+    lower.includes('violates row-level security')
+  ) {
+    return 'Supabase 권한 또는 RLS 설정이 필요합니다. supabase/schema.sql의 GRANT/RLS 구문을 실행해주세요.';
+  }
+
+  return rawMessage;
 }
 
 async function upsertUserMetadata(
@@ -377,9 +399,10 @@ export function getSyncUnavailableMessage(error: unknown): string {
   if (!hasSupabaseEnv()) {
     return (
       getSupabaseEnvError() ??
-      '서버 동기화 설정이 없어 코드 동기화를 사용할 수 없습니다.'
+      '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.'
     );
   }
 
   return toErrorMessage(error);
 }
+
