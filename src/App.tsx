@@ -20,8 +20,6 @@ import {
   ensureUserCode,
   hasAppStorageData,
   loadAppState,
-  loadLastSyncedAt,
-  saveLastSyncedAt,
   saveUserCode,
   saveAppState,
 } from './utils/storage';
@@ -40,7 +38,6 @@ import { useTodayRecord } from './hooks/useTodayRecord';
 interface InitialState {
   appState: AppState;
   savedAt: string | null;
-  lastSyncedAt: string | null;
 }
 
 interface CodeLoadResult {
@@ -71,20 +68,17 @@ function hydrateAppState(source: AppState): AppState {
 
 function getInitialState(): InitialState {
   const loaded = loadAppState();
-  const lastSyncedAt = loadLastSyncedAt();
 
   if (!loaded) {
     return {
       appState: createEmptyAppState(),
       savedAt: null,
-      lastSyncedAt,
     };
   }
 
   return {
     appState: hydrateAppState(loaded),
     savedAt: loaded.savedAt,
-    lastSyncedAt,
   };
 }
 
@@ -98,9 +92,6 @@ export default function App(): JSX.Element {
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
-    initial.lastSyncedAt,
-  );
   const [isDirty, setIsDirty] = useState(false);
   const [emptyStartDate, setEmptyStartDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
@@ -335,10 +326,7 @@ export default function App(): JSX.Element {
 
       const message = '코드 데이터를 불러왔습니다.';
       setCodeStatusMessage(message);
-      if (remote.savedAt) {
-        saveLastSyncedAt(remote.savedAt);
-        setLastSyncedAt(remote.savedAt);
-      }
+      
       return { ok: true, message };
     } catch (error) {
       const message = getSyncUnavailableMessage(error);
@@ -357,9 +345,6 @@ export default function App(): JSX.Element {
 
     try {
       await syncRemoteState(userCode, appState, { markActivity: true });
-      const syncedAt = dayjs().toISOString();
-      saveLastSyncedAt(syncedAt);
-      setLastSyncedAt(syncedAt);
       setIsServerDataMissingForCode(false);
       setCodeStatusMessage('로컬 기록으로 서버 데이터를 다시 시작했습니다.');
     } catch (error) {
@@ -376,15 +361,9 @@ export default function App(): JSX.Element {
       return;
     }
 
-    void syncRemoteState(userCode, stateToSave, { markActivity: true })
-      .then(() => {
-        const syncedAt = dayjs().toISOString();
-        saveLastSyncedAt(syncedAt);
-        setLastSyncedAt(syncedAt);
-      })
-      .catch((error) => {
-        setCodeStatusMessage(getSyncUnavailableMessage(error));
-      });
+    void syncRemoteState(userCode, stateToSave, { markActivity: true }).catch((error) => {
+      setCodeStatusMessage(getSyncUnavailableMessage(error));
+    });
   }
 
   function handleSave(): void {
@@ -430,9 +409,6 @@ export default function App(): JSX.Element {
         setAppState(hydrated);
         const localSavedAt = saveAppState(hydrated);
         setLastSavedAt(remote.savedAt ?? localSavedAt);
-        const syncedAt = remote.savedAt ?? dayjs().toISOString();
-        saveLastSyncedAt(syncedAt);
-        setLastSyncedAt(syncedAt);
         setCodeStatusMessage(
           appState.periods.length > 0
             ? '서버 우선 정책으로 서버 데이터를 적용했습니다.'
@@ -505,15 +481,9 @@ export default function App(): JSX.Element {
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
 
     if (syncAvailable) {
-      void syncRemoteState(userCode, emptyState, { markActivity: true })
-        .then(() => {
-          const syncedAt = dayjs().toISOString();
-          saveLastSyncedAt(syncedAt);
-          setLastSyncedAt(syncedAt);
-        })
-        .catch((error) => {
-          setCodeStatusMessage(getSyncUnavailableMessage(error));
-        });
+      void syncRemoteState(userCode, emptyState, { markActivity: true }).catch((error) => {
+        setCodeStatusMessage(getSyncUnavailableMessage(error));
+      });
     }
   }
 
@@ -596,11 +566,6 @@ export default function App(): JSX.Element {
               {codeStatusMessage ? (
                 <p className="mt-2 text-xs text-slate-500">{codeStatusMessage}</p>
               ) : null}
-              {lastSyncedAt ? (
-                <p className="mt-1 text-[11px] text-slate-400">
-                  마지막 서버 동기화: {dayjs(lastSyncedAt).format('YYYY-MM-DD HH:mm:ss')}
-                </p>
-              ) : null}
             </div>
 
           </div>
@@ -630,11 +595,6 @@ export default function App(): JSX.Element {
           onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
           onResetAllData={handleResetAllData}
         />
-        {lastSyncedAt ? (
-          <p className="mt-1 px-1 text-[11px] text-slate-400">
-            마지막 서버 동기화: {dayjs(lastSyncedAt).format('YYYY-MM-DD HH:mm:ss')}
-          </p>
-        ) : null}
         {isServerDataMissingForCode && appState.periods.length > 0 ? (
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
             <span>서버 데이터가 정리되었습니다. 로컬 기록으로 다시 시작할 수 있습니다.</span>

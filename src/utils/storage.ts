@@ -2,7 +2,6 @@
 
 import {
   APP_STORAGE_KEY,
-  LAST_SYNCED_AT_STORAGE_KEY,
   USER_CODE_STORAGE_KEY,
 } from '../constants';
 import {
@@ -215,20 +214,4 @@ export function ensureUserCode(): string {
   const generated = generateUserCode();
   saveUserCode(generated);
   return generated;
-}
-
-export function loadLastSyncedAt(): string | null {
-  try {
-    return localStorage.getItem(LAST_SYNCED_AT_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function saveLastSyncedAt(value: string): void {
-  try {
-    localStorage.setItem(LAST_SYNCED_AT_STORAGE_KEY, value);
-  } catch {
-    // no-op
-  }
 }

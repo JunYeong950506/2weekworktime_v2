@@ -2,7 +2,6 @@ export const APP_STORAGE_KEY = 'flex-work-2week-app-v1';
 export const USER_CODE_STORAGE_KEY = 'flex-work-2week-user-code-v1';
 export const REMOTE_CLEANUP_CHECKED_AT_KEY =
   'flex-work-2week-remote-cleanup-checked-at-v1';
-export const LAST_SYNCED_AT_STORAGE_KEY = 'flex-work-2week-last-synced-at-v1';
 
 export const DAYS_PER_PERIOD = 14;
 export const MINUTES_PER_HOUR = 60;
