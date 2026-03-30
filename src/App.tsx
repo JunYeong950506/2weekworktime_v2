@@ -5,7 +5,6 @@ import PeriodManager from './components/PeriodManager';
 import SummaryCards from './components/SummaryCards';
 import TimesheetTable from './components/TimesheetTable';
 import TodayQuickEntryCard from './components/TodayQuickEntryCard';
-import { createSampleState } from './data/sampleData';
 import { AppState, CreatePeriodPayload, DayRecord, Period } from './types';
 import { recalculatePeriod, recalculateRecords } from './utils/calculations';
 import { createEmptyAppState, deleteCurrentPeriod } from './utils/dataManagement';
@@ -18,29 +17,39 @@ import {
 } from './utils/period';
 import {
   clearAllAppStorage,
+  ensureUserCode,
   hasAppStorageData,
   loadAppState,
+  loadLastSyncedAt,
+  saveLastSyncedAt,
+  saveUserCode,
   saveAppState,
 } from './utils/storage';
+import {
+  ensureRemoteUser,
+  getSyncUnavailableMessage,
+  isRemoteSyncAvailable,
+  loadRemoteState,
+  runWeeklyRemoteCleanup,
+  syncRemoteState,
+} from './utils/remoteSync';
+import { isValidUserCode, normalizeUserCode } from './utils/userCode';
 import { formatDateCell, nowToHHmm } from './utils/time';
 import { useTodayRecord } from './hooks/useTodayRecord';
 
 interface InitialState {
   appState: AppState;
   savedAt: string | null;
+  lastSyncedAt: string | null;
 }
 
-function getInitialState(): InitialState {
-  const loaded = loadAppState();
+interface CodeLoadResult {
+  ok: boolean;
+  message: string;
+}
 
-  if (!loaded) {
-    return {
-      appState: createEmptyAppState(),
-      savedAt: null,
-    };
-  }
-
-  const periods = loaded.periods.map((period) => {
+function hydrateAppState(source: AppState): AppState {
+  const periods = source.periods.map((period) => {
     const calc = recalculatePeriod(period);
     return {
       ...period,
@@ -49,16 +58,33 @@ function getInitialState(): InitialState {
   });
 
   const selectedPeriodId =
-    loaded.selectedPeriodId && periods.some((period) => period.id === loaded.selectedPeriodId)
-      ? loaded.selectedPeriodId
+    source.selectedPeriodId &&
+    periods.some((period) => period.id === source.selectedPeriodId)
+      ? source.selectedPeriodId
       : periods[0]?.id ?? null;
 
   return {
-    appState: {
-      selectedPeriodId,
-      periods,
-    },
+    selectedPeriodId,
+    periods,
+  };
+}
+
+function getInitialState(): InitialState {
+  const loaded = loadAppState();
+  const lastSyncedAt = loadLastSyncedAt();
+
+  if (!loaded) {
+    return {
+      appState: createEmptyAppState(),
+      savedAt: null,
+      lastSyncedAt,
+    };
+  }
+
+  return {
+    appState: hydrateAppState(loaded),
     savedAt: loaded.savedAt,
+    lastSyncedAt,
   };
 }
 
@@ -68,12 +94,22 @@ function upsertPeriod(periods: Period[], updated: Period): Period[] {
 
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
+  const syncAvailable = isRemoteSyncAvailable();
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
+    initial.lastSyncedAt,
+  );
   const [isDirty, setIsDirty] = useState(false);
   const [emptyStartDate, setEmptyStartDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
+  const [codeInputDraft, setCodeInputDraft] = useState('');
+  const [codeStatusMessage, setCodeStatusMessage] = useState<string | null>(null);
+  const [isCodeActionPending, setIsCodeActionPending] = useState(false);
+  const [isServerDataMissingForCode, setIsServerDataMissingForCode] = useState(false);
   const skipNextAutoSaveRef = useRef(false);
+  const initializedCodeRef = useRef<string | null>(null);
 
   const selectedPeriod = useMemo(
     () => appState.periods.find((period) => period.id === appState.selectedPeriodId) ?? null,
@@ -226,20 +262,195 @@ export default function App(): JSX.Element {
     });
   }
 
-  function handleLoadSample(): void {
-    setAppState(createSampleState());
-    markDirty();
+  async function handleCopyUserCode(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(userCode);
+      setCodeStatusMessage('동기화 코드를 복사했습니다.');
+    } catch {
+      setCodeStatusMessage('복사에 실패했습니다. 코드를 직접 선택해 복사해주세요.');
+    }
+  }
+
+  async function handleLoadByCode(rawCode: string): Promise<CodeLoadResult> {
+    const normalized = normalizeUserCode(rawCode);
+
+    if (!isValidUserCode(normalized)) {
+      const message = '코드 형식이 올바르지 않습니다. (예: WT-8F4K2M)';
+      setCodeStatusMessage(message);
+      return { ok: false, message };
+    }
+
+    if (!syncAvailable) {
+      const message = '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.';
+      setCodeStatusMessage(message);
+      return { ok: false, message };
+    }
+
+    if (isDirty) {
+      const confirmed = window.confirm(
+        '저장되지 않은 변경사항이 있습니다. 코드 불러오기를 진행하면 현재 화면이 교체됩니다. 계속하시겠습니까?',
+      );
+      if (!confirmed) {
+        return { ok: false, message: '불러오기를 취소했습니다.' };
+      }
+    }
+
+    setIsCodeActionPending(true);
+    setCodeStatusMessage(null);
+
+    try {
+      const remote = await loadRemoteState(normalized);
+      if (!remote.appState) {
+        if (normalized !== userCode) {
+          const savedCode = saveUserCode(normalized);
+          setUserCode(savedCode);
+          const emptyState = createEmptyAppState();
+          setAppState(emptyState);
+          const localSavedAt = saveAppState(emptyState);
+          setLastSavedAt(localSavedAt);
+          setIsDirty(false);
+          setCodeInputDraft('');
+        }
+
+        setIsServerDataMissingForCode(
+          normalized === userCode && (remote.hasRemoteUser || appState.periods.length > 0),
+        );
+        const message = remote.hasRemoteUser
+          ? '해당 코드에는 아직 생성된 구간 데이터가 없습니다.'
+          : '서버 데이터가 정리되었거나 아직 생성되지 않았습니다.';
+        setCodeStatusMessage(message);
+        return { ok: false, message };
+      }
+
+      const hydrated = hydrateAppState(remote.appState);
+      const savedCode = saveUserCode(normalized);
+      setUserCode(savedCode);
+      setAppState(hydrated);
+      setIsDirty(false);
+      setIsServerDataMissingForCode(false);
+      setCodeInputDraft('');
+
+      const localSavedAt = saveAppState(hydrated);
+      setLastSavedAt(remote.savedAt ?? localSavedAt);
+
+      const message = '코드 데이터를 불러왔습니다.';
+      setCodeStatusMessage(message);
+      if (remote.savedAt) {
+        saveLastSyncedAt(remote.savedAt);
+        setLastSyncedAt(remote.savedAt);
+      }
+      return { ok: true, message };
+    } catch (error) {
+      const message = getSyncUnavailableMessage(error);
+      setCodeStatusMessage(message);
+      return { ok: false, message };
+    } finally {
+      setIsCodeActionPending(false);
+    }
+  }
+
+  async function handleRestoreServerFromLocal(): Promise<void> {
+    if (!syncAvailable) {
+      setCodeStatusMessage('서버 동기화 설정이 없어 복구할 수 없습니다.');
+      return;
+    }
+
+    try {
+      await syncRemoteState(userCode, appState, { markActivity: true });
+      const syncedAt = dayjs().toISOString();
+      saveLastSyncedAt(syncedAt);
+      setLastSyncedAt(syncedAt);
+      setIsServerDataMissingForCode(false);
+      setCodeStatusMessage('로컬 기록으로 서버 데이터를 다시 시작했습니다.');
+    } catch (error) {
+      setCodeStatusMessage(getSyncUnavailableMessage(error));
+    }
   }
 
   function persistState(stateToSave: AppState): void {
     const savedAt = saveAppState(stateToSave);
     setLastSavedAt(savedAt);
     setIsDirty(false);
+
+    if (!syncAvailable) {
+      return;
+    }
+
+    void syncRemoteState(userCode, stateToSave, { markActivity: true })
+      .then(() => {
+        const syncedAt = dayjs().toISOString();
+        saveLastSyncedAt(syncedAt);
+        setLastSyncedAt(syncedAt);
+      })
+      .catch((error) => {
+        setCodeStatusMessage(getSyncUnavailableMessage(error));
+      });
   }
 
   function handleSave(): void {
     persistState(appState);
   }
+
+  useEffect(() => {
+    if (!syncAvailable) {
+      return;
+    }
+
+    if (initializedCodeRef.current === userCode) {
+      return;
+    }
+
+    initializedCodeRef.current = userCode;
+    let disposed = false;
+
+    async function initializeSync(): Promise<void> {
+      try {
+        await ensureRemoteUser(userCode);
+        await runWeeklyRemoteCleanup();
+
+        const remote = await loadRemoteState(userCode);
+        if (disposed) {
+          return;
+        }
+
+        if (!remote.appState) {
+          if (appState.periods.length > 0) {
+            setIsServerDataMissingForCode(true);
+            setCodeStatusMessage(
+              '서버 데이터가 정리되었습니다. 필요하면 로컬 기록으로 다시 시작할 수 있습니다.',
+            );
+          } else {
+            setIsServerDataMissingForCode(remote.hasRemoteUser);
+          }
+          return;
+        }
+
+        setIsServerDataMissingForCode(false);
+        const hydrated = hydrateAppState(remote.appState);
+        setAppState(hydrated);
+        const localSavedAt = saveAppState(hydrated);
+        setLastSavedAt(remote.savedAt ?? localSavedAt);
+        const syncedAt = remote.savedAt ?? dayjs().toISOString();
+        saveLastSyncedAt(syncedAt);
+        setLastSyncedAt(syncedAt);
+        setCodeStatusMessage(
+          appState.periods.length > 0
+            ? '서버 우선 정책으로 서버 데이터를 적용했습니다.'
+            : '서버에 저장된 데이터를 불러왔습니다.',
+        );
+      } catch (error) {
+        if (!disposed) {
+          setCodeStatusMessage(getSyncUnavailableMessage(error));
+        }
+      }
+    }
+
+    void initializeSync();
+
+    return () => {
+      disposed = true;
+    };
+  }, [appState.periods.length, syncAvailable, userCode]);
 
   useEffect(() => {
     if (!isDirty) {
@@ -287,10 +498,23 @@ export default function App(): JSX.Element {
     }
 
     clearAllAppStorage();
-    setAppState(createEmptyAppState());
+    const emptyState = createEmptyAppState();
+    setAppState(emptyState);
     setLastSavedAt(null);
     setIsDirty(false);
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
+
+    if (syncAvailable) {
+      void syncRemoteState(userCode, emptyState, { markActivity: true })
+        .then(() => {
+          const syncedAt = dayjs().toISOString();
+          saveLastSyncedAt(syncedAt);
+          setLastSyncedAt(syncedAt);
+        })
+        .catch((error) => {
+          setCodeStatusMessage(getSyncUnavailableMessage(error));
+        });
+    }
   }
 
   if (!selectedPeriod || !selectedCalc) {
@@ -324,14 +548,59 @@ export default function App(): JSX.Element {
               >
                 첫 구간 생성
               </button>
+            </div>
 
-              <button
-                type="button"
-                onClick={handleLoadSample}
-                className="btn-secondary h-11 min-w-[170px]"
-              >
-                샘플 데이터 불러오기
-              </button>
+            <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-bold text-slate-500">동기화 코드</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <code className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold tracking-wide text-indigo-700">
+                  {userCode}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCopyUserCode();
+                  }}
+                  className="btn-quiet h-11"
+                >
+                  코드 복사
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  value={codeInputDraft}
+                  onChange={(event) => setCodeInputDraft(event.target.value)}
+                  placeholder="기존 코드 입력 (예: WT-8F4K2M)"
+                  className="field-input h-11 w-full sm:max-w-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleLoadByCode(codeInputDraft);
+                  }}
+                  disabled={isCodeActionPending}
+                  className="btn-secondary h-11 disabled:opacity-50"
+                >
+                  기존 코드로 데이터 불러오기
+                </button>
+              </div>
+
+              {!syncAvailable ? (
+                <p className="mt-2 text-xs text-amber-600">
+                  서버 동기화를 사용하려면 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+                  환경변수가 필요합니다.
+                </p>
+              ) : null}
+
+              {codeStatusMessage ? (
+                <p className="mt-2 text-xs text-slate-500">{codeStatusMessage}</p>
+              ) : null}
+              {lastSyncedAt ? (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  마지막 서버 동기화: {dayjs(lastSyncedAt).format('YYYY-MM-DD HH:mm:ss')}
+                </p>
+              ) : null}
             </div>
 
           </div>
@@ -342,12 +611,13 @@ export default function App(): JSX.Element {
 
   return (
     <main className="app-shell">
-      <div className="content-reveal">
+      <div className="content-reveal relative z-30">
         <PeriodManager
           periods={appState.periods}
           selectedPeriodId={selectedPeriod.id}
           selectedStartDate={selectedPeriod.startDate}
           defaultCreateLabel={suggestedLabel}
+          userCode={userCode}
           isDirty={isDirty}
           lastSavedAt={lastSavedAt}
           canDeleteCurrentPeriod={canDeleteCurrentPeriod}
@@ -356,9 +626,29 @@ export default function App(): JSX.Element {
           onChangeStartDate={handleStartDateChange}
           onCreatePeriod={handleCreatePeriod}
           onSave={handleSave}
+          onLoadUserCode={handleLoadByCode}
           onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
           onResetAllData={handleResetAllData}
         />
+        {lastSyncedAt ? (
+          <p className="mt-1 px-1 text-[11px] text-slate-400">
+            마지막 서버 동기화: {dayjs(lastSyncedAt).format('YYYY-MM-DD HH:mm:ss')}
+          </p>
+        ) : null}
+        {isServerDataMissingForCode && appState.periods.length > 0 ? (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <span>서버 데이터가 정리되었습니다. 로컬 기록으로 다시 시작할 수 있습니다.</span>
+            <button
+              type="button"
+              onClick={() => {
+                void handleRestoreServerFromLocal();
+              }}
+              className="rounded-lg bg-white px-2 py-1 font-bold text-amber-700 hover:bg-amber-100"
+            >
+              로컬 기록으로 다시 시작
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="content-reveal">

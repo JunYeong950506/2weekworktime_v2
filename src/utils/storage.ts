@@ -1,6 +1,10 @@
 ﻿import dayjs from 'dayjs';
 
-import { APP_STORAGE_KEY } from '../constants';
+import {
+  APP_STORAGE_KEY,
+  LAST_SYNCED_AT_STORAGE_KEY,
+  USER_CODE_STORAGE_KEY,
+} from '../constants';
 import {
   AnnualLeaveType,
   AppState,
@@ -8,6 +12,11 @@ import {
   PersistedAppState,
   Period,
 } from '../types';
+import {
+  generateUserCode,
+  isValidUserCode,
+  normalizeUserCode,
+} from './userCode';
 
 const APP_STORAGE_KEYS = [APP_STORAGE_KEY] as const;
 
@@ -172,6 +181,53 @@ export function clearAllAppStorage(): void {
     APP_STORAGE_KEYS.forEach((key) => {
       localStorage.removeItem(key);
     });
+  } catch {
+    // no-op
+  }
+}
+
+export function loadUserCode(): string | null {
+  try {
+    const raw = localStorage.getItem(USER_CODE_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const normalized = normalizeUserCode(raw);
+    return isValidUserCode(normalized) ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveUserCode(userCode: string): string {
+  const normalized = normalizeUserCode(userCode);
+  localStorage.setItem(USER_CODE_STORAGE_KEY, normalized);
+  return normalized;
+}
+
+export function ensureUserCode(): string {
+  const existing = loadUserCode();
+  if (existing) {
+    return existing;
+  }
+
+  const generated = generateUserCode();
+  saveUserCode(generated);
+  return generated;
+}
+
+export function loadLastSyncedAt(): string | null {
+  try {
+    return localStorage.getItem(LAST_SYNCED_AT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastSyncedAt(value: string): void {
+  try {
+    localStorage.setItem(LAST_SYNCED_AT_STORAGE_KEY, value);
   } catch {
     // no-op
   }

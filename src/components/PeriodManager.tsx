@@ -9,6 +9,7 @@ interface PeriodManagerProps {
   selectedPeriodId: string | null;
   selectedStartDate: string;
   defaultCreateLabel: string;
+  userCode: string;
   isDirty: boolean;
   lastSavedAt: string | null;
   canDeleteCurrentPeriod: boolean;
@@ -17,6 +18,7 @@ interface PeriodManagerProps {
   onChangeStartDate: (startDate: string) => void;
   onCreatePeriod: (payload: CreatePeriodPayload) => void;
   onSave: () => void;
+  onLoadUserCode: (code: string) => Promise<{ ok: boolean; message: string }>;
   onDeleteCurrentPeriod: () => void;
   onResetAllData: () => void;
 }
@@ -26,6 +28,7 @@ export default function PeriodManager({
   selectedPeriodId,
   selectedStartDate,
   defaultCreateLabel,
+  userCode,
   isDirty,
   lastSavedAt,
   canDeleteCurrentPeriod,
@@ -34,11 +37,17 @@ export default function PeriodManager({
   onChangeStartDate,
   onCreatePeriod,
   onSave,
+  onLoadUserCode,
   onDeleteCurrentPeriod,
   onResetAllData,
 }: PeriodManagerProps): JSX.Element {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDangerMenuOpen, setIsDangerMenuOpen] = useState(false);
+  const [isCodeViewOpen, setIsCodeViewOpen] = useState(false);
+  const [isCodeLoadOpen, setIsCodeLoadOpen] = useState(false);
+  const [codeInputDraft, setCodeInputDraft] = useState('');
+  const [codeFeedback, setCodeFeedback] = useState<string | null>(null);
+  const [isCodeActionPending, setIsCodeActionPending] = useState(false);
   const [labelInput, setLabelInput] = useState(defaultCreateLabel);
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
@@ -93,6 +102,24 @@ export default function PeriodManager({
     };
   }, [isDangerMenuOpen]);
 
+  useEffect(() => {
+    if (!isCodeViewOpen && !isCodeLoadOpen) {
+      return;
+    }
+
+    function handleWindowKeydown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setIsCodeViewOpen(false);
+        setIsCodeLoadOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleWindowKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeydown);
+    };
+  }, [isCodeViewOpen, isCodeLoadOpen]);
+
   function submitCreate(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
 
@@ -128,8 +155,32 @@ export default function PeriodManager({
     input.click();
   }
 
+  async function handleCopyCode(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(userCode);
+      setCodeFeedback('동기화 코드를 복사했습니다.');
+    } catch {
+      setCodeFeedback('복사에 실패했습니다. 코드를 직접 선택해 복사해주세요.');
+    }
+  }
+
+  async function submitLoadCode(): Promise<void> {
+    setIsCodeActionPending(true);
+    setCodeFeedback(null);
+    try {
+      const result = await onLoadUserCode(codeInputDraft);
+      setCodeFeedback(result.message);
+      if (result.ok) {
+        setIsCodeLoadOpen(false);
+        setCodeInputDraft('');
+      }
+    } finally {
+      setIsCodeActionPending(false);
+    }
+  }
+
   return (
-    <section className="surface-panel">
+    <section className="surface-panel relative z-20 overflow-visible">
       <header className="flex flex-col gap-4 pb-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
@@ -215,7 +266,7 @@ export default function PeriodManager({
                 type="button"
                 onClick={() => setIsDangerMenuOpen((prev) => !prev)}
                 aria-expanded={isDangerMenuOpen}
-                aria-label="위험 작업 더보기"
+                aria-label="설정 메뉴"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -236,6 +287,30 @@ export default function PeriodManager({
 
               {isDangerMenuOpen ? (
                 <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDangerMenuOpen(false);
+                      setCodeFeedback(null);
+                      setIsCodeViewOpen(true);
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                  >
+                    동기화 코드 보기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDangerMenuOpen(false);
+                      setCodeFeedback(null);
+                      setCodeInputDraft('');
+                      setIsCodeLoadOpen(true);
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                  >
+                    코드 입력 / 붙여넣기
+                  </button>
+                  <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
                   <button
                     type="button"
                     onClick={() => {
@@ -328,6 +403,102 @@ export default function PeriodManager({
             </button>
           </div>
         </form>
+      ) : null}
+
+      {isCodeViewOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsCodeViewOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">동기화 코드</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              다른 디바이스에서 이 코드를 입력하면 같은 데이터를 불러옵니다.
+            </p>
+
+            <code className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold tracking-wide text-indigo-700">
+              {userCode}
+            </code>
+
+            {codeFeedback ? (
+              <p className="mt-2 text-xs text-slate-500">{codeFeedback}</p>
+            ) : null}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleCopyCode();
+                }}
+                className="btn-primary flex-1"
+              >
+                코드 복사
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCodeViewOpen(false)}
+                className="btn-quiet flex-1"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCodeLoadOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsCodeLoadOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
+              코드 입력 / 붙여넣기
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              입력한 코드의 서버 데이터를 현재 기기로 불러옵니다.
+            </p>
+
+            <input
+              value={codeInputDraft}
+              onChange={(event) => setCodeInputDraft(event.target.value)}
+              placeholder="예: WT-8F4K2M"
+              className="field-input mt-4 h-11 w-full"
+            />
+
+            {codeFeedback ? (
+              <p className="mt-2 text-xs text-slate-500">{codeFeedback}</p>
+            ) : null}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCodeLoadOpen(false)}
+                className="btn-quiet flex-1"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void submitLoadCode();
+                }}
+                disabled={isCodeActionPending}
+                className="btn-primary flex-1 disabled:opacity-50"
+              >
+                불러오기
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );
