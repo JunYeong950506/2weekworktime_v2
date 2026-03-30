@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
 import { formatSavedAt } from '../utils/time';
+import { normalizeUserCode } from '../utils/userCode';
 
 interface PeriodManagerProps {
   periods: Period[];
@@ -469,8 +470,11 @@ export default function PeriodManager({
 
             <input
               value={codeInputDraft}
-              onChange={(event) => setCodeInputDraft(event.target.value)}
+              onChange={(event) => setCodeInputDraft(normalizeUserCode(event.target.value))}
               placeholder="예: WT-8F4K2M"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
               className="field-input mt-4 h-11 w-full"
             />
 

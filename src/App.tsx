@@ -86,6 +86,8 @@ function upsertPeriod(periods: Period[], updated: Period): Period[] {
   return periods.map((period) => (period.id === updated.id ? updated : period));
 }
 
+const REMOTE_SYNC_MIN_INTERVAL_MS = 60_000;
+
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
   const syncAvailable = isRemoteSyncAvailable();
@@ -101,6 +103,9 @@ export default function App(): JSX.Element {
   const [isServerDataMissingForCode, setIsServerDataMissingForCode] = useState(false);
   const skipNextAutoSaveRef = useRef(false);
   const initializedCodeRef = useRef<string | null>(null);
+  const lastRemoteSyncedAtRef = useRef(0);
+  const pendingRemoteSyncTimerRef = useRef<number | null>(null);
+  const pendingRemoteSyncStateRef = useRef<AppState | null>(null);
 
   const selectedPeriod = useMemo(
     () => appState.periods.find((period) => period.id === appState.selectedPeriodId) ?? null,
@@ -352,22 +357,62 @@ export default function App(): JSX.Element {
     }
   }
 
-  function persistState(stateToSave: AppState): void {
-    const savedAt = saveAppState(stateToSave);
-    setLastSavedAt(savedAt);
-    setIsDirty(false);
-
-    if (!syncAvailable) {
-      return;
-    }
-
-    void syncRemoteState(userCode, stateToSave, { markActivity: true }).catch((error) => {
+  function triggerRemoteSync(stateToSync: AppState): void {
+    lastRemoteSyncedAtRef.current = Date.now();
+    void syncRemoteState(userCode, stateToSync, { markActivity: true }).catch((error) => {
       setCodeStatusMessage(getSyncUnavailableMessage(error));
     });
   }
 
+  function scheduleRemoteSync(stateToSync: AppState, force = false): void {
+    if (!syncAvailable) {
+      return;
+    }
+
+    if (force) {
+      if (pendingRemoteSyncTimerRef.current !== null) {
+        window.clearTimeout(pendingRemoteSyncTimerRef.current);
+        pendingRemoteSyncTimerRef.current = null;
+      }
+      pendingRemoteSyncStateRef.current = null;
+      triggerRemoteSync(stateToSync);
+      return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - lastRemoteSyncedAtRef.current;
+    if (
+      lastRemoteSyncedAtRef.current === 0 ||
+      elapsed >= REMOTE_SYNC_MIN_INTERVAL_MS
+    ) {
+      triggerRemoteSync(stateToSync);
+      return;
+    }
+
+    pendingRemoteSyncStateRef.current = stateToSync;
+    if (pendingRemoteSyncTimerRef.current !== null) {
+      window.clearTimeout(pendingRemoteSyncTimerRef.current);
+    }
+
+    const waitMs = REMOTE_SYNC_MIN_INTERVAL_MS - elapsed;
+    pendingRemoteSyncTimerRef.current = window.setTimeout(() => {
+      const nextState = pendingRemoteSyncStateRef.current ?? stateToSync;
+      pendingRemoteSyncStateRef.current = null;
+      pendingRemoteSyncTimerRef.current = null;
+      triggerRemoteSync(nextState);
+    }, waitMs);
+  }
+
+  function persistState(stateToSave: AppState, forceRemoteSync = false): void {
+    const savedAt = saveAppState(stateToSave);
+    setLastSavedAt(savedAt);
+    setIsDirty(false);
+
+    scheduleRemoteSync(stateToSave, forceRemoteSync);
+  }
+
   function handleSave(): void {
-    persistState(appState);
+    persistState(appState, true);
   }
 
   useEffect(() => {
@@ -429,6 +474,24 @@ export default function App(): JSX.Element {
   }, [appState.periods.length, syncAvailable, userCode]);
 
   useEffect(() => {
+    if (pendingRemoteSyncTimerRef.current !== null) {
+      window.clearTimeout(pendingRemoteSyncTimerRef.current);
+      pendingRemoteSyncTimerRef.current = null;
+    }
+    pendingRemoteSyncStateRef.current = null;
+    lastRemoteSyncedAtRef.current = 0;
+  }, [userCode]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingRemoteSyncTimerRef.current !== null) {
+        window.clearTimeout(pendingRemoteSyncTimerRef.current);
+        pendingRemoteSyncTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isDirty) {
       return;
     }
@@ -481,9 +544,7 @@ export default function App(): JSX.Element {
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
 
     if (syncAvailable) {
-      void syncRemoteState(userCode, emptyState, { markActivity: true }).catch((error) => {
-        setCodeStatusMessage(getSyncUnavailableMessage(error));
-      });
+      scheduleRemoteSync(emptyState, true);
     }
   }
 
@@ -540,8 +601,11 @@ export default function App(): JSX.Element {
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   value={codeInputDraft}
-                  onChange={(event) => setCodeInputDraft(event.target.value)}
+                  onChange={(event) => setCodeInputDraft(normalizeUserCode(event.target.value))}
                   placeholder="기존 코드 입력 (예: WT-8F4K2M)"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="field-input h-11 w-full sm:max-w-xs"
                 />
                 <button
