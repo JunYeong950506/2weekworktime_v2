@@ -170,7 +170,7 @@ function buildStateFromRemoteRows(
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
 
   return {
-    selectedPeriodId: periods[0]?.id ?? null,
+    selectedPeriodId: periods.length > 0 ? periods[periods.length - 1].id : null,
     periods,
   };
 }

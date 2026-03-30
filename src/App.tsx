@@ -45,7 +45,10 @@ interface CodeLoadResult {
   message: string;
 }
 
-function hydrateAppState(source: AppState): AppState {
+function hydrateAppState(
+  source: AppState,
+  preferredSelectedPeriodId?: string | null,
+): AppState {
   const periods = source.periods.map((period) => {
     const calc = recalculatePeriod(period);
     return {
@@ -54,11 +57,15 @@ function hydrateAppState(source: AppState): AppState {
     };
   });
 
+  const periodIds = new Set(periods.map((period) => period.id));
+  const fallbackSelectedPeriodId = periods.length > 0 ? periods[periods.length - 1].id : null;
+
   const selectedPeriodId =
-    source.selectedPeriodId &&
-    periods.some((period) => period.id === source.selectedPeriodId)
-      ? source.selectedPeriodId
-      : periods[0]?.id ?? null;
+    preferredSelectedPeriodId && periodIds.has(preferredSelectedPeriodId)
+      ? preferredSelectedPeriodId
+      : source.selectedPeriodId && periodIds.has(source.selectedPeriodId)
+        ? source.selectedPeriodId
+        : fallbackSelectedPeriodId;
 
   return {
     selectedPeriodId,
@@ -318,7 +325,9 @@ export default function App(): JSX.Element {
         return { ok: false, message };
       }
 
-      const hydrated = hydrateAppState(remote.appState);
+      const preferredSelectedPeriodId =
+        normalized === userCode ? appState.selectedPeriodId : null;
+      const hydrated = hydrateAppState(remote.appState, preferredSelectedPeriodId);
       const savedCode = saveUserCode(normalized);
       setUserCode(savedCode);
       setAppState(hydrated);
@@ -450,7 +459,7 @@ export default function App(): JSX.Element {
         }
 
         setIsServerDataMissingForCode(false);
-        const hydrated = hydrateAppState(remote.appState);
+        const hydrated = hydrateAppState(remote.appState, appState.selectedPeriodId);
         setAppState(hydrated);
         const localSavedAt = saveAppState(hydrated);
         setLastSavedAt(remote.savedAt ?? localSavedAt);
@@ -490,6 +499,54 @@ export default function App(): JSX.Element {
       }
     };
   }, []);
+
+  useEffect(() => {
+    function flushRemoteSyncOnBackground(): void {
+      if (!syncAvailable) {
+        return;
+      }
+
+      const hasPendingRemoteSync =
+        pendingRemoteSyncTimerRef.current !== null ||
+        pendingRemoteSyncStateRef.current !== null;
+
+      if (!isDirty && !hasPendingRemoteSync) {
+        return;
+      }
+
+      if (isDirty) {
+        persistState(appState, true);
+        return;
+      }
+
+      if (pendingRemoteSyncTimerRef.current !== null) {
+        window.clearTimeout(pendingRemoteSyncTimerRef.current);
+        pendingRemoteSyncTimerRef.current = null;
+      }
+
+      const stateToSync = pendingRemoteSyncStateRef.current ?? appState;
+      pendingRemoteSyncStateRef.current = null;
+      triggerRemoteSync(stateToSync);
+    }
+
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === 'hidden') {
+        flushRemoteSyncOnBackground();
+      }
+    }
+
+    function handlePageHide(): void {
+      flushRemoteSyncOnBackground();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [appState, isDirty, syncAvailable, userCode]);
 
   useEffect(() => {
     if (!isDirty) {
