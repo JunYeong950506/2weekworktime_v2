@@ -8,3 +8,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare const __APP_SUPABASE_URL__: string;
+declare const __APP_SUPABASE_ANON_KEY__: string;

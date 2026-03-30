@@ -1,15 +1,21 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? '';
+const fallbackSupabaseUrl =
+  (typeof __APP_SUPABASE_URL__ === 'string' ? __APP_SUPABASE_URL__ : '').trim();
+const fallbackSupabaseAnonKey =
+  (typeof __APP_SUPABASE_ANON_KEY__ === 'string' ? __APP_SUPABASE_ANON_KEY__ : '').trim();
+
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || fallbackSupabaseUrl;
 const supabaseAnonKey =
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '';
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || fallbackSupabaseAnonKey;
 
 const missingVars: string[] = [];
 if (!supabaseUrl) {
-  missingVars.push('VITE_SUPABASE_URL');
+  missingVars.push('VITE_SUPABASE_URL/SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL');
 }
 if (!supabaseAnonKey) {
-  missingVars.push('VITE_SUPABASE_ANON_KEY');
+  missingVars.push('VITE_SUPABASE_ANON_KEY/SUPABASE_ANON_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
 let client: SupabaseClient | null = null;
