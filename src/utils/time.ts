@@ -6,7 +6,6 @@ const TIME_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
 
 export const CLOCK_IN_MIN_MINUTES = 6 * MINUTES_PER_HOUR;
-export const CLOCK_OUT_LAST_MINUTES = 5 * MINUTES_PER_HOUR + 59;
 
 export interface ParsedTime24 {
   hours: number;
@@ -30,15 +29,6 @@ export function parseTime24(value: string): ParsedTime24 | null {
   };
 }
 
-export function toMinutes(value: string): number | null {
-  const parsed = parseTime24(value);
-  return parsed ? parsed.totalMinutes : null;
-}
-
-export function parseTimeToMinutes(value: string): number | null {
-  return toMinutes(value);
-}
-
 export function normalizeOvernightCheckout(
   clockInMinutes: number,
   clockOutMinutes: number,
@@ -46,21 +36,6 @@ export function normalizeOvernightCheckout(
   return clockOutMinutes < clockInMinutes
     ? clockOutMinutes + MINUTES_PER_DAY
     : clockOutMinutes;
-}
-
-export function computeWorkedMinutes(
-  clockInMinutes: number,
-  clockOutMinutes: number,
-  lunchBreakMinutes: number,
-): number {
-  const normalizedClockOutMinutes = normalizeOvernightCheckout(
-    clockInMinutes,
-    clockOutMinutes,
-  );
-  const grossWorkedMinutes =
-    normalizedClockOutMinutes - clockInMinutes - lunchBreakMinutes;
-
-  return Math.max(0, grossWorkedMinutes);
 }
 
 export function formatMinutesAsClock(minutes: number | null): string {

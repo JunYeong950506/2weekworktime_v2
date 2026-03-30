@@ -186,6 +186,17 @@ export default function TimesheetTable({
   const modalFullLeave = modalMeta?.isAnnualLeaveFullMode ?? false;
   const disableTimeAndDeduction = modalSpecialMode || modalFullLeave;
   const showOfficialInput = modalAnnualLeaveValue === 'official' && !modalSpecialMode;
+  const modalValidationErrors = modalMeta?.validationErrors ?? [];
+  const hasModalErrors = modalValidationErrors.length > 0;
+  const hasMissingTimeError = modalValidationErrors.some((message) =>
+    message.includes('미입력'),
+  );
+  const hasClockInError =
+    modalValidationErrors.some((message) => message.includes('출근시간')) ||
+    (hasMissingTimeError && (modalRecord?.clockIn.trim() ?? '') === '');
+  const hasClockOutError =
+    modalValidationErrors.some((message) => message.includes('퇴근시간')) ||
+    (hasMissingTimeError && (modalRecord?.clockOut.trim() ?? '') === '');
 
   return (
     <>
@@ -356,11 +367,31 @@ export default function TimesheetTable({
               </button>
             </div>
 
-            <div className="space-y-6 overflow-x-hidden px-5 py-5 sm:p-8">
+            <div className="space-y-6 overflow-x-hidden px-5 py-4 sm:p-8 sm:pt-5">
+              {hasModalErrors ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-rose-700">
+                  <p className="mb-1.5 flex items-center gap-2 text-sm font-bold">
+                    <span aria-hidden="true">⚠️</span>
+                    확인이 필요한 항목 ({modalValidationErrors.length}건)
+                  </p>
+                  <ul className="list-disc space-y-0.5 pl-5 text-xs leading-5 sm:text-[13px]">
+                    {modalValidationErrors.map((message, idx) => (
+                      <li key={`modal-error-guide-${idx}`}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
               <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
                 <div className="min-w-0 w-full flex-1 overflow-hidden">
                   <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
-                    <label className="block min-w-0 text-xs font-bold text-slate-400">출근 시간</label>
+                    <label
+                      className={`block min-w-0 text-xs font-bold ${
+                        hasClockInError ? 'text-rose-500' : 'text-slate-400'
+                      }`}
+                    >
+                      출근 시간
+                    </label>
                     <button
                       type="button"
                       onClick={() => patchDraft({ clockIn: '' })}
@@ -378,13 +409,23 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockIn: event.target.value })}
-                    className="h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
+                      hasClockInError
+                        ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
+                        : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
+                    }`}
                   />
                 </div>
                 <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
                 <div className="min-w-0 w-full flex-1 overflow-hidden">
                   <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
-                    <label className="block min-w-0 text-xs font-bold text-slate-400">퇴근 시간</label>
+                    <label
+                      className={`block min-w-0 text-xs font-bold ${
+                        hasClockOutError ? 'text-rose-500' : 'text-slate-400'
+                      }`}
+                    >
+                      퇴근 시간
+                    </label>
                     <button
                       type="button"
                       onClick={() => patchDraft({ clockOut: '' })}
@@ -402,7 +443,11 @@ export default function TimesheetTable({
                     value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
                     disabled={disableTimeAndDeduction}
                     onChange={(event) => patchDraft({ clockOut: event.target.value })}
-                    className="h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl"
+                    className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
+                      hasClockOutError
+                        ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
+                        : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
+                    }`}
                   />
                 </div>
               </div>
@@ -530,14 +575,6 @@ export default function TimesheetTable({
                     }
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-right text-lg font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
-                </div>
-              ) : null}
-
-              {modalMeta && modalMeta.validationErrors.length > 0 ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
-                  {modalMeta.validationErrors.map((message, idx) => (
-                    <p key={`modal-error-${idx}`}>{message}</p>
-                  ))}
                 </div>
               ) : null}
 
