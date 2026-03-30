@@ -346,7 +346,7 @@ export default function TimesheetTable({
               </div>
               <button
                 type="button"
-                onClick={saveModal}
+                onClick={closeModal}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
                 aria-label="팝업 닫기"
               >
@@ -427,16 +427,22 @@ export default function TimesheetTable({
                 </div>
 
                 <div className="min-w-0 flex flex-col justify-center">
-                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">석식 먹음</label>
-                  <label className="ml-1 cursor-pointer">
+                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">석식 여부</label>
+                  <label
+                    className={`ml-1 inline-flex h-11 items-center justify-between rounded-xl border px-3 text-sm font-bold ${
+                      modalRecord.dinnerChecked
+                        ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                        : 'border-slate-200 bg-white text-slate-600'
+                    } ${disableTimeAndDeduction ? 'opacity-60' : ''}`}
+                  >
+                    {modalRecord.dinnerChecked ? '석식 먹음' : '석식 없음'}
                     <input
                       type="checkbox"
                       checked={modalRecord.dinnerChecked}
                       disabled={disableTimeAndDeduction}
                       onChange={(event) => patchDraft({ dinnerChecked: event.target.checked })}
-                      className="peer sr-only"
+                      className="field-check"
                     />
-                    <span className="relative block h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-transform peer-checked:bg-indigo-500 peer-checked:after:translate-x-full peer-disabled:cursor-not-allowed peer-disabled:opacity-60" />
                   </label>
                 </div>
 

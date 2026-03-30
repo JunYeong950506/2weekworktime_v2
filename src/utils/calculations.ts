@@ -279,6 +279,28 @@ function sumNullable(values: Array<number | null>): number {
   );
 }
 
+function getRegularMinutesForSummary(
+  record: DayRecord,
+  meta?: DayRecordMeta,
+): number {
+  if (meta?.isSpecialWorkMode) {
+    return 0;
+  }
+
+  const claimedMinutes = sanitizeMinutes(record.claimedOtMinutes);
+  const effectiveLeaveType =
+    meta?.effectiveAnnualLeaveType ?? normalizeAnnualLeaveType(record.annualLeaveType);
+
+  // 일반근무 행은 실제 근무시간 기준으로 정규 업무시간을 계산한다.
+  // 휴가 유형(연차/반차/공가)은 기존 인정 근무시간 로직을 유지한다.
+  const baseMinutes =
+    effectiveLeaveType === 'none'
+      ? sanitizeMinutes(record.workMinutes ?? 0)
+      : sanitizeMinutes(record.regularMinutes ?? 0);
+
+  return Math.max(0, baseMinutes - claimedMinutes);
+}
+
 export function calculateSummary(
   records: DayRecord[],
   rowMeta: DayRecordMeta[],
@@ -294,8 +316,10 @@ export function calculateSummary(
   const requiredMinutes =
     REGULAR_TARGET_MINUTES_2WEEK - weekdayHolidayCount * DAILY_REGULAR_MINUTES;
 
-  const regularWorkedMinutes = sumNullable(
-    records.map((record) => record.regularMinutes),
+  const regularWorkedMinutes = records.reduce(
+    (acc, record, index) =>
+      acc + getRegularMinutesForSummary(record, rowMeta[index]),
+    0,
   );
   const remainingMinutes = Math.max(0, requiredMinutes - regularWorkedMinutes);
 
