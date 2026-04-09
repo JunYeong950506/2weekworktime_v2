@@ -24,7 +24,6 @@ import {
   saveAppState,
 } from './utils/storage';
 import {
-  ensureRemoteUser,
   getSyncUnavailableMessage,
   isRemoteSyncAvailable,
   loadRemoteState,
@@ -498,7 +497,6 @@ export default function App(): JSX.Element {
 
     async function initializeSync(): Promise<void> {
       try {
-        await ensureRemoteUser(userCode);
         await runWeeklyRemoteCleanup();
 
         const remote = await loadRemoteState(userCode);

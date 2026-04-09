@@ -92,14 +92,27 @@ function getTouchedRecordCount(state: AppState): number {
   );
 }
 
-function recordRowId(periodId: string, workDate: string): string {
-  return `${periodId}::${workDate}`;
+function remotePeriodId(userCode: string, localPeriodId: string): string {
+  return `${userCode}::${localPeriodId}`;
+}
+
+function localPeriodId(remoteId: string): string {
+  const separatorIndex = remoteId.indexOf('::');
+  if (separatorIndex < 0) {
+    return remoteId;
+  }
+
+  return remoteId.slice(separatorIndex + 2);
+}
+
+function recordRowId(userCode: string, periodId: string, workDate: string): string {
+  return `${userCode}::${periodId}::${workDate}`;
 }
 
 function toPeriodRows(userCode: string, periods: Period[]): RemotePeriodRow[] {
   const nowIso = dayjs().toISOString();
   return periods.map((period) => ({
-    id: period.id,
+    id: remotePeriodId(userCode, period.id),
     user_code: userCode,
     period_name: period.label,
     start_date: period.startDate,
@@ -113,9 +126,11 @@ function toWorkRecordRows(
   periods: Period[],
 ): RemoteWorkRecordRow[] {
   return periods.flatMap((period) =>
-    period.records.map((record) => ({
-      id: recordRowId(period.id, record.date),
-      period_id: period.id,
+    period.records.map((record) => {
+      const remoteId = remotePeriodId(userCode, period.id);
+      return {
+        id: recordRowId(userCode, period.id, record.date),
+        period_id: remoteId,
       user_code: userCode,
       work_date: record.date,
       holiday: record.isHoliday,
@@ -126,7 +141,8 @@ function toWorkRecordRows(
       dinner_checked: Boolean(record.dinnerChecked),
       non_work_minutes: toNonNegativeInteger(record.nonWorkMinutes),
       actual_overtime_minutes: toNonNegativeInteger(record.claimedOtMinutes),
-    })),
+      };
+    }),
   );
 }
 
@@ -159,7 +175,7 @@ function buildStateFromRemoteRows(
 
   const periods: Period[] = periodRows
     .map((row) => ({
-      id: row.id,
+      id: localPeriodId(row.id),
       label: row.period_name,
       startDate: row.start_date,
       createdAt: row.created_at,
@@ -329,10 +345,6 @@ export async function loadRemoteState(
   if (userError) {
     throw new Error(userError.message);
   }
-
-  await upsertUserMetadata(normalized, {
-    markActivity: false,
-  });
 
   const { data: periodRows, error: periodError } = await supabase
     .from('periods')

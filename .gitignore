@@ -4,3 +4,10 @@ dist
 .DS_Store
 *.local
 .vercel
+.npm-cache/
+.npm-cache-cli/
+.npm-cache-cli2/
+*.tsbuildinfo
+supabase/.temp/
+supabase/.tmp_verify.sql
+supabase/.tmp_verify_rls.sql
