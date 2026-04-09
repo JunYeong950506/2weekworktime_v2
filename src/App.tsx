@@ -45,6 +45,11 @@ interface CodeLoadResult {
   message: string;
 }
 
+interface VerifiedRemoteState {
+  appState: AppState;
+  savedAt: string | null;
+}
+
 function hydrateAppState(
   source: AppState,
   preferredSelectedPeriodId?: string | null,
@@ -91,6 +96,23 @@ function getInitialState(): InitialState {
 
 function upsertPeriod(periods: Period[], updated: Period): Period[] {
   return periods.map((period) => (period.id === updated.id ? updated : period));
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+function hasMatchingPeriods(localState: AppState, remoteState: AppState): boolean {
+  if (localState.periods.length !== remoteState.periods.length) {
+    return false;
+  }
+
+  const localIds = localState.periods.map((period) => period.id).sort();
+  const remoteIds = remoteState.periods.map((period) => period.id).sort();
+
+  return localIds.every((id, index) => id === remoteIds[index]);
 }
 
 const REMOTE_SYNC_MIN_INTERVAL_MS = 60_000;
@@ -357,8 +379,42 @@ export default function App(): JSX.Element {
       return;
     }
 
+    const localStateToRestore = appState;
+    const preferredSelectedPeriodId = appState.selectedPeriodId;
+
+    async function verifyRemoteRestore(): Promise<VerifiedRemoteState | null> {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const remote = await loadRemoteState(userCode);
+        if (remote.appState && hasMatchingPeriods(localStateToRestore, remote.appState)) {
+          return {
+            appState: remote.appState,
+            savedAt: remote.savedAt,
+          };
+        }
+
+        if (attempt === 0) {
+          await wait(250);
+        }
+      }
+
+      return null;
+    }
+
     try {
-      await syncRemoteState(userCode, appState, { markActivity: true });
+      clearPendingRemoteSync();
+      await syncRemoteState(userCode, localStateToRestore, { markActivity: true });
+      lastRemoteSyncedAtRef.current = Date.now();
+
+      const verifiedRemote = await verifyRemoteRestore();
+      if (!verifiedRemote) {
+        throw new Error('서버 동기화 후 데이터를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const hydrated = hydrateAppState(verifiedRemote.appState, preferredSelectedPeriodId);
+      setAppState(hydrated);
+      const localSavedAt = saveAppState(hydrated);
+      setLastSavedAt(verifiedRemote.savedAt ?? localSavedAt);
+      setIsDirty(false);
       setIsServerDataMissingForCode(false);
       setCodeStatusMessage('로컬 기록으로 서버 동기화했습니다.');
     } catch (error) {
@@ -724,7 +780,7 @@ export default function App(): JSX.Element {
         />
         {isServerDataMissingForCode && appState.periods.length > 0 ? (
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <span>서버 데이터가 정리되었습니다. 로컬로 데이터가 저장됩니다.</span>
+            <span>서버 동기화 없이 로컬로 데이터가 저장됩니다.</span>
             <button
               type="button"
               onClick={() => {
