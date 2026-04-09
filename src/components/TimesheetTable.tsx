@@ -235,7 +235,155 @@ export default function TimesheetTable({
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain]">
+        <div className="space-y-3 px-4 py-4 md:hidden">
+          {records.map((record, index) => {
+            const meta = rowMeta[index];
+            const hasError =
+              (meta?.validationErrors.length ?? 0) > 0 || hasPartialLeaveWarning(record);
+            const dateToneClass = getDateToneClass(record, meta);
+            const workType = getWorkTypeLabel(record, meta);
+            const workLabel = formatMinutesAsClock(record.workMinutes);
+            const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
+            const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
+            const isCurrentRow = isToday(record.date);
+            const isSpecialRow = meta?.isSpecialWorkMode ?? false;
+            const isSpecialInfoOpen = specialInfoOpenDate === record.date;
+            const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
+            const mobileCardClass = hasError
+              ? isCurrentRow
+                ? 'border-rose-200 bg-indigo-50/50 ring-1 ring-rose-100'
+                : 'border-rose-200 bg-white ring-1 ring-rose-100'
+              : isCurrentRow
+                ? 'border-indigo-100 bg-indigo-50/50'
+                : 'border-slate-200/80 bg-white';
+
+            return (
+              <div
+                key={`mobile-${record.date}`}
+                onClick={() => openModal(index)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openModal(index);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                className={`rounded-[24px] border px-4 py-4 shadow-sm transition active:scale-[0.99] ${mobileCardClass}`}
+              >
+                <div className="grid grid-cols-[84px_minmax(0,1fr)_20px] items-start gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`whitespace-nowrap text-[13px] font-extrabold ${dateToneClass}`}>
+                        {formatDateCell(record.date)}
+                      </p>
+                      {hasError ? (
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                          !
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="relative mt-2">
+                      {isSpecialRow ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <span
+                            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${workTypeBadgeClass}`}
+                          >
+                            {workType}
+                          </span>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSpecialInfoOpenDate((prev) =>
+                                prev === record.date ? null : record.date,
+                              );
+                            }}
+                            aria-label="특근 안내 보기"
+                            aria-expanded={isSpecialInfoOpen}
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-100 bg-sky-50 text-sky-500 shadow-sm transition hover:border-sky-200 hover:bg-sky-100 hover:text-sky-600"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1.8"
+                                d="M12 10v5m0-8h.01"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${workTypeBadgeClass}`}
+                        >
+                          {workType}
+                        </span>
+                      )}
+                      {isSpecialRow ? (
+                        <div
+                          className={`pointer-events-none absolute left-0 top-full z-20 mt-2 w-[180px] max-w-[68vw] whitespace-normal rounded-lg border border-sky-100 bg-sky-50 px-2.5 py-2 text-[11px] font-medium leading-snug text-sky-700 shadow-md transition-opacity ${
+                            isSpecialInfoOpen ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          특근 시간을 야근결재에 입력하세요.
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="grid min-w-0 grid-cols-3 gap-2 text-center">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-400">근무시간</p>
+                      <p className="mt-1 truncate text-[15px] font-extrabold text-indigo-600">
+                        {workLabel}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-400">야근결재</p>
+                      <p className="mt-1 truncate text-[15px] font-extrabold text-orange-500">
+                        {claimedLabel}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-400">조기/초과</p>
+                      <p className="mt-1 truncate text-[15px] font-extrabold text-pink-500">
+                        {balanceLabel}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-1 text-right text-slate-300">
+                    <svg
+                      className="inline h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2.5"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain] md:block">
           <table className="w-full whitespace-nowrap text-left">
             <thead className="border-b border-slate-100 bg-slate-50/80 text-[13px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
@@ -316,7 +464,7 @@ export default function TimesheetTable({
                             {workType}
                           </button>
                           <div
-                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-[180px] max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium leading-snug text-slate-600 shadow-md transition-opacity ${
+                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-[180px] max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-sky-100 bg-sky-50 px-2 py-1 text-[11px] font-medium leading-snug text-sky-700 shadow-md transition-opacity ${
                               isSpecialInfoOpen
                                 ? 'opacity-100'
                                 : 'opacity-0 md:peer-hover:opacity-100 md:peer-focus-visible:opacity-100'
