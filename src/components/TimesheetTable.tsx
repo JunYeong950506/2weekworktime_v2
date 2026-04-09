@@ -278,8 +278,27 @@ export default function TimesheetTable({
                         {formatDateCell(record.date)}
                       </p>
                       {hasError ? (
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                          !
+                        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-pink-400">
+                          <svg
+                            className="h-[18px] w-[18px]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.8"
+                              d="M12 4.75 20 19H4L12 4.75Z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.8"
+                              d="M12 9v4m0 2.75h.01"
+                            />
+                          </svg>
                         </span>
                       ) : null}
                     </div>
@@ -302,10 +321,10 @@ export default function TimesheetTable({
                             }}
                             aria-label="특근 안내 보기"
                             aria-expanded={isSpecialInfoOpen}
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-100 bg-sky-50 text-sky-500 shadow-sm transition hover:border-sky-200 hover:bg-sky-100 hover:text-sky-600"
+                            className="inline-flex h-5 w-5 items-center justify-center text-sky-500 transition hover:text-sky-600"
                           >
                             <svg
-                              className="h-3.5 w-3.5"
+                              className="h-[18px] w-[18px]"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
