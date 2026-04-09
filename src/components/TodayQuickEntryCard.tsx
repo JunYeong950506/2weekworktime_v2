@@ -367,7 +367,7 @@ export default function TodayQuickEntryCard({
               </label>
 
               <label className="field-label">
-                실제 야근(분)
+                실제 야근결재(분)
                 <input
                   type="number"
                   min={0}

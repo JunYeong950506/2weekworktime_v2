@@ -360,7 +360,7 @@ export default function App(): JSX.Element {
     try {
       await syncRemoteState(userCode, appState, { markActivity: true });
       setIsServerDataMissingForCode(false);
-      setCodeStatusMessage('로컬 기록으로 서버 데이터를 다시 시작했습니다.');
+      setCodeStatusMessage('로컬 기록으로 서버 동기화했습니다.');
     } catch (error) {
       setCodeStatusMessage(getSyncUnavailableMessage(error));
     }
@@ -373,17 +373,22 @@ export default function App(): JSX.Element {
     });
   }
 
+  function clearPendingRemoteSync(): void {
+    if (pendingRemoteSyncTimerRef.current !== null) {
+      window.clearTimeout(pendingRemoteSyncTimerRef.current);
+      pendingRemoteSyncTimerRef.current = null;
+    }
+
+    pendingRemoteSyncStateRef.current = null;
+  }
+
   function scheduleRemoteSync(stateToSync: AppState, force = false): void {
     if (!syncAvailable) {
       return;
     }
 
     if (force) {
-      if (pendingRemoteSyncTimerRef.current !== null) {
-        window.clearTimeout(pendingRemoteSyncTimerRef.current);
-        pendingRemoteSyncTimerRef.current = null;
-      }
-      pendingRemoteSyncStateRef.current = null;
+      clearPendingRemoteSync();
       triggerRemoteSync(stateToSync);
       return;
     }
@@ -399,9 +404,8 @@ export default function App(): JSX.Element {
     }
 
     pendingRemoteSyncStateRef.current = stateToSync;
-    if (pendingRemoteSyncTimerRef.current !== null) {
-      window.clearTimeout(pendingRemoteSyncTimerRef.current);
-    }
+    clearPendingRemoteSync();
+    pendingRemoteSyncStateRef.current = stateToSync;
 
     const waitMs = REMOTE_SYNC_MIN_INTERVAL_MS - elapsed;
     pendingRemoteSyncTimerRef.current = window.setTimeout(() => {
@@ -450,7 +454,7 @@ export default function App(): JSX.Element {
           if (appState.periods.length > 0) {
             setIsServerDataMissingForCode(true);
             setCodeStatusMessage(
-              '서버 데이터가 정리되었습니다. 필요하면 로컬 기록으로 다시 시작할 수 있습니다.',
+              '서버 데이터가 정리되었습니다. 필요하면 로컬 기록으로 서버 동기화를 할 수 있습니다.',
             );
           } else {
             setIsServerDataMissingForCode(remote.hasRemoteUser);
@@ -483,20 +487,13 @@ export default function App(): JSX.Element {
   }, [appState.periods.length, syncAvailable, userCode]);
 
   useEffect(() => {
-    if (pendingRemoteSyncTimerRef.current !== null) {
-      window.clearTimeout(pendingRemoteSyncTimerRef.current);
-      pendingRemoteSyncTimerRef.current = null;
-    }
-    pendingRemoteSyncStateRef.current = null;
+    clearPendingRemoteSync();
     lastRemoteSyncedAtRef.current = 0;
   }, [userCode]);
 
   useEffect(() => {
     return () => {
-      if (pendingRemoteSyncTimerRef.current !== null) {
-        window.clearTimeout(pendingRemoteSyncTimerRef.current);
-        pendingRemoteSyncTimerRef.current = null;
-      }
+      clearPendingRemoteSync();
     };
   }, []);
 
@@ -519,11 +516,7 @@ export default function App(): JSX.Element {
         return;
       }
 
-      if (pendingRemoteSyncTimerRef.current !== null) {
-        window.clearTimeout(pendingRemoteSyncTimerRef.current);
-        pendingRemoteSyncTimerRef.current = null;
-      }
-
+      clearPendingRemoteSync();
       const stateToSync = pendingRemoteSyncStateRef.current ?? appState;
       pendingRemoteSyncStateRef.current = null;
       triggerRemoteSync(stateToSync);
@@ -586,23 +579,36 @@ export default function App(): JSX.Element {
 
   function handleResetAllData(): void {
     const confirmed = window.confirm(
-      '전체 데이터 초기화를 실행하면 저장된 모든 구간이 삭제됩니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?',
+      '전체 데이터 초기화를 실행하면 저장된 모든 구간이 삭제되고 동기화 코드도 새로 발급됩니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?',
     );
 
     if (!confirmed) {
       return;
     }
 
-    clearAllAppStorage();
+    const previousUserCode = userCode;
     const emptyState = createEmptyAppState();
+
+    clearPendingRemoteSync();
+    lastRemoteSyncedAtRef.current = 0;
+
+    if (syncAvailable) {
+      void syncRemoteState(previousUserCode, emptyState, { markActivity: true }).catch((error) => {
+        setCodeStatusMessage(getSyncUnavailableMessage(error));
+      });
+    }
+
+    clearAllAppStorage();
+    const nextUserCode = ensureUserCode();
+
     setAppState(emptyState);
+    setUserCode(nextUserCode);
     setLastSavedAt(null);
     setIsDirty(false);
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
-
-    if (syncAvailable) {
-      scheduleRemoteSync(emptyState, true);
-    }
+    setCodeInputDraft('');
+    setIsServerDataMissingForCode(false);
+    setCodeStatusMessage('전체 데이터를 초기화하고 새 동기화 코드를 발급했습니다.');
   }
 
   if (!selectedPeriod || !selectedCalc) {
@@ -718,7 +724,7 @@ export default function App(): JSX.Element {
         />
         {isServerDataMissingForCode && appState.periods.length > 0 ? (
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <span>서버 데이터가 정리되었습니다. 로컬 기록으로 다시 시작할 수 있습니다.</span>
+            <span>서버 데이터가 정리되었습니다. 로컬로 데이터가 저장됩니다.</span>
             <button
               type="button"
               onClick={() => {
@@ -726,7 +732,7 @@ export default function App(): JSX.Element {
               }}
               className="rounded-lg bg-white px-2 py-1 font-bold text-amber-700 hover:bg-amber-100"
             >
-              로컬 기록으로 다시 시작
+              서버 동기화
             </button>
           </div>
         ) : null}

@@ -533,7 +533,7 @@ export default function TimesheetTable({
 
                 <div className="min-w-0 flex-1">
                   <label className="mb-1.5 ml-1 block text-xs font-bold text-indigo-500">
-                    실제 야근결재 (분)
+                    실제 야근결재(분)
                   </label>
                   <input
                     type="number"

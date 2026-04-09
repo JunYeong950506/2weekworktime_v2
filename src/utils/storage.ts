@@ -17,7 +17,7 @@ import {
   normalizeUserCode,
 } from './userCode';
 
-const APP_STORAGE_KEYS = [APP_STORAGE_KEY] as const;
+const APP_STORAGE_KEYS = [APP_STORAGE_KEY, USER_CODE_STORAGE_KEY] as const;
 
 function isValidObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
