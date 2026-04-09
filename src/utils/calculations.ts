@@ -119,6 +119,7 @@ export function recalculateDayRecord(source: DayRecord): {
 
   const hasClockIn = source.clockIn.trim() !== '';
   const hasClockOut = source.clockOut.trim() !== '';
+  const isPastWorkDate = dayjs(source.date).isBefore(dayjs(), 'day');
 
   let clockInMinutes: number | null = null;
   let clockOutMinutes: number | null = null;
@@ -142,7 +143,7 @@ export function recalculateDayRecord(source: DayRecord): {
       validationErrors.push('\uCD9C\uADFC\uC2DC\uAC04\uC740 06:00~23:59 \uBC94\uC704\uB9CC \uC785\uB825\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.');
     }
 
-    if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
+    if (isPastWorkDate && ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut))) {
       validationErrors.push('\uBBF8\uC785\uB825\uB41C \uC2DC\uAC04\uC774 \uC788\uC2B5\uB2C8\uB2E4.');
     }
   }
