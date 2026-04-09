@@ -37,6 +37,7 @@ const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
   { value: 'full', label: '연차 (8시간)' },
   { value: 'official', label: '공가' },
 ];
+const MOBILE_TIMESHEET_VIEW_KEY = 'worktime_mobile_timesheet_view';
 
 function getDateToneClass(record: DayRecord, meta?: DayRecordMeta): string {
   if (record.isHoliday || meta?.isSunday) {
@@ -117,6 +118,15 @@ export default function TimesheetTable({
   rowMeta,
   onPatchRecord,
 }: TimesheetTableProps): JSX.Element {
+  const [mobileViewMode, setMobileViewMode] = useState<'card' | 'table'>(() => {
+    if (typeof window === 'undefined') {
+      return 'card';
+    }
+
+    return window.localStorage.getItem(MOBILE_TIMESHEET_VIEW_KEY) === 'table'
+      ? 'table'
+      : 'card';
+  });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<DayRecord | null>(null);
   const [specialInfoOpenDate, setSpecialInfoOpenDate] = useState<string | null>(null);
@@ -185,6 +195,15 @@ export default function TimesheetTable({
     };
   }, [editingIndex]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(MOBILE_TIMESHEET_VIEW_KEY, mobileViewMode);
+    setSpecialInfoOpenDate(null);
+  }, [mobileViewMode]);
+
   const modalMeta = preview?.meta ?? null;
   const modalRecord = preview?.record ?? null;
   const modalSpecialMode = modalMeta?.isSpecialWorkMode ?? false;
@@ -222,20 +241,83 @@ export default function TimesheetTable({
   return (
     <>
       <section className="surface-panel overflow-hidden px-0 py-0">
-        <div className="flex flex-col gap-2 border-b border-slate-100 px-8 py-6 md:flex-row md:items-center md:justify-between">
-          <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-800">
-            <span className="icon-pill" aria-hidden="true">
-              📅
-            </span>
-            최근 2주 근무기록
-          </h3>
-          <div className="text-xs text-slate-400 md:text-right">
+        <div className="border-b border-slate-100 px-8 py-6">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-800">
+              <span className="icon-pill" aria-hidden="true">
+                📅
+              </span>
+              최근 2주 근무기록
+            </h3>
+
+            <div className="shrink-0 rounded-2xl bg-slate-100 p-1 shadow-inner md:hidden">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label="카드 보기"
+                  aria-pressed={mobileViewMode === 'card'}
+                  onClick={() => setMobileViewMode('card')}
+                  className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-[10px] transition ${
+                    mobileViewMode === 'card'
+                      ? 'bg-white text-indigo-500 shadow-sm'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  <svg
+                    className="h-[13px] w-[13px]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <rect x="4" y="4" width="6" height="6" rx="1.2" fill="currentColor" stroke="none" />
+                    <rect x="14" y="4" width="6" height="6" rx="1.2" fill="currentColor" stroke="none" />
+                    <rect x="4" y="14" width="6" height="6" rx="1.2" fill="currentColor" stroke="none" />
+                    <rect x="14" y="14" width="6" height="6" rx="1.2" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="테이블 보기"
+                  aria-pressed={mobileViewMode === 'table'}
+                  onClick={() => setMobileViewMode('table')}
+                  className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-[10px] transition ${
+                    mobileViewMode === 'table'
+                      ? 'bg-white text-indigo-500 shadow-sm'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  <svg
+                    className="h-[13px] w-[13px]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 7h14M5 12h14M5 17h14"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 text-xs text-slate-400 md:hidden">
+            <p>계산은 분 단위라 HR과 오차가 있을 수 있습니다.</p>
+            <p>임시 공휴일은 직접 수정해 주세요.</p>
+          </div>
+
+          <div className="mt-2 hidden text-xs text-slate-400 md:block md:text-right">
             <p>계산은 분 단위라 HR과 오차가 있을 수 있습니다.</p>
             <p>임시 공휴일은 직접 수정해 주세요.</p>
           </div>
         </div>
 
-        <div className="space-y-3 px-4 py-4 md:hidden">
+        <div className={`space-y-3 px-4 py-4 md:hidden ${mobileViewMode === 'card' ? '' : 'hidden'}`}>
           {records.map((record, index) => {
             const meta = rowMeta[index];
             const hasError =
@@ -402,7 +484,11 @@ export default function TimesheetTable({
           })}
         </div>
 
-        <div className="hidden overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain] md:block">
+        <div
+          className={`overflow-x-auto overflow-y-hidden [overscroll-behavior-x:contain] ${
+            mobileViewMode === 'table' ? 'block' : 'hidden'
+          } md:block`}
+        >
           <table className="w-full whitespace-nowrap text-left">
             <thead className="border-b border-slate-100 bg-slate-50/80 text-[13px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
