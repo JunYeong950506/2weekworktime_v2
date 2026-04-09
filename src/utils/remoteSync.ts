@@ -92,6 +92,21 @@ function getTouchedRecordCount(state: AppState): number {
   );
 }
 
+function toIsoTimestamp(value: string, fallbackIso: string): string {
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.toISOString() : fallbackIso;
+}
+
+function toDateOnly(value: string, fallbackDate: string): string {
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : fallbackDate;
+}
+
+function fallbackPeriodStartDate(period: Period, fallbackDate: string): string {
+  const firstRecordDate = period.records.find((record) => dayjs(record.date).isValid())?.date;
+  return toDateOnly(period.startDate, firstRecordDate ?? fallbackDate);
+}
+
 function remotePeriodId(userCode: string, localPeriodId: string): string {
   return `${userCode}::${localPeriodId}`;
 }
@@ -111,39 +126,61 @@ function recordRowId(userCode: string, periodId: string, workDate: string): stri
 
 function toPeriodRows(userCode: string, periods: Period[]): RemotePeriodRow[] {
   const nowIso = dayjs().toISOString();
-  return periods.map((period) => ({
-    id: remotePeriodId(userCode, period.id),
-    user_code: userCode,
-    period_name: period.label,
-    start_date: period.startDate,
-    created_at: period.createdAt || nowIso,
-    updated_at: nowIso,
-  }));
+  const fallbackDate = dayjs().format('YYYY-MM-DD');
+  const rows = new Map<string, RemotePeriodRow>();
+
+  periods.forEach((period, index) => {
+    const localId = period.id.trim() || `period_${index + 1}`;
+    const id = remotePeriodId(userCode, localId);
+    const startDate = fallbackPeriodStartDate(period, fallbackDate);
+
+    rows.set(id, {
+      id,
+      user_code: userCode,
+      period_name: period.label.trim() || localId,
+      start_date: startDate,
+      created_at: toIsoTimestamp(period.createdAt, nowIso),
+      updated_at: nowIso,
+    });
+  });
+
+  return [...rows.values()];
 }
 
 function toWorkRecordRows(
   userCode: string,
   periods: Period[],
 ): RemoteWorkRecordRow[] {
-  return periods.flatMap((period) =>
-    period.records.map((record) => {
-      const remoteId = remotePeriodId(userCode, period.id);
-      return {
-        id: recordRowId(userCode, period.id, record.date),
+  const fallbackDate = dayjs().format('YYYY-MM-DD');
+  const rows = new Map<string, RemoteWorkRecordRow>();
+
+  periods.forEach((period, periodIndex) => {
+    const localId = period.id.trim() || `period_${periodIndex + 1}`;
+    const remoteId = remotePeriodId(userCode, localId);
+    const periodStartDate = fallbackPeriodStartDate(period, fallbackDate);
+
+    period.records.forEach((record, recordIndex) => {
+      const workDate = toDateOnly(record.date, dayjs(periodStartDate).add(recordIndex, 'day').format('YYYY-MM-DD'));
+      const rowId = recordRowId(userCode, localId, workDate);
+
+      rows.set(rowId, {
+        id: rowId,
         period_id: remoteId,
-      user_code: userCode,
-      work_date: record.date,
-      holiday: record.isHoliday,
-      work_type: record.annualLeaveType,
-      gongga_minutes: toNonNegativeInteger(record.officialLeaveMinutes),
-      clock_in: record.clockIn,
-      clock_out: record.clockOut,
-      dinner_checked: Boolean(record.dinnerChecked),
-      non_work_minutes: toNonNegativeInteger(record.nonWorkMinutes),
-      actual_overtime_minutes: toNonNegativeInteger(record.claimedOtMinutes),
-      };
-    }),
-  );
+        user_code: userCode,
+        work_date: workDate,
+        holiday: record.isHoliday,
+        work_type: record.annualLeaveType,
+        gongga_minutes: toNonNegativeInteger(record.officialLeaveMinutes),
+        clock_in: record.clockIn,
+        clock_out: record.clockOut,
+        dinner_checked: Boolean(record.dinnerChecked),
+        non_work_minutes: toNonNegativeInteger(record.nonWorkMinutes),
+        actual_overtime_minutes: toNonNegativeInteger(record.claimedOtMinutes),
+      });
+    });
+  });
+
+  return [...rows.values()];
 }
 
 function buildStateFromRemoteRows(
@@ -282,8 +319,7 @@ export async function syncRemoteState(
   const supabase = getSupabaseClient();
 
   await upsertUserMetadata(normalized, {
-    markActivity: options.markActivity,
-    touchedRecordCount,
+    markActivity: false,
   });
 
   const { error: deleteWorkRecordsError } = await supabase
@@ -321,6 +357,11 @@ export async function syncRemoteState(
       throw new Error(insertWorkRecordsError.message);
     }
   }
+
+  await upsertUserMetadata(normalized, {
+    markActivity: options.markActivity,
+    touchedRecordCount,
+  });
 }
 
 export async function loadRemoteState(

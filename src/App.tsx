@@ -790,6 +790,9 @@ export default function App(): JSX.Element {
             </button>
           </div>
         ) : null}
+        {codeStatusMessage ? (
+          <p className="mt-2 text-xs text-slate-500">{codeStatusMessage}</p>
+        ) : null}
       </div>
 
       <div className="content-reveal">
