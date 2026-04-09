@@ -5,6 +5,12 @@ import { CreatePeriodPayload, Period } from '../types';
 import { formatSavedAt } from '../utils/time';
 import { normalizeUserCode } from '../utils/userCode';
 
+interface CodeLoadResult {
+  ok: boolean;
+  message: string;
+  tone: 'success' | 'info' | 'warning' | 'error';
+}
+
 interface PeriodManagerProps {
   periods: Period[];
   selectedPeriodId: string | null;
@@ -19,7 +25,7 @@ interface PeriodManagerProps {
   onChangeStartDate: (startDate: string) => void;
   onCreatePeriod: (payload: CreatePeriodPayload) => void;
   onSave: () => void;
-  onLoadUserCode: (code: string) => Promise<{ ok: boolean; message: string }>;
+  onLoadUserCode: (code: string) => Promise<CodeLoadResult>;
   onDeleteCurrentPeriod: () => void;
   onResetAllData: () => void;
 }
@@ -48,12 +54,15 @@ export default function PeriodManager({
   const [isCodeLoadOpen, setIsCodeLoadOpen] = useState(false);
   const [codeInputDraft, setCodeInputDraft] = useState('');
   const [codeFeedback, setCodeFeedback] = useState<string | null>(null);
+  const [codeFeedbackTone, setCodeFeedbackTone] = useState<'warning' | 'error' | null>(null);
   const [isCodeActionPending, setIsCodeActionPending] = useState(false);
   const [labelInput, setLabelInput] = useState(defaultCreateLabel);
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const dangerMenuRef = useRef<HTMLDivElement | null>(null);
+  const codeFeedbackClassName =
+    codeFeedbackTone === 'error' ? 'mt-2 text-xs text-rose-600' : 'mt-2 text-xs text-amber-600';
 
   const periodRangeLabel = useMemo(() => {
     if (!selectedStartDate) {
@@ -159,21 +168,31 @@ export default function PeriodManager({
   async function handleCopyCode(): Promise<void> {
     try {
       await navigator.clipboard.writeText(userCode);
-      setCodeFeedback('동기화 코드를 복사했습니다.');
+      setCodeFeedback(null);
+      setCodeFeedbackTone(null);
     } catch {
-      setCodeFeedback('복사에 실패했습니다. 코드를 직접 선택해 복사해주세요.');
+      setCodeFeedback('??? ??????. ??? ?? ??? ??????.');
+      setCodeFeedbackTone('warning');
     }
   }
 
   async function submitLoadCode(): Promise<void> {
     setIsCodeActionPending(true);
     setCodeFeedback(null);
+    setCodeFeedbackTone(null);
     try {
       const result = await onLoadUserCode(codeInputDraft);
-      setCodeFeedback(result.message);
       if (result.ok) {
+        setCodeFeedback(null);
+        setCodeFeedbackTone(null);
         setIsCodeLoadOpen(false);
         setCodeInputDraft('');
+        return;
+      }
+
+      if (result.message) {
+        setCodeFeedback(result.message);
+        setCodeFeedbackTone(result.tone === 'error' ? 'error' : 'warning');
       }
     } finally {
       setIsCodeActionPending(false);
@@ -293,6 +312,7 @@ export default function PeriodManager({
                     onClick={() => {
                       setIsDangerMenuOpen(false);
                       setCodeFeedback(null);
+                      setCodeFeedbackTone(null);
                       setIsCodeViewOpen(true);
                     }}
                     className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
@@ -304,6 +324,7 @@ export default function PeriodManager({
                     onClick={() => {
                       setIsDangerMenuOpen(false);
                       setCodeFeedback(null);
+                      setCodeFeedbackTone(null);
                       setCodeInputDraft('');
                       setIsCodeLoadOpen(true);
                     }}
@@ -425,9 +446,7 @@ export default function PeriodManager({
               {userCode}
             </code>
 
-            {codeFeedback ? (
-              <p className="mt-2 text-xs text-slate-500">{codeFeedback}</p>
-            ) : null}
+            {codeFeedback ? <p className={codeFeedbackClassName}>{codeFeedback}</p> : null}
 
             <div className="mt-4 flex gap-2">
               <button
@@ -478,9 +497,7 @@ export default function PeriodManager({
               className="field-input mt-4 h-11 w-full"
             />
 
-            {codeFeedback ? (
-              <p className="mt-2 text-xs text-slate-500">{codeFeedback}</p>
-            ) : null}
+            {codeFeedback ? <p className={codeFeedbackClassName}>{codeFeedback}</p> : null}
 
             <div className="mt-4 flex gap-2">
               <button

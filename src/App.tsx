@@ -42,11 +42,17 @@ interface InitialState {
 interface CodeLoadResult {
   ok: boolean;
   message: string;
+  tone: 'success' | 'info' | 'warning' | 'error';
 }
 
 interface VerifiedRemoteState {
   appState: AppState;
   savedAt: string | null;
+}
+
+interface SyncAlert {
+  message: string;
+  tone: 'warning' | 'error';
 }
 
 function hydrateAppState(
@@ -127,6 +133,7 @@ export default function App(): JSX.Element {
   const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
   const [codeInputDraft, setCodeInputDraft] = useState('');
   const [codeStatusMessage, setCodeStatusMessage] = useState<string | null>(null);
+  const [, setSyncAlert] = useState<SyncAlert | null>(null);
   const [isCodeActionPending, setIsCodeActionPending] = useState(false);
   const [isServerDataMissingForCode, setIsServerDataMissingForCode] = useState(false);
   const skipNextAutoSaveRef = useRef(false);
@@ -289,38 +296,45 @@ export default function App(): JSX.Element {
   async function handleCopyUserCode(): Promise<void> {
     try {
       await navigator.clipboard.writeText(userCode);
-      setCodeStatusMessage('동기화 코드를 복사했습니다.');
+      setCodeStatusMessage(null);
     } catch {
-      setCodeStatusMessage('복사에 실패했습니다. 코드를 직접 선택해 복사해주세요.');
+      setCodeStatusMessage('??? ??????. ??? ?? ??? ??????.');
     }
   }
 
   async function handleLoadByCode(rawCode: string): Promise<CodeLoadResult> {
     const normalized = normalizeUserCode(rawCode);
+    const shouldShowInlineCodeStatus = appState.periods.length === 0;
 
     if (!isValidUserCode(normalized)) {
-      const message = '코드 형식이 올바르지 않습니다. (예: WT-8F4K2M)';
-      setCodeStatusMessage(message);
-      return { ok: false, message };
+      const message = '?? ??? ???? ????. (?: WT-8F4K2M)';
+      if (shouldShowInlineCodeStatus) {
+        setCodeStatusMessage(message);
+      }
+      return { ok: false, message, tone: 'warning' };
     }
 
     if (!syncAvailable) {
-      const message = '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.';
-      setCodeStatusMessage(message);
-      return { ok: false, message };
+      const message = '?? ??? ??? ?? ?? ????? ??? ? ????.';
+      if (shouldShowInlineCodeStatus) {
+        setCodeStatusMessage(message);
+      }
+      return { ok: false, message, tone: 'warning' };
     }
 
     if (isDirty) {
       const confirmed = window.confirm(
-        '저장되지 않은 변경사항이 있습니다. 코드 불러오기를 진행하면 현재 화면이 교체됩니다. 계속하시겠습니까?',
+        '???? ?? ????? ????. ?? ????? ???? ?? ??? ?????. ?????????',
       );
       if (!confirmed) {
-        return { ok: false, message: '불러오기를 취소했습니다.' };
+        return { ok: false, message: '', tone: 'info' };
       }
     }
 
     setIsCodeActionPending(true);
-    setCodeStatusMessage(null);
+    if (shouldShowInlineCodeStatus) {
+      setCodeStatusMessage(null);
+    }
 
     try {
       const remote = await loadRemoteState(normalized);
@@ -340,10 +354,12 @@ export default function App(): JSX.Element {
           normalized === userCode && (remote.hasRemoteUser || appState.periods.length > 0),
         );
         const message = remote.hasRemoteUser
-          ? '해당 코드에는 아직 생성된 구간 데이터가 없습니다.'
-          : '서버 데이터가 정리되었거나 아직 생성되지 않았습니다.';
-        setCodeStatusMessage(message);
-        return { ok: false, message };
+          ? '?? ???? ?? ??? ?? ???? ????.'
+          : '?? ???? ?????? ?? ???? ?????.';
+        if (shouldShowInlineCodeStatus) {
+          setCodeStatusMessage(message);
+        }
+        return { ok: false, message, tone: 'warning' };
       }
 
       const preferredSelectedPeriodId =
@@ -358,15 +374,18 @@ export default function App(): JSX.Element {
 
       const localSavedAt = saveAppState(hydrated);
       setLastSavedAt(remote.savedAt ?? localSavedAt);
+      setSyncAlert(null);
+      if (shouldShowInlineCodeStatus) {
+        setCodeStatusMessage(null);
+      }
 
-      const message = '코드 데이터를 불러왔습니다.';
-      setCodeStatusMessage(message);
-      
-      return { ok: true, message };
+      return { ok: true, message: '', tone: 'success' };
     } catch (error) {
       const message = getSyncUnavailableMessage(error);
-      setCodeStatusMessage(message);
-      return { ok: false, message };
+      if (shouldShowInlineCodeStatus) {
+        setCodeStatusMessage(message);
+      }
+      return { ok: false, message, tone: 'error' };
     } finally {
       setIsCodeActionPending(false);
     }
@@ -374,7 +393,10 @@ export default function App(): JSX.Element {
 
   async function handleRestoreServerFromLocal(): Promise<void> {
     if (!syncAvailable) {
-      setCodeStatusMessage('서버 동기화 설정이 없어 복구할 수 없습니다.');
+      setSyncAlert({
+        message: '?? ??? ??? ?? ??? ? ????.',
+        tone: 'warning',
+      });
       return;
     }
 
@@ -406,7 +428,7 @@ export default function App(): JSX.Element {
 
       const verifiedRemote = await verifyRemoteRestore();
       if (!verifiedRemote) {
-        throw new Error('서버 동기화 후 데이터를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
+        throw new Error('?? ??? ? ???? ???? ?????. ?? ? ?? ??????.');
       }
 
       const hydrated = hydrateAppState(verifiedRemote.appState, preferredSelectedPeriodId);
@@ -415,17 +437,28 @@ export default function App(): JSX.Element {
       setLastSavedAt(verifiedRemote.savedAt ?? localSavedAt);
       setIsDirty(false);
       setIsServerDataMissingForCode(false);
-      setCodeStatusMessage('로컬 기록으로 서버 동기화했습니다.');
+      setSyncAlert(null);
     } catch (error) {
-      setCodeStatusMessage(getSyncUnavailableMessage(error));
+      setSyncAlert({
+        message: getSyncUnavailableMessage(error),
+        tone: 'error',
+      });
     }
   }
 
   function triggerRemoteSync(stateToSync: AppState): void {
     lastRemoteSyncedAtRef.current = Date.now();
-    void syncRemoteState(userCode, stateToSync, { markActivity: true }).catch((error) => {
-      setCodeStatusMessage(getSyncUnavailableMessage(error));
-    });
+    void syncRemoteState(userCode, stateToSync, { markActivity: true })
+      .then(() => {
+        setIsServerDataMissingForCode(false);
+        setSyncAlert(null);
+      })
+      .catch((error) => {
+        setSyncAlert({
+          message: getSyncUnavailableMessage(error),
+          tone: 'error',
+        });
+      });
   }
 
   function clearPendingRemoteSync(): void {
@@ -507,9 +540,6 @@ export default function App(): JSX.Element {
         if (!remote.appState) {
           if (appState.periods.length > 0) {
             setIsServerDataMissingForCode(true);
-            setCodeStatusMessage(
-              '서버 데이터가 정리되었습니다. 필요하면 로컬 기록으로 서버 동기화를 할 수 있습니다.',
-            );
           } else {
             setIsServerDataMissingForCode(remote.hasRemoteUser);
           }
@@ -521,14 +551,19 @@ export default function App(): JSX.Element {
         setAppState(hydrated);
         const localSavedAt = saveAppState(hydrated);
         setLastSavedAt(remote.savedAt ?? localSavedAt);
-        setCodeStatusMessage(
-          appState.periods.length > 0
-            ? '서버 우선 정책으로 서버 데이터를 적용했습니다.'
-            : '서버에 저장된 데이터를 불러왔습니다.',
-        );
+        setSyncAlert(null);
+        setCodeStatusMessage(null);
       } catch (error) {
         if (!disposed) {
-          setCodeStatusMessage(getSyncUnavailableMessage(error));
+          const message = getSyncUnavailableMessage(error);
+          if (appState.periods.length === 0) {
+            setCodeStatusMessage(message);
+          } else {
+            setSyncAlert({
+              message,
+              tone: 'error',
+            });
+          }
         }
       }
     }
@@ -648,7 +683,10 @@ export default function App(): JSX.Element {
 
     if (syncAvailable) {
       void syncRemoteState(previousUserCode, emptyState, { markActivity: true }).catch((error) => {
-        setCodeStatusMessage(getSyncUnavailableMessage(error));
+        setSyncAlert({
+          message: getSyncUnavailableMessage(error),
+          tone: 'error',
+        });
       });
     }
 
@@ -662,7 +700,8 @@ export default function App(): JSX.Element {
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
     setCodeInputDraft('');
     setIsServerDataMissingForCode(false);
-    setCodeStatusMessage('전체 데이터를 초기화하고 새 동기화 코드를 발급했습니다.');
+    setCodeStatusMessage(null);
+    setSyncAlert(null);
   }
 
   if (!selectedPeriod || !selectedCalc) {
@@ -789,9 +828,6 @@ export default function App(): JSX.Element {
               서버 동기화
             </button>
           </div>
-        ) : null}
-        {codeStatusMessage ? (
-          <p className="mt-2 text-xs text-slate-500">{codeStatusMessage}</p>
         ) : null}
       </div>
 

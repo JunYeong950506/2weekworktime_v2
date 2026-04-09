@@ -187,7 +187,18 @@ export default function TimesheetTable({
   const disableTimeAndDeduction = modalSpecialMode || modalFullLeave;
   const showOfficialInput = modalAnnualLeaveValue === 'official' && !modalSpecialMode;
   const modalValidationErrors = modalMeta?.validationErrors ?? [];
-  const hasModalErrors = modalValidationErrors.length > 0;
+  const modalPartialLeaveWarning =
+    (modalAnnualLeaveValue === 'quarter' || modalAnnualLeaveValue === 'half') &&
+    (modalRecord?.clockIn.trim() ?? '') !== '' &&
+    (modalRecord?.clockOut.trim() ?? '') !== '' &&
+    modalRecord?.workMinutes !== null &&
+    (modalRecord?.workMinutes ?? 0) < 4 * 60
+      ? '반차/반반차는 실제 근무시간 4시간 이상일 때만 사용할 수 있습니다.'
+      : null;
+  const modalGuideMessages = modalPartialLeaveWarning
+    ? [...modalValidationErrors, modalPartialLeaveWarning]
+    : modalValidationErrors;
+  const hasModalErrors = modalGuideMessages.length > 0;
   const hasMissingTimeError = modalValidationErrors.some((message) =>
     message.includes('미입력'),
   );
@@ -372,10 +383,10 @@ export default function TimesheetTable({
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-rose-700">
                   <p className="mb-1.5 flex items-center gap-2 text-sm font-bold">
                     <span aria-hidden="true">⚠️</span>
-                    확인이 필요한 항목 ({modalValidationErrors.length}건)
+                    확인이 필요한 항목 ({modalGuideMessages.length}건)
                   </p>
                   <ul className="list-disc space-y-0.5 pl-5 text-xs leading-5 sm:text-[13px]">
-                    {modalValidationErrors.map((message, idx) => (
+                    {modalGuideMessages.map((message, idx) => (
                       <li key={`modal-error-guide-${idx}`}>{message}</li>
                     ))}
                   </ul>
