@@ -102,6 +102,16 @@ function formatClockRange(record: DayRecord, meta?: DayRecordMeta): string {
   return `${inValue} - ${outValue}`;
 }
 
+function hasPartialLeaveWarning(record: DayRecord): boolean {
+  return (
+    (record.annualLeaveType === 'quarter' || record.annualLeaveType === 'half') &&
+    record.clockIn.trim() !== '' &&
+    record.clockOut.trim() !== '' &&
+    record.workMinutes !== null &&
+    record.workMinutes < 4 * 60
+  );
+}
+
 export default function TimesheetTable({
   records,
   rowMeta,
@@ -242,7 +252,8 @@ export default function TimesheetTable({
             <tbody className="text-sm">
               {records.map((record, index) => {
                 const meta = rowMeta[index];
-                const hasError = (meta?.validationErrors.length ?? 0) > 0;
+                const hasError =
+                  (meta?.validationErrors.length ?? 0) > 0 || hasPartialLeaveWarning(record);
                 const dateToneClass = getDateToneClass(record, meta);
                 const workType = getWorkTypeLabel(record, meta);
                 const clockRange = formatClockRange(record, meta);
