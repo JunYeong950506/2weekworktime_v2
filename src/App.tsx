@@ -15,6 +15,7 @@ import {
   ensureUniquePeriodId,
   rebaseRecordDates,
 } from './utils/period';
+import { getHolidayDateSet } from './utils/holidayProvider';
 import {
   clearAllAppStorage,
   ensureUserCode,
@@ -165,6 +166,13 @@ export default function App(): JSX.Element {
   const suggestedLabel = useMemo(
     () => buildDefaultPeriodLabel(selectedPeriod?.startDate ?? emptyStartDate),
     [selectedPeriod?.startDate, emptyStartDate],
+  );
+  const holidayProviderSyncKey = useMemo(
+    () =>
+      appState.periods
+        .map((period) => period.records.map((record) => record.date).join(','))
+        .join('|'),
+    [appState.periods],
   );
 
   const canDeleteCurrentPeriod = Boolean(selectedPeriod);
@@ -579,6 +587,66 @@ export default function App(): JSX.Element {
     clearPendingRemoteSync();
     lastRemoteSyncedAtRef.current = 0;
   }, [userCode]);
+
+  useEffect(() => {
+    if (!holidayProviderSyncKey) {
+      return;
+    }
+
+    let disposed = false;
+    const dates = appState.periods.flatMap((period) =>
+      period.records.map((record) => record.date),
+    );
+
+    async function syncHolidayProvider(): Promise<void> {
+      const holidayDates = await getHolidayDateSet(dates);
+      if (disposed || holidayDates.size === 0) {
+        return;
+      }
+
+      const shouldMarkDirty = appState.periods.some((period) =>
+        period.records.some(
+          (record) => holidayDates.has(record.date) && !record.isHoliday,
+        ),
+      );
+      if (!shouldMarkDirty) {
+        return;
+      }
+
+      setAppState((prev) => {
+        let changed = false;
+        const periods = prev.periods.map((period) => {
+          let periodChanged = false;
+          const records = period.records.map((record) => {
+            if (!holidayDates.has(record.date) || record.isHoliday) {
+              return record;
+            }
+
+            periodChanged = true;
+            changed = true;
+            return {
+              ...record,
+              isHoliday: true,
+            };
+          });
+
+          return periodChanged
+            ? { ...period, records: recalculateRecords(records).records }
+            : period;
+        });
+
+        return changed ? { ...prev, periods } : prev;
+      });
+
+      markDirty();
+    }
+
+    void syncHolidayProvider();
+
+    return () => {
+      disposed = true;
+    };
+  }, [holidayProviderSyncKey]);
 
   useEffect(() => {
     return () => {

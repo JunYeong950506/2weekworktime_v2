@@ -76,6 +76,39 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
 
+공식 공휴일 보정 API를 사용하려면 Vercel 환경변수에 아래 값을 추가합니다.
+
+```bash
+KASI_HOLIDAY_API_KEY=...
+```
+
+`KASI_HOLIDAY_API_KEY`는 공공데이터포털 한국천문연구원 특일 정보 API
+서비스키입니다. 브라우저 번들에는 포함하지 않고 `/api/holidays` 서버리스 함수에서만
+사용합니다.
+
+## 공휴일 계산
+공휴일 판정 우선순위는 아래와 같습니다.
+
+1. 공식 API로 받아온 연도별 캐시
+2. `date-holidays`의 `new Holidays('KR')`
+3. 5월 1일 고정 휴일 규칙
+
+최종 휴일 여부는 세 기준 중 하나라도 휴일이면 `true`입니다.
+
+공식 API 캐시는 브라우저 localStorage에 연도별 JSON으로 저장합니다.
+
+- key 형식: `flex-work-2week-holidays-{year}-v1`
+- 예: `flex-work-2week-holidays-2026-v1`
+
+캐시가 없으면 `/api/holidays?year=YYYY`를 호출하고, 서버리스 함수가
+한국천문연구원 특일 정보 API의 `getRestDeInfo`를 1~12월 반복 호출해 해당 연도
+공휴일 JSON을 반환합니다. 캐시가 있으면 같은 브라우저에서는 재호출하지 않습니다.
+
+공식 API 호출 실패, 환경변수 누락, 캐시 저장 실패가 발생해도 앱은 계속 동작합니다.
+이 경우 `date-holidays + 5월 1일` 규칙으로 fallback 계산합니다.
+
+새 연도는 앱 재빌드 없이 최초 조회 시 해당 연도 캐시를 생성해 사용합니다.
+
 ## 주요 코드 위치
 - 앱 진입: `src/App.tsx`
 - 오늘 근무 입력 카드: `src/components/TodayQuickEntryCard.tsx`
@@ -83,6 +116,7 @@ VITE_SUPABASE_ANON_KEY=...
 - 계산 로직: `src/utils/calculations.ts`
 - 저장/복구: `src/utils/storage.ts`
 - 서버 동기화: `src/utils/remoteSync.ts`
+- 공휴일 판정: `src/utils/holidayProvider.ts`, `api/holidays.js`
 - Supabase client: `src/lib/supabase.ts`
 
 ## Supabase 설정
