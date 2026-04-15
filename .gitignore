@@ -12,3 +12,12 @@ dist
 supabase/.temp/
 supabase/.tmp_verify.sql
 supabase/.tmp_verify_rls.sql
+
+.gradle-cache/
+tools/
+android-sdk/
+android/.gradle/
+android/**/build/
+android/local.properties
+
+.vercel-home/

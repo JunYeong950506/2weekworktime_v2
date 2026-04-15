@@ -332,6 +332,20 @@ export default function PeriodManager({
                   >
                     코드 입력 / 붙여넣기
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDangerMenuOpen(false);
+                      window.open(
+                        'https://2week-worktime-mobile.vercel.app/download/',
+                        '_blank',
+                        'noopener,noreferrer',
+                      );
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                  >
+                    Android 앱 받기
+                  </button>
                   <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
                   <button
                     type="button"
