@@ -259,29 +259,42 @@ export default function TodayQuickEntryCard({
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <div className="col-span-2 xl:col-span-1">
-                <TimePanel
-                  label="출근 시간"
-                  value={disableTimeAndDeductionInputs ? '' : record.clockIn}
-                  min="06:00"
-                  max="23:59"
-                  disabled={disableTimeAndDeductionInputs}
-                  onChange={(value) => onPatchRecord({ clockIn: value })}
-                  onSetNow={() => onSetNow('clockIn')}
-                />
-              </div>
+              {isSpecialWorkMode ? (
+                <div className="col-span-2 rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sky-800 xl:col-span-2">
+                  <p className="text-sm font-extrabold">특근/휴일 근무 입력 안내</p>
+                  <p className="mt-2 text-xs font-medium leading-5 text-sky-700">
+                    특근/휴일은 출퇴근 시간을 입력하지 않습니다.
+                    <br />
+                    실제 근무한 시간은 실제 야근결재(분)에 입력해 주세요.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="col-span-2 xl:col-span-1">
+                    <TimePanel
+                      label="출근 시간"
+                      value={disableTimeAndDeductionInputs ? '' : record.clockIn}
+                      min="06:00"
+                      max="23:59"
+                      disabled={disableTimeAndDeductionInputs}
+                      onChange={(value) => onPatchRecord({ clockIn: value })}
+                      onSetNow={() => onSetNow('clockIn')}
+                    />
+                  </div>
 
-              <div className="col-span-2 xl:col-span-1">
-                <TimePanel
-                  label="퇴근 시간"
-                  value={disableTimeAndDeductionInputs ? '' : record.clockOut}
-                  min="00:00"
-                  max="23:59"
-                  disabled={disableTimeAndDeductionInputs}
-                  onChange={(value) => onPatchRecord({ clockOut: value })}
-                  onSetNow={() => onSetNow('clockOut')}
-                />
-              </div>
+                  <div className="col-span-2 xl:col-span-1">
+                    <TimePanel
+                      label="퇴근 시간"
+                      value={disableTimeAndDeductionInputs ? '' : record.clockOut}
+                      min="00:00"
+                      max="23:59"
+                      disabled={disableTimeAndDeductionInputs}
+                      onChange={(value) => onPatchRecord({ clockOut: value })}
+                      onSetNow={() => onSetNow('clockOut')}
+                    />
+                  </div>
+                </>
+              )}
 
               <ResultTile
                 title="오늘 총 근무시간"

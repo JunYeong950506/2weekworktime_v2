@@ -657,75 +657,86 @@ export default function TimesheetTable({
                 </div>
               ) : null}
 
-              <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
-                <div className="min-w-0 w-full flex-1 overflow-hidden">
-                  <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
-                    <label
-                      className={`block min-w-0 text-xs font-bold ${
-                        hasClockInError ? 'text-rose-500' : 'text-slate-400'
-                      }`}
-                    >
-                      출근 시간
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => patchDraft({ clockIn: '' })}
-                      disabled={disableTimeAndDeduction || modalRecord.clockIn.length === 0}
-                      className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
-                    >
-                      초기화
-                    </button>
-                  </div>
-                  <input
-                    type="time"
-                    step={60}
-                    min="06:00"
-                    max="23:59"
-                    value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
-                    disabled={disableTimeAndDeduction}
-                    onChange={(event) => patchDraft({ clockIn: event.target.value })}
-                    className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
-                      hasClockInError
-                        ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
-                        : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
-                    }`}
-                  />
+              {modalSpecialMode ? (
+                <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3.5 text-sky-800">
+                  <p className="text-sm font-extrabold">특근/휴일 근무 입력 안내</p>
+                  <p className="mt-2 text-xs font-medium leading-5 text-sky-700 sm:text-[13px]">
+                    특근/휴일은 출퇴근 시간을 입력하지 않습니다.
+                    <br />
+                    실제 근무한 시간은 실제 야근결재(분)에 입력해 주세요.
+                  </p>
                 </div>
-                <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
-                <div className="min-w-0 w-full flex-1 overflow-hidden">
-                  <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
-                    <label
-                      className={`block min-w-0 text-xs font-bold ${
-                        hasClockOutError ? 'text-rose-500' : 'text-slate-400'
+              ) : (
+                <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                  <div className="min-w-0 w-full flex-1 overflow-hidden">
+                    <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
+                      <label
+                        className={`block min-w-0 text-xs font-bold ${
+                          hasClockInError ? 'text-rose-500' : 'text-slate-400'
+                        }`}
+                      >
+                        출근 시간
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => patchDraft({ clockIn: '' })}
+                        disabled={disableTimeAndDeduction || modalRecord.clockIn.length === 0}
+                        className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        초기화
+                      </button>
+                    </div>
+                    <input
+                      type="time"
+                      step={60}
+                      min="06:00"
+                      max="23:59"
+                      value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
+                      disabled={disableTimeAndDeduction}
+                      onChange={(event) => patchDraft({ clockIn: event.target.value })}
+                      className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
+                        hasClockInError
+                          ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
+                          : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
                       }`}
-                    >
-                      퇴근 시간
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => patchDraft({ clockOut: '' })}
-                      disabled={disableTimeAndDeduction || modalRecord.clockOut.length === 0}
-                      className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
-                    >
-                      초기화
-                    </button>
+                    />
                   </div>
-                  <input
-                    type="time"
-                    step={60}
-                    min="00:00"
-                    max="23:59"
-                    value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
-                    disabled={disableTimeAndDeduction}
-                    onChange={(event) => patchDraft({ clockOut: event.target.value })}
-                    className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
-                      hasClockOutError
-                        ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
-                        : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
-                    }`}
-                  />
+                  <div className="hidden text-xl font-bold text-slate-300 md:mt-5 md:block">→</div>
+                  <div className="min-w-0 w-full flex-1 overflow-hidden">
+                    <div className="mb-1.5 ml-1 flex flex-wrap items-center justify-between gap-2">
+                      <label
+                        className={`block min-w-0 text-xs font-bold ${
+                          hasClockOutError ? 'text-rose-500' : 'text-slate-400'
+                        }`}
+                      >
+                        퇴근 시간
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => patchDraft({ clockOut: '' })}
+                        disabled={disableTimeAndDeduction || modalRecord.clockOut.length === 0}
+                        className="shrink-0 text-[11px] font-bold text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        초기화
+                      </button>
+                    </div>
+                    <input
+                      type="time"
+                      step={60}
+                      min="00:00"
+                      max="23:59"
+                      value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
+                      disabled={disableTimeAndDeduction}
+                      onChange={(event) => patchDraft({ clockOut: event.target.value })}
+                      className={`h-14 w-full min-w-0 max-w-full appearance-none rounded-2xl border px-4 text-lg font-extrabold text-slate-800 outline-none transition focus:bg-white focus:ring-2 disabled:cursor-not-allowed disabled:text-slate-300 sm:text-xl ${
+                        hasClockOutError
+                          ? 'border-rose-300 bg-white focus:border-rose-500 focus:ring-rose-100'
+                          : 'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-100'
+                      }`}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="min-w-0">
