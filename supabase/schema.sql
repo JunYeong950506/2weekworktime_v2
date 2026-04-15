@@ -67,7 +67,7 @@ grant select, insert, update, delete on table public.periods to anon, authentica
 grant select, insert, update, delete on table public.work_records to anon, authenticated;
 
 -- Weekly cleanup function:
--- 1) record_count = 0 and last_activity_at older than 30 days => delete user (cascade).
+-- 1) record_count = 0 and last_activity_at older than 14 days => delete user (cascade).
 -- 2) record_count > 0 and last_activity_at older than 30 days => set deleted_candidate_at.
 -- 3) record_count > 0 and last_activity_at older than 50 days => delete user (cascade).
 create or replace function public.cleanup_inactive_user_codes()
@@ -85,7 +85,7 @@ begin
 
   delete from public.users
   where record_count = 0
-    and last_activity_at < now() - interval '30 days';
+    and last_activity_at < now() - interval '14 days';
 
   delete from public.users
   where record_count > 0
