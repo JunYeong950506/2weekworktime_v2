@@ -689,6 +689,8 @@ export default function TimesheetTable({
                       step={60}
                       min="06:00"
                       max="23:59"
+                      inputMode="numeric"
+                      pattern="[0-9:]*"
                       value={disableTimeAndDeduction ? '' : modalRecord.clockIn}
                       disabled={disableTimeAndDeduction}
                       onChange={(event) => patchDraft({ clockIn: event.target.value })}
@@ -723,6 +725,8 @@ export default function TimesheetTable({
                       step={60}
                       min="00:00"
                       max="23:59"
+                      inputMode="numeric"
+                      pattern="[0-9:]*"
                       value={disableTimeAndDeduction ? '' : modalRecord.clockOut}
                       disabled={disableTimeAndDeduction}
                       onChange={(event) => patchDraft({ clockOut: event.target.value })}
@@ -801,6 +805,8 @@ export default function TimesheetTable({
                     type="number"
                     min={0}
                     step={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={disableTimeAndDeduction ? 0 : modalRecord.nonWorkMinutes}
                     disabled={disableTimeAndDeduction}
                     onFocus={(event) => {
@@ -823,6 +829,8 @@ export default function TimesheetTable({
                     type="number"
                     min={0}
                     step={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={modalFullLeave ? 0 : modalRecord.claimedOtMinutes}
                     disabled={modalFullLeave}
                     onFocus={(event) => {
@@ -848,6 +856,8 @@ export default function TimesheetTable({
                     min={0}
                     max={480}
                     step={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={modalRecord.officialLeaveMinutes}
                     onChange={(event) =>
                       patchDraft({

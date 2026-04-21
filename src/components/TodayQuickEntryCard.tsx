@@ -92,6 +92,8 @@ function TimePanel({
         step={60}
         min={min}
         max={max}
+        inputMode="numeric"
+        pattern="[0-9:]*"
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -373,6 +375,8 @@ export default function TodayQuickEntryCard({
                   type="number"
                   min={0}
                   step={1}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={disableTimeAndDeductionInputs ? 0 : record.nonWorkMinutes}
                   disabled={disableTimeAndDeductionInputs}
                   onFocus={(event) => {
@@ -395,6 +399,8 @@ export default function TodayQuickEntryCard({
                   type="number"
                   min={0}
                   step={1}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={isAnnualLeaveFullMode ? 0 : record.claimedOtMinutes}
                   disabled={isAnnualLeaveFullMode}
                   onFocus={(event) => {
@@ -435,6 +441,8 @@ export default function TodayQuickEntryCard({
                 min={0}
                 max={480}
                 step={1}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={officialLeaveDraft}
                 onFocus={(event) => event.currentTarget.select()}
                 onChange={(event) =>
