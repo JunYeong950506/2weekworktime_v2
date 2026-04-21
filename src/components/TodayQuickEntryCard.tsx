@@ -161,9 +161,9 @@ export default function TodayQuickEntryCard({
     record.workMinutes < 4 * 60;
   const useRecommendedOtWarningTone =
     record !== null &&
-    record.recommendedOtMinutes !== null &&
-    record.recommendedOtMinutes > 0 &&
-    record.recommendedOtMinutes < 60;
+    record.overtimeMinutes !== null &&
+    record.overtimeMinutes > 0 &&
+    record.overtimeMinutes < 60;
   const recommendedOtDisplayValue = useRecommendedOtWarningTone
     ? formatMinutesAsClock(record?.overtimeMinutes ?? null)
     : formatMinutesAsClock(record?.recommendedOtMinutes ?? null);
