@@ -41,6 +41,15 @@ body {
   }
 }
 
+@media (max-width: 767px) {
+  @layer components {
+    .field-input,
+    .field-select {
+      font-size: 16px;
+    }
+  }
+}
+
 @layer components {
   .app-shell {
     @apply mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6;
