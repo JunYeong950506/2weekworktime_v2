@@ -4,6 +4,7 @@ export const REMOTE_CLEANUP_CHECKED_AT_KEY =
   'flex-work-2week-remote-cleanup-checked-at-v1';
 
 export const DAYS_PER_PERIOD = 14;
+export const MAX_STORED_PERIODS = 10;
 export const MINUTES_PER_HOUR = 60;
 
 export const REGULAR_TARGET_MINUTES_2WEEK = 80 * MINUTES_PER_HOUR;

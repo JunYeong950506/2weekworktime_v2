@@ -15,15 +15,18 @@ interface PeriodManagerProps {
   periods: Period[];
   selectedPeriodId: string | null;
   selectedStartDate: string;
+  createTargetStartDate: string;
   defaultCreateLabel: string;
   userCode: string;
   isDirty: boolean;
   lastSavedAt: string | null;
   canDeleteCurrentPeriod: boolean;
   canResetAllData: boolean;
+  isCreateHolidayNoticeOpen: boolean;
   onSelectPeriod: (id: string) => void;
   onChangeStartDate: (startDate: string) => void;
   onCreatePeriod: (payload: CreatePeriodPayload) => void;
+  onCloseCreateHolidayNotice: () => void;
   onSave: () => void;
   onLoadUserCode: (code: string) => Promise<CodeLoadResult>;
   onDeleteCurrentPeriod: () => void;
@@ -34,15 +37,18 @@ export default function PeriodManager({
   periods,
   selectedPeriodId,
   selectedStartDate,
+  createTargetStartDate,
   defaultCreateLabel,
   userCode,
   isDirty,
   lastSavedAt,
   canDeleteCurrentPeriod,
   canResetAllData,
+  isCreateHolidayNoticeOpen,
   onSelectPeriod,
   onChangeStartDate,
   onCreatePeriod,
+  onCloseCreateHolidayNotice,
   onSave,
   onLoadUserCode,
   onDeleteCurrentPeriod,
@@ -77,10 +83,10 @@ export default function PeriodManager({
   useEffect(() => {
     if (!isCreateOpen) {
       setLabelInput(defaultCreateLabel);
-      setStartDateInput(selectedStartDate);
+      setStartDateInput(createTargetStartDate);
       setCopyValues(false);
     }
-  }, [defaultCreateLabel, selectedStartDate, isCreateOpen]);
+  }, [createTargetStartDate, defaultCreateLabel, isCreateOpen]);
 
   useEffect(() => {
     if (!isDangerMenuOpen) {
@@ -281,6 +287,23 @@ export default function PeriodManager({
             <button type="button" onClick={onSave} className="btn-primary">
               전체 저장
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.assign('https://www.hanwha701.com/');
+              }}
+              aria-label="커피 웹사이트 열기"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-amber-600 shadow-sm transition hover:bg-amber-50 hover:text-amber-700 md:hidden"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
+                />
+              </svg>
+            </button>
             <div ref={dangerMenuRef} className="relative">
               <button
                 type="button"
@@ -336,15 +359,11 @@ export default function PeriodManager({
                     type="button"
                     onClick={() => {
                       setIsDangerMenuOpen(false);
-                      window.open(
-                        'https://2week-worktime-mobile.vercel.app/download/',
-                        '_blank',
-                        'noopener,noreferrer',
-                      );
+                      window.location.assign('https://2week-worktime-mobile.vercel.app/download/');
                     }}
                     className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                   >
-                    Android 앱 받기
+                    모바일 앱 받기
                   </button>
                   <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
                   <button
@@ -529,6 +548,39 @@ export default function PeriodManager({
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 불러오기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCreateHolidayNoticeOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              onCloseCreateHolidayNotice();
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
+              새 구간 생성 안내
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              임시 공휴일은 자동 설정이 어렵습니다.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              최근 2주 근무기록에서 공휴일을 직접 수정해 주세요.
+            </p>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={onCloseCreateHolidayNotice}
+                className="btn-primary min-w-[108px]"
+              >
+                확인
               </button>
             </div>
           </div>

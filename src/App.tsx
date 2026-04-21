@@ -5,6 +5,7 @@ import PeriodManager from './components/PeriodManager';
 import SummaryCards from './components/SummaryCards';
 import TimesheetTable from './components/TimesheetTable';
 import TodayQuickEntryCard from './components/TodayQuickEntryCard';
+import { MAX_STORED_PERIODS } from './constants';
 import { AppState, CreatePeriodPayload, DayRecord, Period } from './types';
 import { recalculatePeriod, recalculateRecords } from './utils/calculations';
 import { createEmptyAppState, deleteCurrentPeriod } from './utils/dataManagement';
@@ -104,6 +105,29 @@ function upsertPeriod(periods: Period[], updated: Period): Period[] {
   return periods.map((period) => (period.id === updated.id ? updated : period));
 }
 
+function trimPeriodsToLimit(periods: Period[]): Period[] {
+  if (periods.length <= MAX_STORED_PERIODS) {
+    return periods;
+  }
+
+  const overflowCount = periods.length - MAX_STORED_PERIODS;
+  const removeIds = new Set(
+    [...periods]
+      .sort((a, b) => {
+        const startDiff = dayjs(a.startDate).valueOf() - dayjs(b.startDate).valueOf();
+        if (startDiff !== 0) {
+          return startDiff;
+        }
+
+        return dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf();
+      })
+      .slice(0, overflowCount)
+      .map((period) => period.id),
+  );
+
+  return periods.filter((period) => !removeIds.has(period.id));
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -126,6 +150,7 @@ const REMOTE_SYNC_MIN_INTERVAL_MS = 60_000;
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
   const syncAvailable = isRemoteSyncAvailable();
+  const createTargetStartDate = dayjs().format('YYYY-MM-DD');
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
@@ -137,6 +162,7 @@ export default function App(): JSX.Element {
   const [, setSyncAlert] = useState<SyncAlert | null>(null);
   const [isCodeActionPending, setIsCodeActionPending] = useState(false);
   const [isServerDataMissingForCode, setIsServerDataMissingForCode] = useState(false);
+  const [isCreateHolidayNoticeOpen, setIsCreateHolidayNoticeOpen] = useState(false);
   const skipNextAutoSaveRef = useRef(false);
   const initializedCodeRef = useRef<string | null>(null);
   const lastRemoteSyncedAtRef = useRef(0);
@@ -164,8 +190,8 @@ export default function App(): JSX.Element {
   const isTodayTarget = todayTarget?.mode === 'today';
 
   const suggestedLabel = useMemo(
-    () => buildDefaultPeriodLabel(selectedPeriod?.startDate ?? emptyStartDate),
-    [selectedPeriod?.startDate, emptyStartDate],
+    () => buildDefaultPeriodLabel(createTargetStartDate),
+    [createTargetStartDate],
   );
   const holidayProviderSyncKey = useMemo(
     () =>
@@ -281,12 +307,17 @@ export default function App(): JSX.Element {
 
     skipNextAutoSaveRef.current = true;
 
-    setAppState((prev) => ({
-      selectedPeriodId: period.id,
-      periods: [...prev.periods, period],
-    }));
+    setAppState((prev) => {
+      const nextPeriods = trimPeriodsToLimit([...prev.periods, period]);
+
+      return {
+        selectedPeriodId: period.id,
+        periods: nextPeriods,
+      };
+    });
 
     markDirty();
+    setIsCreateHolidayNoticeOpen(true);
   }
 
   function handleCreateFirstPeriod(): void {
@@ -869,15 +900,18 @@ export default function App(): JSX.Element {
           periods={appState.periods}
           selectedPeriodId={selectedPeriod.id}
           selectedStartDate={selectedPeriod.startDate}
+          createTargetStartDate={createTargetStartDate}
           defaultCreateLabel={suggestedLabel}
           userCode={userCode}
           isDirty={isDirty}
           lastSavedAt={lastSavedAt}
           canDeleteCurrentPeriod={canDeleteCurrentPeriod}
+          isCreateHolidayNoticeOpen={isCreateHolidayNoticeOpen}
           canResetAllData={canResetAllData}
           onSelectPeriod={(id) => setAppState((prev) => ({ ...prev, selectedPeriodId: id }))}
           onChangeStartDate={handleStartDateChange}
           onCreatePeriod={handleCreatePeriod}
+          onCloseCreateHolidayNotice={() => setIsCreateHolidayNoticeOpen(false)}
           onSave={handleSave}
           onLoadUserCode={handleLoadByCode}
           onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
