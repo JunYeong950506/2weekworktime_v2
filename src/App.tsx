@@ -337,7 +337,7 @@ export default function App(): JSX.Element {
       await navigator.clipboard.writeText(userCode);
       setCodeStatusMessage(null);
     } catch {
-      setCodeStatusMessage('??? ??????. ??? ?? ??? ??????.');
+      setCodeStatusMessage('코드 복사에 실패했습니다. 직접 보고 복사해 주세요.');
     }
   }
 
@@ -346,7 +346,7 @@ export default function App(): JSX.Element {
     const shouldShowInlineCodeStatus = appState.periods.length === 0;
 
     if (!isValidUserCode(normalized)) {
-      const message = '?? ??? ???? ????. (?: WT-8F4K2M)';
+      const message = '코드 형식이 올바르지 않습니다. (예: WT-8F4K2M)';
       if (shouldShowInlineCodeStatus) {
         setCodeStatusMessage(message);
       }
@@ -354,7 +354,7 @@ export default function App(): JSX.Element {
     }
 
     if (!syncAvailable) {
-      const message = '?? ??? ??? ?? ?? ????? ??? ? ????.';
+      const message = '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.';
       if (shouldShowInlineCodeStatus) {
         setCodeStatusMessage(message);
       }
@@ -363,7 +363,7 @@ export default function App(): JSX.Element {
 
     if (isDirty) {
       const confirmed = window.confirm(
-        '???? ?? ????? ????. ?? ????? ???? ?? ??? ?????. ?????????',
+        '현재 기기의 변경사항이 있습니다. 이 기기의 데이터가 코드 데이터로 덮어써집니다. 계속하시겠습니까?',
       );
       if (!confirmed) {
         return { ok: false, message: '', tone: 'info' };
@@ -393,8 +393,8 @@ export default function App(): JSX.Element {
           normalized === userCode && (remote.hasRemoteUser || appState.periods.length > 0),
         );
         const message = remote.hasRemoteUser
-          ? '?? ???? ?? ??? ?? ???? ????.'
-          : '?? ???? ?????? ?? ???? ?????.';
+          ? '해당 코드에는 아직 생성된 구간 데이터가 없습니다.'
+          : '해당 코드에 연결된 서버 데이터가 없습니다.';
         if (shouldShowInlineCodeStatus) {
           setCodeStatusMessage(message);
         }
@@ -433,7 +433,7 @@ export default function App(): JSX.Element {
   async function handleRestoreServerFromLocal(): Promise<void> {
     if (!syncAvailable) {
       setSyncAlert({
-        message: '?? ??? ??? ?? ??? ? ????.',
+        message: '서버 동기화 설정이 없어 복구를 진행할 수 없습니다.',
         tone: 'warning',
       });
       return;
@@ -467,7 +467,7 @@ export default function App(): JSX.Element {
 
       const verifiedRemote = await verifyRemoteRestore();
       if (!verifiedRemote) {
-        throw new Error('?? ??? ? ???? ???? ?????. ?? ? ?? ??????.');
+        throw new Error('서버 동기화 후 데이터를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
       }
 
       const hydrated = hydrateAppState(verifiedRemote.appState, preferredSelectedPeriodId);

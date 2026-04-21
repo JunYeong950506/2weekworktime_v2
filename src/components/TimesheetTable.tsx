@@ -308,12 +308,10 @@ export default function TimesheetTable({
 
           <div className="mt-2 text-xs text-slate-400 md:hidden">
             <p>계산은 분 단위라 HR과 오차가 있을 수 있습니다.</p>
-            <p>임시 공휴일은 직접 수정해 주세요.</p>
           </div>
 
           <div className="mt-2 hidden text-xs text-slate-400 md:block md:text-right">
             <p>계산은 분 단위라 HR과 오차가 있을 수 있습니다.</p>
-            <p>임시 공휴일은 직접 수정해 주세요.</p>
           </div>
         </div>
 

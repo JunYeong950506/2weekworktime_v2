@@ -80,6 +80,19 @@ export default function PeriodManager({
     return `${start.format('MM월 DD일')} ~ ${end.format('MM월 DD일')}`;
   }, [selectedStartDate]);
 
+  const sortedPeriods = useMemo(
+    () =>
+      [...periods].sort((a, b) => {
+        const startDiff = dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf();
+        if (startDiff !== 0) {
+          return startDiff;
+        }
+
+        return dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf();
+      }),
+    [periods],
+  );
+
   useEffect(() => {
     if (!isCreateOpen) {
       setLabelInput(defaultCreateLabel);
@@ -177,7 +190,7 @@ export default function PeriodManager({
       setCodeFeedback(null);
       setCodeFeedbackTone(null);
     } catch {
-      setCodeFeedback('??? ??????. ??? ?? ??? ??????.');
+      setCodeFeedback('코드 복사에 실패했습니다. 직접 보고 복사해 주세요.');
       setCodeFeedbackTone('warning');
     }
   }
@@ -265,7 +278,7 @@ export default function PeriodManager({
                 onChange={(event) => onSelectPeriod(event.target.value)}
                 className="field-select h-11 w-full min-w-0"
               >
-                {periods.map((period) => (
+                {sortedPeriods.map((period) => (
                   <option key={period.id} value={period.id}>
                     {period.label}
                   </option>
@@ -568,10 +581,10 @@ export default function PeriodManager({
               새 구간 생성 안내
             </h3>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              임시 공휴일은 자동 설정이 어렵습니다.
+              임시 공휴일은 수정이 필요합니다.
             </p>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              최근 2주 근무기록에서 공휴일을 직접 수정해 주세요.
+              최근 2주 근무기록에서 직접 수정해 주세요.
             </p>
 
             <div className="mt-5 flex justify-end">

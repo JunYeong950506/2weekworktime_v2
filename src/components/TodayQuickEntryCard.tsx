@@ -109,12 +109,14 @@ function ResultTile({
 }: {
   title: string;
   value: string;
-  tone: 'indigo' | 'slate';
+  tone: 'indigo' | 'slate' | 'rose';
 }): JSX.Element {
   const className =
     tone === 'indigo'
       ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-      : 'bg-slate-800 text-white';
+      : tone === 'rose'
+        ? 'bg-rose-500 text-white shadow-lg shadow-rose-200'
+        : 'bg-slate-800 text-white';
 
   return (
     <div className={`rounded-2xl p-4 ${className}`}>
@@ -157,6 +159,11 @@ export default function TodayQuickEntryCard({
     record.clockOut.trim() !== '' &&
     record.workMinutes !== null &&
     record.workMinutes < 4 * 60;
+  const useRecommendedOtWarningTone =
+    record !== null &&
+    record.recommendedOtMinutes !== null &&
+    record.recommendedOtMinutes > 0 &&
+    record.recommendedOtMinutes < 60;
 
   useEffect(() => {
     if (!isOfficialDialogOpen) {
@@ -303,9 +310,9 @@ export default function TodayQuickEntryCard({
               />
 
               <ResultTile
-                title="권장 야근결재"
+                title={useRecommendedOtWarningTone ? '초과 근무 시간' : '권장 야근결재'}
                 value={formatMinutesAsClock(record.recommendedOtMinutes)}
-                tone="slate"
+                tone={useRecommendedOtWarningTone ? 'rose' : 'slate'}
               />
             </div>
 
