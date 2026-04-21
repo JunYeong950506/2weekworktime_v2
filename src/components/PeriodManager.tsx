@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
+import { buildDefaultPeriodLabel } from '../utils/period';
 import { formatSavedAt } from '../utils/time';
 import { normalizeUserCode } from '../utils/userCode';
 
@@ -65,10 +66,15 @@ export default function PeriodManager({
   const [labelInput, setLabelInput] = useState(defaultCreateLabel);
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
+  const [isLabelEdited, setIsLabelEdited] = useState(false);
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const dangerMenuRef = useRef<HTMLDivElement | null>(null);
   const codeFeedbackClassName =
     codeFeedbackTone === 'error' ? 'mt-2 text-xs text-rose-600' : 'mt-2 text-xs text-amber-600';
+  const suggestedCreateLabel = useMemo(
+    () => buildDefaultPeriodLabel(startDateInput || createTargetStartDate, periods),
+    [createTargetStartDate, periods, startDateInput],
+  );
 
   const periodRangeLabel = useMemo(() => {
     if (!selectedStartDate) {
@@ -98,6 +104,7 @@ export default function PeriodManager({
       setLabelInput(defaultCreateLabel);
       setStartDateInput(createTargetStartDate);
       setCopyValues(false);
+      setIsLabelEdited(false);
     }
   }, [createTargetStartDate, defaultCreateLabel, isCreateOpen]);
 
@@ -430,8 +437,11 @@ export default function PeriodManager({
             구간 이름
             <input
               value={labelInput}
-              onChange={(event) => setLabelInput(event.target.value)}
-              placeholder={defaultCreateLabel}
+              onChange={(event) => {
+                setLabelInput(event.target.value);
+                setIsLabelEdited(true);
+              }}
+              placeholder={suggestedCreateLabel}
               className="field-input"
             />
           </label>
@@ -441,7 +451,13 @@ export default function PeriodManager({
             <input
               type="date"
               value={startDateInput}
-              onChange={(event) => setStartDateInput(event.target.value)}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setStartDateInput(nextValue);
+                if (!isLabelEdited) {
+                  setLabelInput(buildDefaultPeriodLabel(nextValue, periods));
+                }
+              }}
               className="field-input"
               required
             />

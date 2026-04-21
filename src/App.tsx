@@ -57,6 +57,10 @@ interface SyncAlert {
   tone: 'warning' | 'error';
 }
 
+interface AppVersionPayload {
+  buildId?: string;
+}
+
 function hydrateAppState(
   source: AppState,
   preferredSelectedPeriodId?: string | null,
@@ -146,6 +150,7 @@ function hasMatchingPeriods(localState: AppState, remoteState: AppState): boolea
 }
 
 const REMOTE_SYNC_MIN_INTERVAL_MS = 60_000;
+const APP_VERSION_RELOAD_SESSION_KEY = 'flex-work-2week-reloaded-build-id';
 
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
@@ -169,6 +174,43 @@ export default function App(): JSX.Element {
   const pendingRemoteSyncTimerRef = useRef<number | null>(null);
   const pendingRemoteSyncStateRef = useRef<AppState | null>(null);
 
+  async function checkForUpdatedBuild(): Promise<void> {
+    try {
+      const response = await fetch(
+        `${import.meta.env.BASE_URL}app-version.json?ts=${Date.now()}`,
+        {
+          cache: 'no-store',
+        },
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as AppVersionPayload;
+      const nextBuildId = payload.buildId?.trim();
+      if (!nextBuildId || nextBuildId === __APP_BUILD_ID__) {
+        if (sessionStorage.getItem(APP_VERSION_RELOAD_SESSION_KEY) === __APP_BUILD_ID__) {
+          sessionStorage.removeItem(APP_VERSION_RELOAD_SESSION_KEY);
+        }
+        return;
+      }
+
+      if (isDirty) {
+        return;
+      }
+
+      if (sessionStorage.getItem(APP_VERSION_RELOAD_SESSION_KEY) === nextBuildId) {
+        return;
+      }
+
+      sessionStorage.setItem(APP_VERSION_RELOAD_SESSION_KEY, nextBuildId);
+      window.location.reload();
+    } catch {
+      // Ignore version check failures and keep the current session running.
+    }
+  }
+
   const selectedPeriod = useMemo(
     () => appState.periods.find((period) => period.id === appState.selectedPeriodId) ?? null,
     [appState.periods, appState.selectedPeriodId],
@@ -190,8 +232,8 @@ export default function App(): JSX.Element {
   const isTodayTarget = todayTarget?.mode === 'today';
 
   const suggestedLabel = useMemo(
-    () => buildDefaultPeriodLabel(createTargetStartDate),
-    [createTargetStartDate],
+    () => buildDefaultPeriodLabel(createTargetStartDate, appState.periods),
+    [appState.periods, createTargetStartDate],
   );
   const holidayProviderSyncKey = useMemo(
     () =>
@@ -292,7 +334,7 @@ export default function App(): JSX.Element {
   }
 
   function handleCreatePeriod(payload: CreatePeriodPayload): void {
-    const label = payload.label.trim() || buildDefaultPeriodLabel(payload.startDate);
+    const label = payload.label.trim() || buildDefaultPeriodLabel(payload.startDate, appState.periods);
     const id = ensureUniquePeriodId(label, appState.periods.map((period) => period.id));
 
     const sourceRecords = selectedPeriod?.records ?? [];
@@ -326,7 +368,7 @@ export default function App(): JSX.Element {
     }
 
     handleCreatePeriod({
-      label: buildDefaultPeriodLabel(emptyStartDate),
+      label: buildDefaultPeriodLabel(emptyStartDate, appState.periods),
       startDate: emptyStartDate,
       copyValues: false,
     });
@@ -618,6 +660,24 @@ export default function App(): JSX.Element {
     clearPendingRemoteSync();
     lastRemoteSyncedAtRef.current = 0;
   }, [userCode]);
+
+  useEffect(() => {
+    void checkForUpdatedBuild();
+  }, []);
+
+  useEffect(() => {
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === 'visible') {
+        void checkForUpdatedBuild();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isDirty]);
 
   useEffect(() => {
     if (!holidayProviderSyncKey) {

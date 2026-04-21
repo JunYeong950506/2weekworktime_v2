@@ -11,3 +11,4 @@ interface ImportMeta {
 
 declare const __APP_SUPABASE_URL__: string;
 declare const __APP_SUPABASE_ANON_KEY__: string;
+declare const __APP_BUILD_ID__: string;

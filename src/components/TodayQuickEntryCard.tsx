@@ -113,9 +113,9 @@ function ResultTile({
 }): JSX.Element {
   const className =
     tone === 'indigo'
-      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+      ? 'bg-indigo-600 text-white'
       : tone === 'rose'
-        ? 'bg-rose-500 text-white shadow-lg shadow-rose-200'
+        ? 'bg-rose-500 text-white'
         : 'bg-slate-800 text-white';
 
   return (
@@ -164,6 +164,9 @@ export default function TodayQuickEntryCard({
     record.recommendedOtMinutes !== null &&
     record.recommendedOtMinutes > 0 &&
     record.recommendedOtMinutes < 60;
+  const recommendedOtDisplayValue = useRecommendedOtWarningTone
+    ? formatMinutesAsClock(record?.overtimeMinutes ?? null)
+    : formatMinutesAsClock(record?.recommendedOtMinutes ?? null);
 
   useEffect(() => {
     if (!isOfficialDialogOpen) {
@@ -311,7 +314,7 @@ export default function TodayQuickEntryCard({
 
               <ResultTile
                 title={useRecommendedOtWarningTone ? '초과 근무 시간' : '권장 야근결재'}
-                value={formatMinutesAsClock(record.recommendedOtMinutes)}
+                value={recommendedOtDisplayValue}
                 tone={useRecommendedOtWarningTone ? 'rose' : 'slate'}
               />
             </div>

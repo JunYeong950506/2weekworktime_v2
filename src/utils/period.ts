@@ -18,11 +18,14 @@ function sanitizePeriodId(label: string): string {
   return dayjs().format('YYYYMMDD_HHmmss');
 }
 
-export function buildDefaultPeriodLabel(startDate: string): string {
+export function buildDefaultPeriodLabel(startDate: string, periods: Period[] = []): string {
   const date = dayjs(startDate);
-  const segment = date.date() <= 14 ? '1구간' : '2구간';
+  const monthKey = date.format('YYYY_MM');
+  const segmentCount = periods.filter(
+    (period) => dayjs(period.startDate).format('YYYY_MM') === monthKey,
+  ).length;
 
-  return `${date.format('YYYY_MM')}_${segment}`;
+  return `${monthKey}_${segmentCount + 1}구간`;
 }
 
 export function ensureUniquePeriodId(
