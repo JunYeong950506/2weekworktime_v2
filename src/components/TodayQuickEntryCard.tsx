@@ -389,7 +389,7 @@ export default function TodayQuickEntryCard({
                       nonWorkMinutes: Number(event.target.value || 0),
                     })
                   }
-                  className="field-input h-11 w-full text-right disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                  className="field-input h-11 w-full text-right text-lg disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
                 />
               </label>
 
@@ -413,7 +413,7 @@ export default function TodayQuickEntryCard({
                       claimedOtMinutes: Number(event.target.value || 0),
                     })
                   }
-                  className="field-input h-11 w-full text-right text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                  className="field-input h-11 w-full text-right text-lg text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
                 />
               </label>
             </div>
