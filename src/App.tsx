@@ -39,6 +39,7 @@ import { useTodayRecord } from './hooks/useTodayRecord';
 interface InitialState {
   appState: AppState;
   savedAt: string | null;
+  syncRevision: number;
 }
 
 interface CodeLoadResult {
@@ -50,6 +51,23 @@ interface CodeLoadResult {
 interface VerifiedRemoteState {
   appState: AppState;
   savedAt: string | null;
+  syncRevision: number;
+}
+
+interface SyncStateSnapshot {
+  appState: AppState;
+  savedAt: string | null;
+  syncRevision: number;
+}
+
+interface PendingRemoteSyncPayload {
+  appState: AppState;
+  syncRevision: number;
+}
+
+interface StatePreferenceResult {
+  preferredSource: 'local' | 'remote' | 'none';
+  shouldSyncLocalToRemote: boolean;
 }
 
 interface SyncAlert {
@@ -96,12 +114,14 @@ function getInitialState(): InitialState {
     return {
       appState: createEmptyAppState(),
       savedAt: null,
+      syncRevision: 0,
     };
   }
 
   return {
     appState: hydrateAppState(loaded),
     savedAt: loaded.savedAt,
+    syncRevision: loaded.syncRevision,
   };
 }
 
@@ -138,6 +158,87 @@ function wait(ms: number): Promise<void> {
   });
 }
 
+function getComparableTimestamp(savedAt: string | null): number {
+  if (typeof savedAt !== 'string') {
+    return 0;
+  }
+
+  const parsed = dayjs(savedAt);
+  return parsed.isValid() ? parsed.valueOf() : 0;
+}
+
+function resolvePreferredState(
+  localSnapshot: SyncStateSnapshot,
+  remoteSnapshot: SyncStateSnapshot | null,
+): StatePreferenceResult {
+  const hasLocalPeriods = localSnapshot.appState.periods.length > 0;
+  const hasRemotePeriods = Boolean(remoteSnapshot && remoteSnapshot.appState.periods.length > 0);
+
+  if (!remoteSnapshot) {
+    return {
+      preferredSource: hasLocalPeriods ? 'local' : 'none',
+      shouldSyncLocalToRemote: hasLocalPeriods,
+    };
+  }
+
+  if (hasLocalPeriods && !hasRemotePeriods) {
+    return {
+      preferredSource: 'local',
+      shouldSyncLocalToRemote: true,
+    };
+  }
+
+  if (!hasLocalPeriods && hasRemotePeriods) {
+    return {
+      preferredSource: 'remote',
+      shouldSyncLocalToRemote: false,
+    };
+  }
+
+  if (!hasLocalPeriods && !hasRemotePeriods) {
+    return {
+      preferredSource: 'none',
+      shouldSyncLocalToRemote: false,
+    };
+  }
+
+  if (localSnapshot.syncRevision > remoteSnapshot.syncRevision) {
+    return {
+      preferredSource: 'local',
+      shouldSyncLocalToRemote: true,
+    };
+  }
+
+  if (remoteSnapshot.syncRevision > localSnapshot.syncRevision) {
+    return {
+      preferredSource: 'remote',
+      shouldSyncLocalToRemote: false,
+    };
+  }
+
+  const localSavedAtMs = getComparableTimestamp(localSnapshot.savedAt);
+  const remoteSavedAtMs = getComparableTimestamp(remoteSnapshot.savedAt);
+
+  if (localSavedAtMs > remoteSavedAtMs) {
+    return {
+      preferredSource: 'local',
+      shouldSyncLocalToRemote: true,
+    };
+  }
+
+  if (remoteSavedAtMs > localSavedAtMs) {
+    return {
+      preferredSource: 'remote',
+      shouldSyncLocalToRemote: false,
+    };
+  }
+
+  return {
+    preferredSource: 'local',
+    shouldSyncLocalToRemote: false,
+  };
+}
+
 function hasMatchingPeriods(localState: AppState, remoteState: AppState): boolean {
   if (localState.periods.length !== remoteState.periods.length) {
     return false;
@@ -159,6 +260,7 @@ export default function App(): JSX.Element {
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
+  const [localSyncRevision, setLocalSyncRevision] = useState(initial.syncRevision);
   const [isDirty, setIsDirty] = useState(false);
   const [emptyStartDate, setEmptyStartDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
@@ -172,7 +274,7 @@ export default function App(): JSX.Element {
   const initializedCodeRef = useRef<string | null>(null);
   const lastRemoteSyncedAtRef = useRef(0);
   const pendingRemoteSyncTimerRef = useRef<number | null>(null);
-  const pendingRemoteSyncStateRef = useRef<AppState | null>(null);
+  const pendingRemoteSyncPayloadRef = useRef<PendingRemoteSyncPayload | null>(null);
 
   async function checkForUpdatedBuild(): Promise<void> {
     try {
@@ -425,8 +527,9 @@ export default function App(): JSX.Element {
           setUserCode(savedCode);
           const emptyState = createEmptyAppState();
           setAppState(emptyState);
-          const localSavedAt = saveAppState(emptyState);
-          setLastSavedAt(localSavedAt);
+          const persisted = saveAppState(emptyState, { syncRevision: 0 });
+          setLastSavedAt(persisted.savedAt);
+          setLocalSyncRevision(persisted.syncRevision);
           setIsDirty(false);
           setCodeInputDraft('');
         }
@@ -453,8 +556,12 @@ export default function App(): JSX.Element {
       setIsServerDataMissingForCode(false);
       setCodeInputDraft('');
 
-      const localSavedAt = saveAppState(hydrated);
-      setLastSavedAt(remote.savedAt ?? localSavedAt);
+      const persisted = saveAppState(hydrated, {
+        savedAt: remote.savedAt,
+        syncRevision: remote.syncRevision,
+      });
+      setLastSavedAt(persisted.savedAt);
+      setLocalSyncRevision(persisted.syncRevision);
       setSyncAlert(null);
       if (shouldShowInlineCodeStatus) {
         setCodeStatusMessage(null);
@@ -491,6 +598,7 @@ export default function App(): JSX.Element {
           return {
             appState: remote.appState,
             savedAt: remote.savedAt,
+            syncRevision: remote.syncRevision,
           };
         }
 
@@ -504,7 +612,10 @@ export default function App(): JSX.Element {
 
     try {
       clearPendingRemoteSync();
-      await syncRemoteState(userCode, localStateToRestore, { markActivity: true });
+      await syncRemoteState(userCode, localStateToRestore, {
+        markActivity: true,
+        stateRevision: localSyncRevision,
+      });
       lastRemoteSyncedAtRef.current = Date.now();
 
       const verifiedRemote = await verifyRemoteRestore();
@@ -514,8 +625,12 @@ export default function App(): JSX.Element {
 
       const hydrated = hydrateAppState(verifiedRemote.appState, preferredSelectedPeriodId);
       setAppState(hydrated);
-      const localSavedAt = saveAppState(hydrated);
-      setLastSavedAt(verifiedRemote.savedAt ?? localSavedAt);
+      const persisted = saveAppState(hydrated, {
+        savedAt: verifiedRemote.savedAt,
+        syncRevision: verifiedRemote.syncRevision,
+      });
+      setLastSavedAt(persisted.savedAt);
+      setLocalSyncRevision(persisted.syncRevision);
       setIsDirty(false);
       setIsServerDataMissingForCode(false);
       setSyncAlert(null);
@@ -527,9 +642,12 @@ export default function App(): JSX.Element {
     }
   }
 
-  function triggerRemoteSync(stateToSync: AppState): void {
+  function triggerRemoteSync(payload: PendingRemoteSyncPayload): void {
     lastRemoteSyncedAtRef.current = Date.now();
-    void syncRemoteState(userCode, stateToSync, { markActivity: true })
+    void syncRemoteState(userCode, payload.appState, {
+      markActivity: true,
+      stateRevision: payload.syncRevision,
+    })
       .then(() => {
         setIsServerDataMissingForCode(false);
         setSyncAlert(null);
@@ -548,17 +666,17 @@ export default function App(): JSX.Element {
       pendingRemoteSyncTimerRef.current = null;
     }
 
-    pendingRemoteSyncStateRef.current = null;
+    pendingRemoteSyncPayloadRef.current = null;
   }
 
-  function scheduleRemoteSync(stateToSync: AppState, force = false): void {
+  function scheduleRemoteSync(payload: PendingRemoteSyncPayload, force = false): void {
     if (!syncAvailable) {
       return;
     }
 
     if (force) {
       clearPendingRemoteSync();
-      triggerRemoteSync(stateToSync);
+      triggerRemoteSync(payload);
       return;
     }
 
@@ -568,29 +686,38 @@ export default function App(): JSX.Element {
       lastRemoteSyncedAtRef.current === 0 ||
       elapsed >= REMOTE_SYNC_MIN_INTERVAL_MS
     ) {
-      triggerRemoteSync(stateToSync);
+      triggerRemoteSync(payload);
       return;
     }
 
-    pendingRemoteSyncStateRef.current = stateToSync;
     clearPendingRemoteSync();
-    pendingRemoteSyncStateRef.current = stateToSync;
+    pendingRemoteSyncPayloadRef.current = payload;
 
     const waitMs = REMOTE_SYNC_MIN_INTERVAL_MS - elapsed;
     pendingRemoteSyncTimerRef.current = window.setTimeout(() => {
-      const nextState = pendingRemoteSyncStateRef.current ?? stateToSync;
-      pendingRemoteSyncStateRef.current = null;
+      const nextPayload = pendingRemoteSyncPayloadRef.current ?? payload;
+      pendingRemoteSyncPayloadRef.current = null;
       pendingRemoteSyncTimerRef.current = null;
-      triggerRemoteSync(nextState);
+      triggerRemoteSync(nextPayload);
     }, waitMs);
   }
 
   function persistState(stateToSave: AppState, forceRemoteSync = false): void {
-    const savedAt = saveAppState(stateToSave);
-    setLastSavedAt(savedAt);
+    const nextSyncRevision = localSyncRevision + 1;
+    const persisted = saveAppState(stateToSave, {
+      syncRevision: nextSyncRevision,
+    });
+    setLastSavedAt(persisted.savedAt);
+    setLocalSyncRevision(persisted.syncRevision);
     setIsDirty(false);
 
-    scheduleRemoteSync(stateToSave, forceRemoteSync);
+    scheduleRemoteSync(
+      {
+        appState: stateToSave,
+        syncRevision: persisted.syncRevision,
+      },
+      forceRemoteSync,
+    );
   }
 
   function handleSave(): void {
@@ -618,20 +745,55 @@ export default function App(): JSX.Element {
           return;
         }
 
-        if (!remote.appState) {
-          if (appState.periods.length > 0) {
-            setIsServerDataMissingForCode(true);
-          } else {
-            setIsServerDataMissingForCode(remote.hasRemoteUser);
+        const localSnapshot: SyncStateSnapshot = {
+          appState,
+          savedAt: lastSavedAt,
+          syncRevision: localSyncRevision,
+        };
+        const remoteSnapshot = remote.appState
+          ? {
+              appState: remote.appState,
+              savedAt: remote.savedAt,
+              syncRevision: remote.syncRevision,
+            }
+          : null;
+        const preference = resolvePreferredState(localSnapshot, remoteSnapshot);
+
+        if (preference.preferredSource === 'none') {
+          setIsServerDataMissingForCode(remote.hasRemoteUser);
+          return;
+        }
+
+        if (preference.preferredSource === 'local') {
+          setIsServerDataMissingForCode(false);
+          setSyncAlert(null);
+          setCodeStatusMessage(null);
+
+          if (preference.shouldSyncLocalToRemote && localSnapshot.appState.periods.length > 0) {
+            clearPendingRemoteSync();
+            triggerRemoteSync({
+              appState: localSnapshot.appState,
+              syncRevision: localSnapshot.syncRevision,
+            });
           }
+          return;
+        }
+
+        if (!remote.appState) {
+          setIsServerDataMissingForCode(appState.periods.length > 0 || remote.hasRemoteUser);
           return;
         }
 
         setIsServerDataMissingForCode(false);
         const hydrated = hydrateAppState(remote.appState, appState.selectedPeriodId);
         setAppState(hydrated);
-        const localSavedAt = saveAppState(hydrated);
-        setLastSavedAt(remote.savedAt ?? localSavedAt);
+        const persisted = saveAppState(hydrated, {
+          savedAt: remote.savedAt,
+          syncRevision: remote.syncRevision,
+        });
+        setLastSavedAt(persisted.savedAt);
+        setLocalSyncRevision(persisted.syncRevision);
+        setIsDirty(false);
         setSyncAlert(null);
         setCodeStatusMessage(null);
       } catch (error) {
@@ -654,11 +816,12 @@ export default function App(): JSX.Element {
     return () => {
       disposed = true;
     };
-  }, [appState.periods.length, syncAvailable, userCode]);
+  }, [appState, lastSavedAt, localSyncRevision, syncAvailable, userCode]);
 
   useEffect(() => {
     clearPendingRemoteSync();
     lastRemoteSyncedAtRef.current = 0;
+    initializedCodeRef.current = null;
   }, [userCode]);
 
   useEffect(() => {
@@ -753,7 +916,7 @@ export default function App(): JSX.Element {
 
       const hasPendingRemoteSync =
         pendingRemoteSyncTimerRef.current !== null ||
-        pendingRemoteSyncStateRef.current !== null;
+        pendingRemoteSyncPayloadRef.current !== null;
 
       if (!isDirty && !hasPendingRemoteSync) {
         return;
@@ -765,9 +928,12 @@ export default function App(): JSX.Element {
       }
 
       clearPendingRemoteSync();
-      const stateToSync = pendingRemoteSyncStateRef.current ?? appState;
-      pendingRemoteSyncStateRef.current = null;
-      triggerRemoteSync(stateToSync);
+      const payloadToSync = pendingRemoteSyncPayloadRef.current ?? {
+        appState,
+        syncRevision: localSyncRevision,
+      };
+      pendingRemoteSyncPayloadRef.current = null;
+      triggerRemoteSync(payloadToSync);
     }
 
     function handleVisibilityChange(): void {
@@ -787,7 +953,7 @@ export default function App(): JSX.Element {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [appState, isDirty, syncAvailable, userCode]);
+  }, [appState, isDirty, localSyncRevision, syncAvailable, userCode]);
 
   useEffect(() => {
     if (!isDirty) {
@@ -841,7 +1007,10 @@ export default function App(): JSX.Element {
     lastRemoteSyncedAtRef.current = 0;
 
     if (syncAvailable) {
-      void syncRemoteState(previousUserCode, emptyState, { markActivity: true }).catch((error) => {
+      void syncRemoteState(previousUserCode, emptyState, {
+        markActivity: true,
+        stateRevision: 0,
+      }).catch((error) => {
         setSyncAlert({
           message: getSyncUnavailableMessage(error),
           tone: 'error',
@@ -855,6 +1024,7 @@ export default function App(): JSX.Element {
     setAppState(emptyState);
     setUserCode(nextUserCode);
     setLastSavedAt(null);
+    setLocalSyncRevision(0);
     setIsDirty(false);
     setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
     setCodeInputDraft('');

@@ -1,4 +1,4 @@
-﻿import dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import {
   APP_STORAGE_KEY,
@@ -19,6 +19,11 @@ import {
 
 const APP_STORAGE_KEYS = [APP_STORAGE_KEY, USER_CODE_STORAGE_KEY] as const;
 
+interface SaveAppStateOptions {
+  savedAt?: string | null;
+  syncRevision?: number;
+}
+
 function isValidObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -32,6 +37,14 @@ function toNullableNumber(value: unknown): number | null {
 }
 
 function toNonNegativeInteger(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(value));
+}
+
+function normalizeSyncRevision(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return 0;
   }
@@ -115,6 +128,7 @@ function parsePersistedState(raw: unknown): PersistedAppState | null {
 
   const selectedPeriodId = raw.selectedPeriodId;
   const savedAt = raw.savedAt;
+  const syncRevision = raw.syncRevision;
 
   if (!(typeof selectedPeriodId === 'string' || selectedPeriodId === null)) {
     return null;
@@ -136,6 +150,7 @@ function parsePersistedState(raw: unknown): PersistedAppState | null {
     periods,
     selectedPeriodId,
     savedAt,
+    syncRevision: normalizeSyncRevision(syncRevision),
   };
 }
 
@@ -154,17 +169,24 @@ export function loadAppState(): PersistedAppState | null {
   }
 }
 
-export function saveAppState(state: AppState): string {
-  const savedAt = dayjs().toISOString();
+export function saveAppState(
+  state: AppState,
+  options: SaveAppStateOptions = {},
+): PersistedAppState {
+  const savedAt =
+    typeof options.savedAt === 'string' && dayjs(options.savedAt).isValid()
+      ? dayjs(options.savedAt).toISOString()
+      : dayjs().toISOString();
 
   const payload: PersistedAppState = {
     ...state,
     savedAt,
+    syncRevision: normalizeSyncRevision(options.syncRevision),
   };
 
   localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(payload));
 
-  return savedAt;
+  return payload;
 }
 
 export function hasAppStorageData(): boolean {

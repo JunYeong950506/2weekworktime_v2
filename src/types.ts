@@ -1,4 +1,4 @@
-﻿export type TimeField = 'clockIn' | 'clockOut';
+export type TimeField = 'clockIn' | 'clockOut';
 
 export type AnnualLeaveType =
   | 'none'
@@ -39,7 +39,9 @@ export interface AppState {
 
 export interface PersistedAppState extends AppState {
   savedAt: string;
+  syncRevision: number;
 }
+
 
 export interface DayRecordMeta {
   isWeekday: boolean;
@@ -72,3 +74,4 @@ export interface CreatePeriodPayload {
   startDate: string;
   copyValues: boolean;
 }
+

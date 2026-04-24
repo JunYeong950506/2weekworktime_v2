@@ -10,6 +10,7 @@ const CLEANUP_INTERVAL_DAYS = 7;
 interface RemoteUserRow {
   user_code: string;
   last_activity_at: string | null;
+  state_revision?: number | null;
 }
 
 interface RemotePeriodRow {
@@ -39,11 +40,13 @@ interface RemoteWorkRecordRow {
 interface LoadRemoteStateResult {
   appState: AppState | null;
   savedAt: string | null;
+  syncRevision: number;
   hasRemoteUser: boolean;
 }
 
 interface SyncOptions {
   markActivity: boolean;
+  stateRevision: number;
 }
 
 function isValidObject(value: unknown): value is Record<string, unknown> {
@@ -69,6 +72,34 @@ function toNonNegativeInteger(value: unknown): number {
   }
 
   return Math.max(0, Math.round(value));
+}
+
+function normalizeSyncRevision(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(value));
+}
+
+function isMissingStateRevisionColumnError(error: unknown): boolean {
+  if (!isValidObject(error)) {
+    return false;
+  }
+
+  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  const code = typeof error.code === 'string' ? error.code.toLowerCase() : '';
+
+  if (!message.includes('state_revision')) {
+    return false;
+  }
+
+  return (
+    code === '42703' ||
+    code === 'pgrst204' ||
+    message.includes('does not exist') ||
+    message.includes('could not find')
+  );
 }
 
 function isRecordTouched(record: DayRecord): boolean {
@@ -244,7 +275,7 @@ function toErrorMessage(error: unknown): string {
     lower.includes('relation "public.users" does not exist') ||
     lower.includes('relation "users" does not exist')
   ) {
-    return 'Supabase 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql을 실행해주세요.';
+    return 'Supabase 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql을 실행해 주세요.';
   }
 
   if (
@@ -252,7 +283,7 @@ function toErrorMessage(error: unknown): string {
     lower.includes('row-level security') ||
     lower.includes('violates row-level security')
   ) {
-    return 'Supabase 권한 또는 RLS 설정이 필요합니다. supabase/schema.sql의 GRANT/RLS 구문을 실행해주세요.';
+    return 'Supabase 권한 또는 RLS 설정이 필요합니다. supabase/schema.sql의 GRANT/RLS 구문을 실행해 주세요.';
   }
 
   return rawMessage;
@@ -263,6 +294,7 @@ async function upsertUserMetadata(
   options: {
     markActivity: boolean;
     touchedRecordCount?: number;
+    stateRevision?: number;
   },
 ): Promise<void> {
   const nowIso = dayjs().toISOString();
@@ -280,10 +312,21 @@ async function upsertUserMetadata(
     payload.deleted_candidate_at = null;
   }
 
+  if (typeof options.stateRevision === 'number') {
+    payload.state_revision = normalizeSyncRevision(options.stateRevision);
+  }
+
   const supabase = getSupabaseClient();
-  const { error } = await supabase
+  let { error } = await supabase
     .from('users')
     .upsert(payload, { onConflict: 'user_code' });
+
+  if (error && isMissingStateRevisionColumnError(error) && 'state_revision' in payload) {
+    delete payload.state_revision;
+    ({ error } = await supabase
+      .from('users')
+      .upsert(payload, { onConflict: 'user_code' }));
+  }
 
   if (error) {
     throw new Error(error.message);
@@ -361,6 +404,7 @@ export async function syncRemoteState(
   await upsertUserMetadata(normalized, {
     markActivity: options.markActivity,
     touchedRecordCount,
+    stateRevision: options.stateRevision,
   });
 }
 
@@ -371,20 +415,46 @@ export async function loadRemoteState(
     return {
       appState: null,
       savedAt: null,
+      syncRevision: 0,
       hasRemoteUser: false,
     };
   }
 
   const normalized = normalizeUserCode(userCode);
   const supabase = getSupabaseClient();
+  let userRow: RemoteUserRow | null = null;
 
-  const { data: userRow, error: userError } = await supabase
-    .from('users')
-    .select('user_code,last_activity_at')
-    .eq('user_code', normalized)
-    .maybeSingle<RemoteUserRow>();
-  if (userError) {
-    throw new Error(userError.message);
+  {
+    const { data, error } = await supabase
+      .from('users')
+      .select('user_code,last_activity_at,state_revision')
+      .eq('user_code', normalized)
+      .maybeSingle<RemoteUserRow>();
+
+    if (error) {
+      if (isMissingStateRevisionColumnError(error)) {
+        const fallback = await supabase
+          .from('users')
+          .select('user_code,last_activity_at')
+          .eq('user_code', normalized)
+          .maybeSingle<Omit<RemoteUserRow, 'state_revision'>>();
+
+        if (fallback.error) {
+          throw new Error(fallback.error.message);
+        }
+
+        userRow = fallback.data
+          ? {
+              ...fallback.data,
+              state_revision: 0,
+            }
+          : null;
+      } else {
+        throw new Error(error.message);
+      }
+    } else {
+      userRow = data;
+    }
   }
 
   const { data: periodRows, error: periodError } = await supabase
@@ -401,6 +471,7 @@ export async function loadRemoteState(
     return {
       appState: null,
       savedAt: userRow?.last_activity_at ?? null,
+      syncRevision: normalizeSyncRevision(userRow?.state_revision),
       hasRemoteUser: Boolean(userRow?.user_code),
     };
   }
@@ -420,6 +491,7 @@ export async function loadRemoteState(
   return {
     appState: buildStateFromRemoteRows(periodRows, recordRows ?? []),
     savedAt: userRow?.last_activity_at ?? null,
+    syncRevision: normalizeSyncRevision(userRow?.state_revision),
     hasRemoteUser: true,
   };
 }
@@ -458,4 +530,3 @@ export function getSyncUnavailableMessage(error: unknown): string {
 
   return toErrorMessage(error);
 }
-
