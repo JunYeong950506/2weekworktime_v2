@@ -131,6 +131,7 @@ export default function TimesheetTable({
   const [draft, setDraft] = useState<DayRecord | null>(null);
   const [specialInfoOpenDate, setSpecialInfoOpenDate] = useState<string | null>(null);
   const modalOverlayRef = useRef<HTMLDivElement | null>(null);
+  const modalPanelRef = useRef<HTMLDivElement | null>(null);
 
   const preview = useMemo(() => {
     if (!draft) {
@@ -202,8 +203,17 @@ export default function TimesheetTable({
     }
 
     const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'auto',
+      });
       modalOverlayRef.current?.scrollTo({
         top: 0,
+        behavior: 'auto',
+      });
+      modalPanelRef.current?.scrollIntoView({
+        block: 'start',
+        inline: 'nearest',
         behavior: 'auto',
       });
     });
@@ -641,7 +651,10 @@ export default function TimesheetTable({
           ref={modalOverlayRef}
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
         >
-          <div className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]">
+          <div
+            ref={modalPanelRef}
+            className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]"
+          >
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">
