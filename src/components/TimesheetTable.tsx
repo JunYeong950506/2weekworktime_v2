@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { recalculateDayRecord } from '../utils/calculations';
 import { AnnualLeaveType, DayRecord, DayRecordMeta } from '../types';
@@ -130,6 +130,7 @@ export default function TimesheetTable({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<DayRecord | null>(null);
   const [specialInfoOpenDate, setSpecialInfoOpenDate] = useState<string | null>(null);
+  const modalOverlayRef = useRef<HTMLDivElement | null>(null);
 
   const preview = useMemo(() => {
     if (!draft) {
@@ -192,6 +193,23 @@ export default function TimesheetTable({
     window.addEventListener('keydown', handleEscape);
     return () => {
       window.removeEventListener('keydown', handleEscape);
+    };
+  }, [editingIndex]);
+
+  useEffect(() => {
+    if (editingIndex === null) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      modalOverlayRef.current?.scrollTo({
+        top: 0,
+        behavior: 'auto',
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
     };
   }, [editingIndex]);
 
@@ -619,7 +637,10 @@ export default function TimesheetTable({
       </section>
 
       {editingIndex !== null && draft && modalRecord ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4">
+        <div
+          ref={modalOverlayRef}
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+        >
           <div className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]">
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
