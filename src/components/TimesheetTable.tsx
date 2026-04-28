@@ -649,11 +649,11 @@ export default function TimesheetTable({
       {editingIndex !== null && draft && modalRecord ? (
         <div
           ref={modalOverlayRef}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-1 backdrop-blur-sm sm:items-center sm:p-4"
         >
           <div
             ref={modalPanelRef}
-            className="relative my-2 flex w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:rounded-[32px]"
+            className="relative my-1 flex w-full max-w-md origin-top scale-[0.97] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:scale-100 sm:rounded-[32px]"
           >
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
