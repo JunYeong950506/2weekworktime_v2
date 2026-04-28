@@ -113,6 +113,19 @@ function hasPartialLeaveWarning(record: DayRecord): boolean {
   );
 }
 
+function hasRecordInputChanges(source: DayRecord, draft: DayRecord): boolean {
+  return (
+    source.isHoliday !== draft.isHoliday ||
+    source.annualLeaveType !== draft.annualLeaveType ||
+    source.officialLeaveMinutes !== draft.officialLeaveMinutes ||
+    source.clockIn !== draft.clockIn ||
+    source.clockOut !== draft.clockOut ||
+    source.dinnerChecked !== draft.dinnerChecked ||
+    source.nonWorkMinutes !== draft.nonWorkMinutes ||
+    source.claimedOtMinutes !== draft.claimedOtMinutes
+  );
+}
+
 export default function TimesheetTable({
   records,
   rowMeta,
@@ -243,6 +256,8 @@ export default function TimesheetTable({
   const modalFullLeave = modalMeta?.isAnnualLeaveFullMode ?? false;
   const disableTimeAndDeduction = modalSpecialMode || modalFullLeave;
   const showOfficialInput = modalAnnualLeaveValue === 'official' && !modalSpecialMode;
+  const sourceRecord = editingIndex !== null ? records[editingIndex] : null;
+  const isModalDirty = Boolean(sourceRecord && draft && hasRecordInputChanges(sourceRecord, draft));
   const modalValidationErrors = modalMeta?.validationErrors ?? [];
   const modalPartialLeaveWarning =
     (modalAnnualLeaveValue === 'quarter' || modalAnnualLeaveValue === 'half') &&
@@ -913,18 +928,16 @@ export default function TimesheetTable({
                 </span>
               </div>
 
-              <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="w-full rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition hover:bg-slate-200 sm:flex-1"
-                >
-                  취소
-                </button>
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={saveModal}
-                  className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700 sm:flex-[2]"
+                  disabled={!isModalDirty}
+                  className={`w-full rounded-2xl py-4 text-lg font-bold transition ${
+                    isModalDirty
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700'
+                      : 'cursor-not-allowed bg-indigo-200 text-white'
+                  }`}
                 >
                   기록 저장하기
                 </button>
