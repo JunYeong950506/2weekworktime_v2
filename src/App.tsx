@@ -14,6 +14,7 @@ import {
   copyRecordsWithNewDate,
   createPeriod,
   ensureUniquePeriodId,
+  getWeekMonday,
   rebaseRecordDates,
 } from './utils/period';
 import { getHolidayDateSet } from './utils/holidayProvider';
@@ -256,13 +257,13 @@ const APP_VERSION_RELOAD_SESSION_KEY = 'flex-work-2week-reloaded-build-id';
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
   const syncAvailable = isRemoteSyncAvailable();
-  const createTargetStartDate = dayjs().format('YYYY-MM-DD');
+  const createTargetStartDate = getWeekMonday();
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
   const [localSyncRevision, setLocalSyncRevision] = useState(initial.syncRevision);
   const [isDirty, setIsDirty] = useState(false);
-  const [emptyStartDate, setEmptyStartDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [emptyStartDate, setEmptyStartDate] = useState(getWeekMonday());
   const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
   const [codeInputDraft, setCodeInputDraft] = useState('');
   const [codeStatusMessage, setCodeStatusMessage] = useState<string | null>(null);
@@ -1026,7 +1027,7 @@ export default function App(): JSX.Element {
     setLastSavedAt(null);
     setLocalSyncRevision(0);
     setIsDirty(false);
-    setEmptyStartDate(dayjs().format('YYYY-MM-DD'));
+    setEmptyStartDate(getWeekMonday());
     setCodeInputDraft('');
     setIsServerDataMissingForCode(false);
     setCodeStatusMessage(null);

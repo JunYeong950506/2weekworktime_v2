@@ -72,6 +72,13 @@ export function createRecordsFromStartDate(startDate: string): DayRecord[] {
   });
 }
 
+export function getWeekMonday(dateIso = dayjs().format('YYYY-MM-DD')): string {
+  const date = dayjs(dateIso).startOf('day');
+  const daysFromMonday = (date.day() + 6) % 7;
+
+  return date.subtract(daysFromMonday, 'day').format('YYYY-MM-DD');
+}
+
 export function copyRecordsWithNewDate(
   startDate: string,
   sourceRecords: DayRecord[],
@@ -108,13 +115,13 @@ export function rebaseRecordDates(
   records: DayRecord[],
 ): DayRecord[] {
   const base = createRecordsFromStartDate(startDate);
-  const merged = base.map((record, index) => {
-    const source = records[index];
-    const shouldKeepSourceHoliday = source?.date === record.date;
+  const sourceByDate = new Map(records.map((record) => [record.date, record]));
+  const merged = base.map((record) => {
+    const source = sourceByDate.get(record.date);
 
     return {
       ...record,
-      isHoliday: shouldKeepSourceHoliday ? source.isHoliday : record.isHoliday,
+      isHoliday: source?.isHoliday ?? record.isHoliday,
       annualLeaveType: source?.annualLeaveType ?? 'none',
       officialLeaveMinutes: source?.officialLeaveMinutes ?? 0,
       clockIn: source?.clockIn ?? '',
