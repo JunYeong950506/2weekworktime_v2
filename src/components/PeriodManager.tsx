@@ -34,6 +34,16 @@ interface PeriodManagerProps {
   onResetAllData: () => void;
 }
 
+function formatPeriodLabelDisplay(label: string): string {
+  const match = label.match(/^(\d{4})_(\d{2})_(.+)$/);
+
+  if (!match) {
+    return label.replace(/_/g, ' ');
+  }
+
+  return `${match[1]}년 ${match[2]}월 ${match[3]}`;
+}
+
 export default function PeriodManager({
   periods,
   selectedPeriodId,
@@ -291,7 +301,7 @@ export default function PeriodManager({
               >
                 {sortedPeriods.map((period) => (
                   <option key={period.id} value={period.id}>
-                    {period.label}
+                    {formatPeriodLabelDisplay(period.label)}
                   </option>
                 ))}
               </select>
