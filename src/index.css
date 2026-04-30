@@ -67,8 +67,20 @@ body {
     @apply text-xl font-extrabold tracking-tight text-slate-800;
   }
 
-  .icon-pill {
-    @apply inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-500;
+  .section-icon {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl;
+  }
+
+  .section-icon-blue {
+    @apply bg-blue-50;
+  }
+
+  .section-icon-green {
+    @apply bg-emerald-50;
+  }
+
+  .section-icon-indigo {
+    @apply bg-indigo-50;
   }
 
   .field-label {

@@ -29,17 +29,25 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
   return (
     <section className="surface-panel">
       <div className="mb-6 flex items-center gap-2">
-        <span className="icon-pill" aria-hidden="true">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="section-icon section-icon-green" aria-hidden="true">
+          <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
             <path
+              className="stroke-slate-900"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="1.8"
-              d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8v-6m-8 0l3 3 5-6 4 4"
+              strokeWidth="2.4"
+              d="M7 25V15h5v10M14 25V11h5v14M21 25V7h5v18"
+            />
+            <path
+              className="stroke-emerald-500"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.7"
+              d="M6.5 13.5l5.5-5 5.5 4.3L26 4.5M23 4.5h3v3"
             />
           </svg>
         </span>
-        <h2 className="section-heading">2주 요약</h2>
+        <h2 className="section-heading">2주 누적 요약</h2>
       </div>
 
       <div className="flex flex-col gap-10 md:flex-row md:items-center">

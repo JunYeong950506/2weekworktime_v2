@@ -53,7 +53,7 @@ function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element
         className="h-10 w-10 shrink-0 rounded-xl"
         aria-hidden="true"
       />
-      <span>2주 근무 관리</span>
+      <span>2주 자율출퇴근 계산기</span>
     </h1>
   );
 }
@@ -369,7 +369,7 @@ export default function PeriodManager({
           isMobileControlsExpanded ? 'mb-4 border-b border-slate-100 pb-4' : ''
         }`}
       >
-        <AppHeaderTitle className="mb-4 text-3xl" />
+        <AppHeaderTitle className="mb-4 text-2xl" />
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <button
@@ -486,7 +486,7 @@ export default function PeriodManager({
         } flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between`}
       >
         <div className="min-w-0 flex-1">
-          <AppHeaderTitle className="mb-3 hidden text-3xl md:flex" />
+          <AppHeaderTitle className="mb-3 hidden text-2xl md:flex" />
           <div className="mb-3 flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
             <div className="relative hidden min-w-0 w-full flex-1 md:block">
               <button

@@ -286,15 +286,21 @@ export default function TimesheetTable({
       <section className="surface-panel overflow-hidden px-0 py-0">
         <div className="border-b border-slate-100 px-8 py-6">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-800">
-              <span className="icon-pill" aria-hidden="true">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h3 className="section-heading flex items-center gap-2">
+              <span className="section-icon section-icon-indigo" aria-hidden="true">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
                   <path
+                    className="stroke-slate-900"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+                    strokeWidth="2.3"
+                    d="M8 8.5h15A2.5 2.5 0 0125.5 11v11.5A2.5 2.5 0 0123 25H8a2.5 2.5 0 01-2.5-2.5V11A2.5 2.5 0 018 8.5zM10 5v6M21 5v6M6 14h19"
                   />
+                  <rect x="10" y="17" width="3.5" height="3.5" rx="0.8" className="fill-indigo-500" />
+                  <rect x="15" y="17" width="3.5" height="3.5" rx="0.8" className="fill-indigo-300" />
+                  <rect x="10" y="22" width="3.5" height="3.5" rx="0.8" className="fill-indigo-300" />
+                  <circle cx="23.8" cy="24" r="5" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.1" />
+                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M23.8 21.2v3h2.2" />
                 </svg>
               </span>
               근무 기록

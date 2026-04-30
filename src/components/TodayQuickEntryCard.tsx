@@ -229,20 +229,38 @@ export default function TodayQuickEntryCard({
     <>
       <section className="surface-panel">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <span className="icon-pill" aria-hidden="true">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="section-heading flex items-center gap-2">
+            <span className="section-icon section-icon-blue" aria-hidden="true">
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
                 <path
+                  className="stroke-slate-900"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="1.8"
-                  d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 016 0M9 5a3 3 0 006 0m-5 8l2 2 4-4"
+                  strokeWidth="2.4"
+                  d="M11 6h10M11 26h10M10 9H8.5A2.5 2.5 0 006 11.5v13A2.5 2.5 0 008.5 27h15a2.5 2.5 0 002.5-2.5v-13A2.5 2.5 0 0023.5 9H22"
                 />
+                <path
+                  className="stroke-slate-900"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.4"
+                  d="M12 9V7a2 2 0 012-2h4a2 2 0 012 2v2M14 15h7M14 20h5"
+                />
+                <circle cx="9.5" cy="21.5" r="4.6" className="fill-blue-500" />
+                <path
+                  className="stroke-white"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.4"
+                  d="M7.1 21.5l1.5 1.6 3.2-3.5"
+                />
+                <circle cx="24.2" cy="24.2" r="4.7" className="fill-blue-50 stroke-slate-900" strokeWidth="2.2" />
+                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2" d="M24.2 21.4v3.1h2.3" />
               </svg>
             </span>
-            오늘 근무
+            오늘 근무 입력
           </h2>
-          <span className="status-chip">오늘 날짜: {targetLabel}</span>
+          <span className="status-chip">오늘 {targetLabel}</span>
         </div>
 
         {!isTodayTarget ? (
