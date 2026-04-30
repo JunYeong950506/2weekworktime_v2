@@ -47,12 +47,28 @@ function formatPeriodLabelDisplay(label: string): string {
 function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element {
   return (
     <h1 className={`flex items-center gap-3 font-extrabold tracking-tight text-slate-900 ${className}`}>
-      <img
-        src="/icons/icon-192.png"
-        alt=""
-        className="h-10 w-10 shrink-0 rounded-xl"
-        aria-hidden="true"
-      />
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50" aria-hidden="true">
+        <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="14" className="fill-blue-50 stroke-slate-900" strokeWidth="2.7" />
+          <path
+            className="stroke-slate-900"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.7"
+            d="M20 11.5V20h8"
+          />
+          <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.2" d="M20 6v2.2M20 31.8V34M6 20h2.2" />
+          <circle cx="20" cy="20" r="1.8" className="fill-indigo-500" />
+          <circle cx="29.5" cy="29.5" r="7.2" className="fill-blue-500" />
+          <path
+            className="stroke-white"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            d="M25.8 29.5l2.5 2.6 5-5.5"
+          />
+        </svg>
+      </span>
       <span>2주 자율출퇴근 계산기</span>
     </h1>
   );

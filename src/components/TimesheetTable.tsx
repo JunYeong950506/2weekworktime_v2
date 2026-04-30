@@ -293,14 +293,15 @@ export default function TimesheetTable({
                     className="stroke-slate-900"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2.8"
-                    d="M9.5 10.5h20.5a3 3 0 013 3v16a3 3 0 01-3 3H9.5a3 3 0 01-3-3v-16a3 3 0 013-3zM11.8 6.2v8M20 6.2v8M28.2 6.2v8M6.8 17.5h26"
+                    strokeWidth="2.7"
+                    d="M8.5 10.2h21A2.8 2.8 0 0132.3 13v17a2.8 2.8 0 01-2.8 2.8h-21A2.8 2.8 0 015.7 30V13a2.8 2.8 0 012.8-2.8zM11 6.2v7.2M19 6.2v7.2M27 6.2v7.2M6 17h26"
                   />
-                  <rect x="11.5" y="21.2" width="4.6" height="4.6" rx="1" className="fill-indigo-500" />
-                  <rect x="19" y="21.2" width="4.6" height="4.6" rx="1" className="fill-indigo-300" />
-                  <rect x="11.5" y="28.4" width="4.6" height="4.6" rx="1" className="fill-indigo-300" />
-                  <circle cx="30" cy="30.5" r="6.2" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.6" />
-                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.3" d="M30 27v3.8h3" />
+                  <rect x="10.5" y="21" width="4.5" height="4.5" rx="1" className="fill-indigo-500" />
+                  <rect x="17.2" y="21" width="4.5" height="4.5" rx="1" className="fill-indigo-300" />
+                  <rect x="23.9" y="21" width="4.5" height="4.5" rx="1" className="fill-indigo-300" />
+                  <rect x="10.5" y="28" width="4.5" height="4.5" rx="1" className="fill-indigo-300" />
+                  <circle cx="30" cy="30" r="6.4" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.6" />
+                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.3" d="M30 26.4v4h3.2" />
                 </svg>
               </span>
               근무 기록
