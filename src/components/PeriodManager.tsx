@@ -136,8 +136,8 @@ export default function PeriodManager({
     const parsed = dayjs(lastSavedAt);
     return parsed.isValid() ? parsed.format('HH:mm') : null;
   }, [lastSavedAt]);
-  const compactSaveStatusLabel = isDirty ? '자동 저장 중' : '저장됨';
-  const detailedSaveStatusLabel = isDirty ? '자동 저장 중' : '저장 상태 최신';
+  const compactSaveStatusLabel = isDirty ? '변경사항 있음' : '저장 상태 최신';
+  const detailedSaveStatusLabel = compactSaveStatusLabel;
 
   useEffect(() => {
     if (!isCreateOpen) {
@@ -341,6 +341,9 @@ export default function PeriodManager({
           isMobileControlsExpanded ? 'mb-4 border-b border-slate-100 pb-4' : ''
         }`}
       >
+        <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-slate-900">
+          2주 자율출퇴근 계산기 ⏱️
+        </h1>
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <button
@@ -349,7 +352,7 @@ export default function PeriodManager({
               aria-label="2주 시작일 선택"
             >
               <svg
-                className="h-4 w-4 shrink-0 text-indigo-400"
+                className="h-5 w-5 shrink-0 text-indigo-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -380,7 +383,7 @@ export default function PeriodManager({
                 window.location.assign('https://www.hanwha701.com/');
               }}
               aria-label="커피 웹사이트 열기"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-amber-600 shadow-sm transition hover:bg-amber-50 hover:text-amber-700"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-amber-600 shadow-sm transition hover:bg-slate-100 focus:text-amber-600 active:text-amber-600"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -396,7 +399,7 @@ export default function PeriodManager({
               onClick={() => setIsDangerMenuOpen((prev) => !prev)}
               aria-expanded={isDangerMenuOpen}
               aria-label="설정 메뉴"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 focus:text-slate-500 active:text-slate-500"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -418,10 +421,15 @@ export default function PeriodManager({
               onClick={() => setIsMobileControlsExpanded((prev) => !prev)}
               aria-expanded={isMobileControlsExpanded}
               aria-label={isMobileControlsExpanded ? '상단 제어영역 접기' : '상단 제어영역 펼치기'}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 focus:text-slate-500 active:text-slate-500"
             >
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M4.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d={isMobileControlsExpanded ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}
+                />
               </svg>
             </button>
 
@@ -429,23 +437,24 @@ export default function PeriodManager({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500">
+        <div className="mt-3 flex flex-col items-start gap-1 text-xs font-semibold text-slate-500">
           <span className="font-extrabold text-indigo-600">{selectedPeriodLabel}</span>
-          <span className="text-slate-300">·</span>
-          <span>{mobileSavedTime ? `저장됨 ${mobileSavedTime}` : '저장 전'}</span>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
-              isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-            }`}
-          >
+          <div className="flex items-center gap-2">
+            <span>{mobileSavedTime ? `저장됨 ${mobileSavedTime}` : '저장 전'}</span>
             <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isDirty ? 'bg-amber-500' : 'bg-emerald-500'
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
               }`}
-              aria-hidden="true"
-            />
-            {compactSaveStatusLabel}
-          </span>
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isDirty ? 'bg-amber-500' : 'bg-emerald-500'
+                }`}
+                aria-hidden="true"
+              />
+              {compactSaveStatusLabel}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -455,11 +464,11 @@ export default function PeriodManager({
         } flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between`}
       >
         <div className="min-w-0 flex-1">
-          <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="mb-3 hidden text-3xl font-extrabold tracking-tight text-slate-900 md:block">
             2주 자율출퇴근 계산기 ⏱️
           </h1>
           <div className="mb-3 flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
-            <div className="relative min-w-0 w-full flex-1">
+            <div className="relative hidden min-w-0 w-full flex-1 md:block">
               <button
                 type="button"
                 onClick={openStartDatePicker}
@@ -561,7 +570,7 @@ export default function PeriodManager({
             </div>
           </div>
 
-          <div className="flex w-full flex-col items-start gap-1 md:w-auto md:items-end">
+          <div className="hidden w-full flex-col items-start gap-1 md:flex md:w-auto md:items-end">
             <p className="text-xs text-slate-400">
               마지막 저장: {formatSavedAt(lastSavedAt)}
             </p>

@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       boxShadow: {
