@@ -288,9 +288,16 @@ export default function TimesheetTable({
           <div className="flex items-start justify-between gap-4">
             <h3 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-800">
               <span className="icon-pill" aria-hidden="true">
-                📅
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+                  />
+                </svg>
               </span>
-              최근 2주 근무기록
+              근무 기록
             </h3>
 
             <div className="shrink-0 rounded-2xl bg-slate-100 p-1 shadow-inner md:hidden">

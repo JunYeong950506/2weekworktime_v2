@@ -44,6 +44,20 @@ function formatPeriodLabelDisplay(label: string): string {
   return `${match[1]}년 ${match[2]}월 ${match[3]}`;
 }
 
+function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element {
+  return (
+    <h1 className={`flex items-center gap-3 font-extrabold tracking-tight text-slate-900 ${className}`}>
+      <img
+        src="/icons/icon-192.png"
+        alt=""
+        className="h-10 w-10 shrink-0 rounded-xl"
+        aria-hidden="true"
+      />
+      <span>2주 근무 관리</span>
+    </h1>
+  );
+}
+
 export default function PeriodManager({
   periods,
   selectedPeriodId,
@@ -136,8 +150,22 @@ export default function PeriodManager({
     const parsed = dayjs(lastSavedAt);
     return parsed.isValid() ? parsed.format('HH:mm') : null;
   }, [lastSavedAt]);
-  const compactSaveStatusLabel = isDirty ? '변경사항 있음' : '저장 상태 최신';
-  const detailedSaveStatusLabel = compactSaveStatusLabel;
+  const compactSaveStatusLabel = isDirty
+    ? '변경사항 있음'
+    : mobileSavedTime
+      ? `최신 저장 · ${mobileSavedTime}`
+      : '저장 전';
+  const detailedSaveStatusLabel = isDirty ? '변경사항 있음' : '저장 상태 최신';
+  const compactSaveStatusClassName = isDirty
+    ? 'bg-amber-100 text-amber-700'
+    : mobileSavedTime
+      ? 'bg-emerald-100 text-emerald-700'
+      : 'bg-slate-100 text-slate-500';
+  const compactSaveStatusDotClassName = isDirty
+    ? 'bg-amber-500'
+    : mobileSavedTime
+      ? 'bg-emerald-500'
+      : 'bg-slate-400';
 
   useEffect(() => {
     if (!isCreateOpen) {
@@ -341,9 +369,7 @@ export default function PeriodManager({
           isMobileControlsExpanded ? 'mb-4 border-b border-slate-100 pb-4' : ''
         }`}
       >
-        <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-slate-900">
-          2주 자율출퇴근 계산기 ⏱️
-        </h1>
+        <AppHeaderTitle className="mb-4 text-3xl" />
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <button
@@ -441,24 +467,16 @@ export default function PeriodManager({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-col gap-1 text-xs font-semibold text-slate-500">
-          <span className="font-extrabold text-indigo-600">{selectedPeriodLabel}</span>
-          <div className="flex items-center justify-end gap-2">
-            <span>{mobileSavedTime ? `저장됨 ${mobileSavedTime}` : '저장 전'}</span>
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
-                isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  isDirty ? 'bg-amber-500' : 'bg-emerald-500'
-                }`}
-                aria-hidden="true"
-              />
-              {compactSaveStatusLabel}
-            </span>
-          </div>
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+          <span className="min-w-0 truncate font-extrabold text-indigo-600">
+            {selectedPeriodLabel}
+          </span>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 ${compactSaveStatusClassName}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${compactSaveStatusDotClassName}`} aria-hidden="true" />
+            {compactSaveStatusLabel}
+          </span>
         </div>
       </div>
 
@@ -468,9 +486,7 @@ export default function PeriodManager({
         } flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between`}
       >
         <div className="min-w-0 flex-1">
-          <h1 className="mb-3 hidden text-3xl font-extrabold tracking-tight text-slate-900 md:block">
-            2주 자율출퇴근 계산기 ⏱️
-          </h1>
+          <AppHeaderTitle className="mb-3 hidden text-3xl md:flex" />
           <div className="mb-3 flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
             <div className="relative hidden min-w-0 w-full flex-1 md:block">
               <button

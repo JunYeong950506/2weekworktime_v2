@@ -231,9 +231,16 @@ export default function TodayQuickEntryCard({
         <div className="mb-6 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
             <span className="icon-pill" aria-hidden="true">
-              ⚡
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 016 0M9 5a3 3 0 006 0m-5 8l2 2 4-4"
+                />
+              </svg>
             </span>
-            오늘 근무 입력
+            오늘 근무
           </h2>
           <span className="status-chip">오늘 날짜: {targetLabel}</span>
         </div>
