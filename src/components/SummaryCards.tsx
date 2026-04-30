@@ -35,15 +35,15 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
               className="stroke-slate-900"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.4"
-              d="M7 25V15h5v10M14 25V11h5v14M21 25V7h5v18"
+              strokeWidth="2.3"
+              d="M7 25V16h4.6v9M14 25V12h4.6v13M21 25V8h4.6v17"
             />
             <path
               className="stroke-emerald-500"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.7"
-              d="M6.5 13.5l5.5-5 5.5 4.3L26 4.5M23 4.5h3v3"
+              strokeWidth="2.8"
+              d="M6.5 14l5.5-5.2 5.3 4.3 8.2-8.4M22.5 4.7h3v3"
             />
           </svg>
         </span>

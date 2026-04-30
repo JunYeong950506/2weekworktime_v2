@@ -236,26 +236,26 @@ export default function TodayQuickEntryCard({
                   className="stroke-slate-900"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.4"
-                  d="M11 6h10M11 26h10M10 9H8.5A2.5 2.5 0 006 11.5v13A2.5 2.5 0 008.5 27h15a2.5 2.5 0 002.5-2.5v-13A2.5 2.5 0 0023.5 9H22"
+                  strokeWidth="2.3"
+                  d="M10 8.5H8.5A2.5 2.5 0 006 11v14a2.5 2.5 0 002.5 2.5h15A2.5 2.5 0 0026 25V11a2.5 2.5 0 00-2.5-2.5H22"
                 />
                 <path
                   className="stroke-slate-900"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.4"
-                  d="M12 9V7a2 2 0 012-2h4a2 2 0 012 2v2M14 15h7M14 20h5"
+                  strokeWidth="2.3"
+                  d="M12 8.5V7a2 2 0 012-2h4a2 2 0 012 2v1.5M14 15h7M14 20h5"
                 />
-                <circle cx="9.5" cy="21.5" r="4.6" className="fill-blue-500" />
+                <circle cx="9.5" cy="21.5" r="4.8" className="fill-blue-500" />
                 <path
                   className="stroke-white"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.4"
+                  strokeWidth="2.3"
                   d="M7.1 21.5l1.5 1.6 3.2-3.5"
                 />
-                <circle cx="24.2" cy="24.2" r="4.7" className="fill-blue-50 stroke-slate-900" strokeWidth="2.2" />
-                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2" d="M24.2 21.4v3.1h2.3" />
+                <circle cx="24" cy="24" r="4.8" className="fill-blue-50 stroke-slate-900" strokeWidth="2.1" />
+                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M24 21.3v3h2.2" />
               </svg>
             </span>
             오늘 근무 입력

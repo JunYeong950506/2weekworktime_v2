@@ -293,14 +293,14 @@ export default function TimesheetTable({
                     className="stroke-slate-900"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2.3"
-                    d="M8 8.5h15A2.5 2.5 0 0125.5 11v11.5A2.5 2.5 0 0123 25H8a2.5 2.5 0 01-2.5-2.5V11A2.5 2.5 0 018 8.5zM10 5v6M21 5v6M6 14h19"
+                    strokeWidth="2.2"
+                    d="M8 8.5h15A2.5 2.5 0 0125.5 11v11.5A2.5 2.5 0 0123 25H8a2.5 2.5 0 01-2.5-2.5V11A2.5 2.5 0 018 8.5zM10 5v6M15.5 5v6M21 5v6M6 14h19"
                   />
-                  <rect x="10" y="17" width="3.5" height="3.5" rx="0.8" className="fill-indigo-500" />
-                  <rect x="15" y="17" width="3.5" height="3.5" rx="0.8" className="fill-indigo-300" />
-                  <rect x="10" y="22" width="3.5" height="3.5" rx="0.8" className="fill-indigo-300" />
-                  <circle cx="23.8" cy="24" r="5" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.1" />
-                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M23.8 21.2v3h2.2" />
+                  <rect x="10" y="17" width="3.4" height="3.4" rx="0.8" className="fill-indigo-500" />
+                  <rect x="15.2" y="17" width="3.4" height="3.4" rx="0.8" className="fill-indigo-300" />
+                  <rect x="10" y="22" width="3.4" height="3.4" rx="0.8" className="fill-indigo-300" />
+                  <circle cx="24" cy="24" r="4.8" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.1" />
+                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M24 21.3v3h2.2" />
                 </svg>
               </span>
               근무 기록
