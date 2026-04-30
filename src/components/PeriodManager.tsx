@@ -67,6 +67,7 @@ export default function PeriodManager({
 }: PeriodManagerProps): JSX.Element {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDangerMenuOpen, setIsDangerMenuOpen] = useState(false);
+  const [isMobileControlsExpanded, setIsMobileControlsExpanded] = useState(false);
   const [isCodeViewOpen, setIsCodeViewOpen] = useState(false);
   const [isCodeLoadOpen, setIsCodeLoadOpen] = useState(false);
   const [codeInputDraft, setCodeInputDraft] = useState('');
@@ -79,6 +80,7 @@ export default function PeriodManager({
   const [isLabelEdited, setIsLabelEdited] = useState(false);
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const dangerMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileDangerMenuRef = useRef<HTMLDivElement | null>(null);
   const codeFeedbackClassName =
     codeFeedbackTone === 'error' ? 'mt-2 text-xs text-rose-600' : 'mt-2 text-xs text-amber-600';
   const suggestedCreateLabel = useMemo(
@@ -99,6 +101,15 @@ export default function PeriodManager({
     const end = start.add(13, 'day');
     return `${start.format('MM월 DD일')} ~ ${end.format('MM월 DD일')}`;
   }, [selectedStartDate]);
+  const mobilePeriodRangeLabel = useMemo(() => {
+    if (!selectedStartDate) {
+      return '-';
+    }
+
+    const start = dayjs(selectedStartDate);
+    const end = start.add(13, 'day');
+    return `${start.format('MM/DD')} ~ ${end.format('MM/DD')}`;
+  }, [selectedStartDate]);
 
   const sortedPeriods = useMemo(
     () =>
@@ -112,6 +123,21 @@ export default function PeriodManager({
       }),
     [periods],
   );
+  const selectedPeriod = useMemo(
+    () => periods.find((period) => period.id === selectedPeriodId) ?? null,
+    [periods, selectedPeriodId],
+  );
+  const selectedPeriodLabel = selectedPeriod ? formatPeriodLabelDisplay(selectedPeriod.label) : '-';
+  const mobileSavedTime = useMemo(() => {
+    if (!lastSavedAt) {
+      return null;
+    }
+
+    const parsed = dayjs(lastSavedAt);
+    return parsed.isValid() ? parsed.format('HH:mm') : null;
+  }, [lastSavedAt]);
+  const compactSaveStatusLabel = isDirty ? '자동 저장 중' : '저장됨';
+  const detailedSaveStatusLabel = isDirty ? '자동 저장 중' : '저장 상태 최신';
 
   useEffect(() => {
     if (!isCreateOpen) {
@@ -128,11 +154,11 @@ export default function PeriodManager({
     }
 
     function handleWindowClick(event: MouseEvent): void {
-      if (!dangerMenuRef.current) {
-        return;
-      }
+      const target = event.target as Node;
+      const isInsideDesktopMenu = dangerMenuRef.current?.contains(target) ?? false;
+      const isInsideMobileMenu = mobileDangerMenuRef.current?.contains(target) ?? false;
 
-      if (!dangerMenuRef.current.contains(event.target as Node)) {
+      if (!isInsideDesktopMenu && !isInsideMobileMenu) {
         setIsDangerMenuOpen(false);
       }
     }
@@ -239,9 +265,195 @@ export default function PeriodManager({
     }
   }
 
+  function renderSettingsMenu(): JSX.Element | null {
+    if (!isDangerMenuOpen) {
+      return null;
+    }
+
+    return (
+      <div className="absolute right-0 top-full z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg md:top-auto">
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            setCodeFeedback(null);
+            setCodeFeedbackTone(null);
+            setIsCodeViewOpen(true);
+          }}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          동기화 코드 보기
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            setCodeFeedback(null);
+            setCodeFeedbackTone(null);
+            setCodeInputDraft('');
+            setIsCodeLoadOpen(true);
+          }}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          코드 입력 / 붙여넣기
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            window.location.assign('https://2week-worktime-mobile.vercel.app/download/');
+          }}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          모바일 앱 받기
+        </button>
+        <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            onDeleteCurrentPeriod();
+          }}
+          disabled={!canDeleteCurrentPeriod}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          현재 구간 삭제
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            onResetAllData();
+          }}
+          disabled={!canResetAllData}
+          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          데이터 초기화
+        </button>
+      </div>
+    );
+  }
+
   return (
     <section className="surface-panel relative z-20 overflow-visible">
-      <header className="flex flex-col gap-4 pb-4 md:flex-row md:items-start md:justify-between">
+      <div
+        className={`md:hidden ${
+          isMobileControlsExpanded ? 'mb-4 border-b border-slate-100 pb-4' : ''
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <button
+              type="button"
+              className="pointer-events-none inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm font-extrabold text-slate-600 shadow-sm"
+              aria-label="2주 시작일 선택"
+            >
+              <svg
+                className="h-4 w-4 shrink-0 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.8}
+                  d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+                />
+              </svg>
+              <span className="truncate">{mobilePeriodRangeLabel}</span>
+            </button>
+            <input
+              type="date"
+              value={selectedStartDate}
+              onChange={(event) => onChangeStartDate(event.target.value)}
+              className="absolute inset-0 z-10 cursor-pointer opacity-0"
+              aria-label="2주 시작일 선택"
+            />
+          </div>
+
+          <div ref={mobileDangerMenuRef} className="relative flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.assign('https://www.hanwha701.com/');
+              }}
+              aria-label="커피 웹사이트 열기"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-amber-600 shadow-sm transition hover:bg-amber-50 hover:text-amber-700"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsDangerMenuOpen((prev) => !prev)}
+              aria-expanded={isDangerMenuOpen}
+              aria-label="설정 메뉴"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.591 1.066c1.527-.94 3.31.843 2.37 2.37a1.724 1.724 0 001.065 2.592c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.591c.94 1.527-.843 3.31-2.37 2.37a1.724 1.724 0 00-2.592 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.591-1.066c-1.527.94-3.31-.843-2.37-2.37a1.724 1.724 0 00-1.065-2.592c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.591c-.94-1.527.843-3.31 2.37-2.37.995.607 2.295.069 2.591-1.066z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M12 15.75A3.75 3.75 0 1112 8.25a3.75 3.75 0 010 7.5z"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMobileControlsExpanded((prev) => !prev)}
+              aria-expanded={isMobileControlsExpanded}
+              aria-label={isMobileControlsExpanded ? '상단 제어영역 접기' : '상단 제어영역 펼치기'}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+              </svg>
+            </button>
+
+            {renderSettingsMenu()}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500">
+          <span className="font-extrabold text-indigo-600">{selectedPeriodLabel}</span>
+          <span className="text-slate-300">·</span>
+          <span>{mobileSavedTime ? `저장됨 ${mobileSavedTime}` : '저장 전'}</span>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+              isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isDirty ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+              aria-hidden="true"
+            />
+            {compactSaveStatusLabel}
+          </span>
+        </div>
+      </div>
+
+      <header
+        className={`${
+          isMobileControlsExpanded ? 'flex' : 'hidden'
+        } flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between`}
+      >
         <div className="min-w-0 flex-1">
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
             2주 자율출퇴근 계산기 ⏱️
@@ -321,24 +533,7 @@ export default function PeriodManager({
             <button type="button" onClick={onSave} className="btn-primary">
               전체 저장
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.assign('https://www.hanwha701.com/');
-              }}
-              aria-label="커피 웹사이트 열기"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-amber-600 shadow-sm transition hover:bg-amber-50 hover:text-amber-700 md:hidden"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.8"
-                  d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
-                />
-              </svg>
-            </button>
-            <div ref={dangerMenuRef} className="relative">
+            <div ref={dangerMenuRef} className="relative hidden md:block">
               <button
                 type="button"
                 onClick={() => setIsDangerMenuOpen((prev) => !prev)}
@@ -362,68 +557,7 @@ export default function PeriodManager({
                 </svg>
               </button>
 
-              {isDangerMenuOpen ? (
-                <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDangerMenuOpen(false);
-                      setCodeFeedback(null);
-                      setCodeFeedbackTone(null);
-                      setIsCodeViewOpen(true);
-                    }}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-                  >
-                    동기화 코드 보기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDangerMenuOpen(false);
-                      setCodeFeedback(null);
-                      setCodeFeedbackTone(null);
-                      setCodeInputDraft('');
-                      setIsCodeLoadOpen(true);
-                    }}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-                  >
-                    코드 입력 / 붙여넣기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDangerMenuOpen(false);
-                      window.location.assign('https://2week-worktime-mobile.vercel.app/download/');
-                    }}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-                  >
-                    모바일 앱 받기
-                  </button>
-                  <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDangerMenuOpen(false);
-                      onDeleteCurrentPeriod();
-                    }}
-                    disabled={!canDeleteCurrentPeriod}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    현재 구간 삭제
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDangerMenuOpen(false);
-                      onResetAllData();
-                    }}
-                    disabled={!canResetAllData}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    데이터 초기화
-                  </button>
-                </div>
-              ) : null}
+              {renderSettingsMenu()}
             </div>
           </div>
 
@@ -436,7 +570,7 @@ export default function PeriodManager({
                 isDirty ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
               }`}
             >
-              {isDirty ? '저장되지 않은 변경사항 있음' : '저장 상태 최신'}
+              {detailedSaveStatusLabel}
             </p>
           </div>
         </div>
