@@ -5,7 +5,7 @@ import PeriodManager from './components/PeriodManager';
 import SummaryCards from './components/SummaryCards';
 import TimesheetTable from './components/TimesheetTable';
 import TodayQuickEntryCard from './components/TodayQuickEntryCard';
-import { MAX_STORED_PERIODS } from './constants';
+import { DAYS_PER_PERIOD, MAX_STORED_PERIODS } from './constants';
 import { AppState, CreatePeriodPayload, DayRecord, Period } from './types';
 import { recalculatePeriod, recalculateRecords } from './utils/calculations';
 import { createEmptyAppState, deleteCurrentPeriod } from './utils/dataManagement';
@@ -14,7 +14,9 @@ import {
   copyRecordsWithNewDate,
   createPeriod,
   ensureUniquePeriodId,
-  getWeekMonday,
+  getAutoPeriodStartDate,
+  getDefaultPeriodCreateStartDate,
+  normalizePeriodCreateStartDate,
   rebaseRecordDates,
 } from './utils/period';
 import { getHolidayDateSet } from './utils/holidayProvider';
@@ -251,28 +253,50 @@ function hasMatchingPeriods(localState: AppState, remoteState: AppState): boolea
   return localIds.every((id, index) => id === remoteIds[index]);
 }
 
+function findPeriodCoveringRange(
+  periods: Period[],
+  startDate: string,
+  days = DAYS_PER_PERIOD,
+): Period | null {
+  const targetStart = dayjs(startDate).startOf('day');
+  const targetEnd = targetStart.add(days - 1, 'day');
+
+  return periods.find((period) => {
+    const periodStart = dayjs(period.startDate).startOf('day');
+    const periodEnd = periodStart.add(DAYS_PER_PERIOD - 1, 'day');
+
+    return (
+      periodStart.isValid() &&
+      !periodStart.isAfter(targetStart, 'day') &&
+      !periodEnd.isBefore(targetEnd, 'day')
+    );
+  }) ?? null;
+}
+
 const REMOTE_SYNC_MIN_INTERVAL_MS = 60_000;
 const APP_VERSION_RELOAD_SESSION_KEY = 'flex-work-2week-reloaded-build-id';
 
 export default function App(): JSX.Element {
   const initial = useMemo(getInitialState, []);
   const syncAvailable = isRemoteSyncAvailable();
-  const createTargetStartDate = getWeekMonday();
+  const createTargetStartDate = getDefaultPeriodCreateStartDate();
 
   const [appState, setAppState] = useState<AppState>(initial.appState);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.savedAt);
   const [localSyncRevision, setLocalSyncRevision] = useState(initial.syncRevision);
   const [isDirty, setIsDirty] = useState(false);
-  const [emptyStartDate, setEmptyStartDate] = useState(getWeekMonday());
+  const [emptyStartDate, setEmptyStartDate] = useState(getDefaultPeriodCreateStartDate());
   const [userCode, setUserCode] = useState<string>(() => ensureUserCode());
   const [codeInputDraft, setCodeInputDraft] = useState('');
   const [codeStatusMessage, setCodeStatusMessage] = useState<string | null>(null);
   const [, setSyncAlert] = useState<SyncAlert | null>(null);
+  const [isInitialSyncResolved, setIsInitialSyncResolved] = useState(!syncAvailable);
   const [isCodeActionPending, setIsCodeActionPending] = useState(false);
   const [isServerDataMissingForCode, setIsServerDataMissingForCode] = useState(false);
   const [isCreateHolidayNoticeOpen, setIsCreateHolidayNoticeOpen] = useState(false);
   const skipNextAutoSaveRef = useRef(false);
   const initializedCodeRef = useRef<string | null>(null);
+  const autoPeriodCheckedRef = useRef<string | null>(null);
   const lastRemoteSyncedAtRef = useRef(0);
   const pendingRemoteSyncTimerRef = useRef<number | null>(null);
   const pendingRemoteSyncPayloadRef = useRef<PendingRemoteSyncPayload | null>(null);
@@ -437,16 +461,26 @@ export default function App(): JSX.Element {
   }
 
   function handleCreatePeriod(payload: CreatePeriodPayload): void {
-    const label = payload.label.trim() || buildDefaultPeriodLabel(payload.startDate, appState.periods);
+    const startDate = normalizePeriodCreateStartDate(payload.startDate);
+    const existingPeriod = findPeriodCoveringRange(appState.periods, startDate);
+    if (existingPeriod) {
+      setAppState((prev) => ({
+        ...prev,
+        selectedPeriodId: existingPeriod.id,
+      }));
+      return;
+    }
+
+    const label = payload.label.trim() || buildDefaultPeriodLabel(startDate, appState.periods);
     const id = ensureUniquePeriodId(label, appState.periods.map((period) => period.id));
 
     const sourceRecords = selectedPeriod?.records ?? [];
-    const records = copyRecordsWithNewDate(payload.startDate, sourceRecords, payload.copyValues);
+    const records = copyRecordsWithNewDate(startDate, sourceRecords, payload.copyValues);
 
     const period = createPeriod({
       id,
       label,
-      startDate: payload.startDate,
+      startDate,
       records,
     });
 
@@ -471,7 +505,10 @@ export default function App(): JSX.Element {
     }
 
     handleCreatePeriod({
-      label: buildDefaultPeriodLabel(emptyStartDate, appState.periods),
+      label: buildDefaultPeriodLabel(
+        normalizePeriodCreateStartDate(emptyStartDate),
+        appState.periods,
+      ),
       startDate: emptyStartDate,
       copyValues: false,
     });
@@ -727,6 +764,7 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     if (!syncAvailable) {
+      setIsInitialSyncResolved(true);
       return;
     }
 
@@ -735,6 +773,7 @@ export default function App(): JSX.Element {
     }
 
     initializedCodeRef.current = userCode;
+    setIsInitialSyncResolved(false);
     let disposed = false;
 
     async function initializeSync(): Promise<void> {
@@ -809,6 +848,10 @@ export default function App(): JSX.Element {
             });
           }
         }
+      } finally {
+        if (!disposed) {
+          setIsInitialSyncResolved(true);
+        }
       }
     }
 
@@ -823,7 +866,57 @@ export default function App(): JSX.Element {
     clearPendingRemoteSync();
     lastRemoteSyncedAtRef.current = 0;
     initializedCodeRef.current = null;
+    autoPeriodCheckedRef.current = null;
+    setIsInitialSyncResolved(!syncAvailable);
   }, [userCode]);
+
+  useEffect(() => {
+    if (!isInitialSyncResolved) {
+      return;
+    }
+
+    const startDate = getAutoPeriodStartDate();
+    if (!startDate) {
+      return;
+    }
+
+    const checkKey = `${userCode}:${startDate}`;
+    if (autoPeriodCheckedRef.current === checkKey) {
+      return;
+    }
+    autoPeriodCheckedRef.current = checkKey;
+
+    const existingPeriod = findPeriodCoveringRange(appState.periods, startDate);
+    if (existingPeriod) {
+      if (appState.selectedPeriodId !== existingPeriod.id) {
+        setAppState((prev) => ({
+          ...prev,
+          selectedPeriodId: existingPeriod.id,
+        }));
+      }
+      return;
+    }
+
+    const label = buildDefaultPeriodLabel(startDate, appState.periods);
+    const id = ensureUniquePeriodId(label, appState.periods.map((period) => period.id));
+    const period = createPeriod({
+      id,
+      label,
+      startDate,
+      records: copyRecordsWithNewDate(startDate, [], false),
+    });
+
+    setAppState((prev) => {
+      const nextPeriods = trimPeriodsToLimit([...prev.periods, period]);
+
+      return {
+        selectedPeriodId: period.id,
+        periods: nextPeriods,
+      };
+    });
+    markDirty();
+    setIsCreateHolidayNoticeOpen(true);
+  }, [appState.periods, appState.selectedPeriodId, isInitialSyncResolved, userCode]);
 
   useEffect(() => {
     void checkForUpdatedBuild();
@@ -1027,7 +1120,7 @@ export default function App(): JSX.Element {
     setLastSavedAt(null);
     setLocalSyncRevision(0);
     setIsDirty(false);
-    setEmptyStartDate(getWeekMonday());
+    setEmptyStartDate(getDefaultPeriodCreateStartDate());
     setCodeInputDraft('');
     setIsServerDataMissingForCode(false);
     setCodeStatusMessage(null);

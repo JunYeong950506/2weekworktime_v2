@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
-import { buildDefaultPeriodLabel } from '../utils/period';
+import { buildDefaultPeriodLabel, normalizePeriodCreateStartDate } from '../utils/period';
 import { formatSavedAt } from '../utils/time';
 import { normalizeUserCode } from '../utils/userCode';
 
@@ -72,7 +72,11 @@ export default function PeriodManager({
   const codeFeedbackClassName =
     codeFeedbackTone === 'error' ? 'mt-2 text-xs text-rose-600' : 'mt-2 text-xs text-amber-600';
   const suggestedCreateLabel = useMemo(
-    () => buildDefaultPeriodLabel(startDateInput || createTargetStartDate, periods),
+    () =>
+      buildDefaultPeriodLabel(
+        normalizePeriodCreateStartDate(startDateInput || createTargetStartDate),
+        periods,
+      ),
     [createTargetStartDate, periods, startDateInput],
   );
 
@@ -455,7 +459,9 @@ export default function PeriodManager({
                 const nextValue = event.target.value;
                 setStartDateInput(nextValue);
                 if (!isLabelEdited) {
-                  setLabelInput(buildDefaultPeriodLabel(nextValue, periods));
+                  setLabelInput(
+                    buildDefaultPeriodLabel(normalizePeriodCreateStartDate(nextValue), periods),
+                  );
                 }
               }}
               className="field-input"

@@ -5,6 +5,8 @@ import { DayRecord, Period } from '../types';
 import { recalculateRecords } from './calculations';
 import { isKoreanPublicHoliday } from './holidays';
 
+export const AUTO_PERIOD_ANCHOR_DATE = '2026-05-04';
+
 function sanitizePeriodId(label: string): string {
   const compact = label
     .trim()
@@ -77,6 +79,30 @@ export function getWeekMonday(dateIso = dayjs().format('YYYY-MM-DD')): string {
   const daysFromMonday = (date.day() + 6) % 7;
 
   return date.subtract(daysFromMonday, 'day').format('YYYY-MM-DD');
+}
+
+export function getAutoPeriodStartDate(
+  dateIso = dayjs().format('YYYY-MM-DD'),
+): string | null {
+  const anchor = dayjs(AUTO_PERIOD_ANCHOR_DATE).startOf('day');
+  const target = dayjs(dateIso).startOf('day');
+
+  if (!target.isValid() || target.isBefore(anchor, 'day')) {
+    return null;
+  }
+
+  const diffDays = target.diff(anchor, 'day');
+  const blockIndex = Math.floor(diffDays / DAYS_PER_PERIOD);
+
+  return anchor.add(blockIndex * DAYS_PER_PERIOD, 'day').format('YYYY-MM-DD');
+}
+
+export function getDefaultPeriodCreateStartDate(): string {
+  return getAutoPeriodStartDate() ?? AUTO_PERIOD_ANCHOR_DATE;
+}
+
+export function normalizePeriodCreateStartDate(startDate: string): string {
+  return getAutoPeriodStartDate(startDate) ?? startDate;
 }
 
 export function copyRecordsWithNewDate(
