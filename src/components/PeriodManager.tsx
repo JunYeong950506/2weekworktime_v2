@@ -484,7 +484,7 @@ export default function PeriodManager({
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
-          <span className="min-w-0 truncate font-extrabold text-indigo-600">
+          <span className="min-w-0 truncate rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 font-extrabold text-indigo-600">
             {selectedPeriodLabel}
           </span>
           <span
