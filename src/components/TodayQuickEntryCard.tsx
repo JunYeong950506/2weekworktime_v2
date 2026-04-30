@@ -231,31 +231,31 @@ export default function TodayQuickEntryCard({
         <div className="mb-6 flex items-center justify-between gap-3">
           <h2 className="section-heading flex items-center gap-2">
             <span className="section-icon section-icon-blue" aria-hidden="true">
-              <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
+              <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
                 <path
                   className="stroke-slate-900"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.3"
-                  d="M10 8.5H8.5A2.5 2.5 0 006 11v14a2.5 2.5 0 002.5 2.5h15A2.5 2.5 0 0026 25V11a2.5 2.5 0 00-2.5-2.5H22"
+                  strokeWidth="2.8"
+                  d="M12 10.5H9.8A3.2 3.2 0 006.6 13.7v16.5a3.2 3.2 0 003.2 3.2h19.4a3.2 3.2 0 003.2-3.2V13.7a3.2 3.2 0 00-3.2-3.2H27"
                 />
                 <path
                   className="stroke-slate-900"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.3"
-                  d="M12 8.5V7a2 2 0 012-2h4a2 2 0 012 2v1.5M14 15h7M14 20h5"
+                  strokeWidth="2.8"
+                  d="M15 10.5V8.4a2.4 2.4 0 012.4-2.4h5.2A2.4 2.4 0 0125 8.4v2.1M18 18.5h8.5M18 24.5h7"
                 />
-                <circle cx="9.5" cy="21.5" r="4.8" className="fill-blue-500" />
+                <circle cx="10.5" cy="25.2" r="6.2" className="fill-blue-500" />
                 <path
                   className="stroke-white"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.3"
-                  d="M7.1 21.5l1.5 1.6 3.2-3.5"
+                  strokeWidth="2.8"
+                  d="M7.2 25.2l2.1 2.1 4.5-5"
                 />
-                <circle cx="24" cy="24" r="4.8" className="fill-blue-50 stroke-slate-900" strokeWidth="2.1" />
-                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M24 21.3v3h2.2" />
+                <circle cx="30.5" cy="30" r="6.1" className="fill-blue-50 stroke-slate-900" strokeWidth="2.6" />
+                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.3" d="M30.5 26.7v3.8h3" />
               </svg>
             </span>
             오늘 근무 입력

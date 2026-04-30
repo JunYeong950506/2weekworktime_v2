@@ -288,19 +288,19 @@ export default function TimesheetTable({
           <div className="flex items-start justify-between gap-4">
             <h3 className="section-heading flex items-center gap-2">
               <span className="section-icon section-icon-indigo" aria-hidden="true">
-                <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
+                <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
                   <path
                     className="stroke-slate-900"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2.2"
-                    d="M8 8.5h15A2.5 2.5 0 0125.5 11v11.5A2.5 2.5 0 0123 25H8a2.5 2.5 0 01-2.5-2.5V11A2.5 2.5 0 018 8.5zM10 5v6M15.5 5v6M21 5v6M6 14h19"
+                    strokeWidth="2.8"
+                    d="M9.5 10.5h20.5a3 3 0 013 3v16a3 3 0 01-3 3H9.5a3 3 0 01-3-3v-16a3 3 0 013-3zM11.8 6.2v8M20 6.2v8M28.2 6.2v8M6.8 17.5h26"
                   />
-                  <rect x="10" y="17" width="3.4" height="3.4" rx="0.8" className="fill-indigo-500" />
-                  <rect x="15.2" y="17" width="3.4" height="3.4" rx="0.8" className="fill-indigo-300" />
-                  <rect x="10" y="22" width="3.4" height="3.4" rx="0.8" className="fill-indigo-300" />
-                  <circle cx="24" cy="24" r="4.8" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.1" />
-                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="1.9" d="M24 21.3v3h2.2" />
+                  <rect x="11.5" y="21.2" width="4.6" height="4.6" rx="1" className="fill-indigo-500" />
+                  <rect x="19" y="21.2" width="4.6" height="4.6" rx="1" className="fill-indigo-300" />
+                  <rect x="11.5" y="28.4" width="4.6" height="4.6" rx="1" className="fill-indigo-300" />
+                  <circle cx="30" cy="30.5" r="6.2" className="fill-indigo-50 stroke-slate-900" strokeWidth="2.6" />
+                  <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.3" d="M30 27v3.8h3" />
                 </svg>
               </span>
               근무 기록

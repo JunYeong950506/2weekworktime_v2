@@ -30,20 +30,20 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
     <section className="surface-panel">
       <div className="mb-6 flex items-center gap-2">
         <span className="section-icon section-icon-green" aria-hidden="true">
-          <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
+          <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
             <path
               className="stroke-slate-900"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.3"
-              d="M7 25V16h4.6v9M14 25V12h4.6v13M21 25V8h4.6v17"
+              strokeWidth="2.8"
+              d="M8 32V20h6v12M17 32V15h6v17M26 32V10h6v22"
             />
             <path
               className="stroke-emerald-500"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.8"
-              d="M6.5 14l5.5-5.2 5.3 4.3 8.2-8.4M22.5 4.7h3v3"
+              strokeWidth="3.4"
+              d="M7.5 16.5l7-6.8 6.7 5.2L32 4.8M28.3 4.8H32v3.7"
             />
           </svg>
         </span>
