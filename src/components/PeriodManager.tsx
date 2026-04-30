@@ -383,7 +383,7 @@ export default function PeriodManager({
                 window.location.assign('https://www.hanwha701.com/');
               }}
               aria-label="커피 웹사이트 열기"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-amber-600 shadow-sm transition hover:bg-slate-100 focus:text-amber-600 active:text-amber-600"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-amber-600 shadow-sm transition hover:bg-slate-100"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -399,7 +399,9 @@ export default function PeriodManager({
               onClick={() => setIsDangerMenuOpen((prev) => !prev)}
               aria-expanded={isDangerMenuOpen}
               aria-label="설정 메뉴"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 focus:text-slate-500 active:text-slate-500"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 ${
+                isDangerMenuOpen ? 'bg-slate-100 text-slate-700' : 'bg-white text-slate-500'
+              }`}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -421,7 +423,9 @@ export default function PeriodManager({
               onClick={() => setIsMobileControlsExpanded((prev) => !prev)}
               aria-expanded={isMobileControlsExpanded}
               aria-label={isMobileControlsExpanded ? '상단 제어영역 접기' : '상단 제어영역 펼치기'}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 focus:text-slate-500 active:text-slate-500"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 ${
+                isMobileControlsExpanded ? 'bg-slate-100 text-slate-700' : 'bg-white text-slate-500'
+              }`}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -437,9 +441,9 @@ export default function PeriodManager({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-col items-start gap-1 text-xs font-semibold text-slate-500">
+        <div className="mt-3 flex flex-col gap-1 text-xs font-semibold text-slate-500">
           <span className="font-extrabold text-indigo-600">{selectedPeriodLabel}</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <span>{mobileSavedTime ? `저장됨 ${mobileSavedTime}` : '저장 전'}</span>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
