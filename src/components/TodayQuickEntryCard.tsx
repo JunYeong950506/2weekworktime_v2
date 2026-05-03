@@ -232,35 +232,41 @@ export default function TodayQuickEntryCard({
           <h2 className="section-heading flex items-center gap-2">
             <span className="section-icon section-icon-blue" aria-hidden="true">
               <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-                <path
-                  className="stroke-slate-900"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.8"
-                  d="M12 10.5H9.8A3.2 3.2 0 006.6 13.7v16.5a3.2 3.2 0 003.2 3.2h19.4a3.2 3.2 0 003.2-3.2V13.7a3.2 3.2 0 00-3.2-3.2H27"
+                <rect
+                  x="12"
+                  y="8"
+                  width="15"
+                  height="22"
+                  rx="2.5"
+                  className="stroke-indigo-500"
+                  strokeWidth="3"
                 />
                 <path
-                  className="stroke-slate-900"
+                  className="stroke-indigo-500"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.8"
-                  d="M15 10.5V8.4a2.4 2.4 0 012.4-2.4h5.2A2.4 2.4 0 0125 8.4v2.1M18 18.5h8.5M18 24.5h7"
+                  strokeWidth="3"
+                  d="M16 15h7M16 20h7M16 25h5"
                 />
-                <circle cx="10.5" cy="25.2" r="6.2" className="fill-blue-500" />
+                <circle cx="28" cy="27" r="6" className="fill-indigo-50 stroke-indigo-500" strokeWidth="3" />
                 <path
-                  className="stroke-white"
+                  className="stroke-indigo-500"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.8"
-                  d="M7.2 25.2l2.1 2.1 4.5-5"
+                  strokeWidth="2.6"
+                  d="M25.3 27l1.8 1.9 3.7-4"
                 />
-                <circle cx="30.5" cy="30" r="6.1" className="fill-blue-50 stroke-slate-900" strokeWidth="2.6" />
-                <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.3" d="M30.5 26.7v3.8h3" />
               </svg>
             </span>
             오늘 근무 입력
           </h2>
-          <span className="status-chip">오늘 {targetLabel}</span>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" strokeWidth="1.8" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 7.5V12l3 2" />
+            </svg>
+            {targetLabel}
+          </span>
         </div>
 
         {!isTodayTarget ? (

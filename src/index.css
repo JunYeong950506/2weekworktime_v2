@@ -72,11 +72,11 @@ body {
   }
 
   .section-icon-blue {
-    @apply bg-blue-50;
+    @apply bg-indigo-50;
   }
 
   .section-icon-green {
-    @apply bg-emerald-50;
+    @apply bg-indigo-50;
   }
 
   .section-icon-indigo {

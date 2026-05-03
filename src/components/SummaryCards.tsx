@@ -32,18 +32,18 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
         <span className="section-icon section-icon-green" aria-hidden="true">
           <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
             <path
-              className="stroke-slate-900"
+              className="stroke-indigo-500"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.7"
-              d="M7.5 32V21h6v11M17 32V17h6v15M26.5 32V11h6v21"
+              strokeWidth="3"
+              d="M8 31V21h5.5v10M17.2 31V16h5.5v15M26.4 31V10h5.5v21"
             />
             <path
-              className="stroke-emerald-500"
+              className="stroke-indigo-500"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="3.5"
-              d="M7.5 18l8.2-7.8 7 5.6L32.5 6M28.2 6h4.3v4.3"
+              strokeWidth="3"
+              d="M7.5 17.5l8-7.3 6.6 5.2 10-9.4M28.4 6h3.7v3.7"
             />
           </svg>
         </span>

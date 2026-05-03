@@ -47,25 +47,22 @@ function formatPeriodLabelDisplay(label: string): string {
 function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element {
   return (
     <h1 className={`flex items-center gap-3 font-extrabold tracking-tight text-slate-900 ${className}`}>
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50" aria-hidden="true">
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50" aria-hidden="true">
         <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r="14" className="fill-blue-50 stroke-slate-900" strokeWidth="2.7" />
+          <circle cx="20" cy="20" r="13" className="stroke-indigo-500" strokeWidth="3" />
           <path
-            className="stroke-slate-900"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2.7"
-            d="M20 11.5V20h8"
-          />
-          <path className="stroke-slate-900" strokeLinecap="round" strokeWidth="2.2" d="M20 6v2.2M20 31.8V34M6 20h2.2" />
-          <circle cx="20" cy="20" r="1.8" className="fill-indigo-500" />
-          <circle cx="29.5" cy="29.5" r="7.2" className="fill-blue-500" />
-          <path
-            className="stroke-white"
+            className="stroke-indigo-500"
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="3"
-            d="M25.8 29.5l2.5 2.6 5-5.5"
+            d="M20 12v8l5.5 4"
+          />
+          <path
+            className="stroke-indigo-500"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            d="M10.4 28.7l-2.2.1.1-2.2M29.6 11.3l2.2-.1-.1 2.2"
           />
         </svg>
       </span>
