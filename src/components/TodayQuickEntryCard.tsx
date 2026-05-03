@@ -231,37 +231,35 @@ export default function TodayQuickEntryCard({
         <div className="mb-6 flex items-center justify-between gap-3">
           <h2 className="section-heading flex items-center gap-2">
             <span className="section-icon section-icon-blue" aria-hidden="true">
-              <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-                <rect
-                  x="12"
-                  y="8"
-                  width="15"
-                  height="22"
-                  rx="2.5"
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
+                <path
                   className="stroke-indigo-500"
-                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.7"
+                  d="M9 5.5h13.5A2.5 2.5 0 0125 8v15.5a2.5 2.5 0 01-2.5 2.5H9a2.5 2.5 0 01-2.5-2.5V8A2.5 2.5 0 019 5.5z"
                 />
                 <path
                   className="stroke-indigo-500"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="3"
-                  d="M16 15h7M16 20h7M16 25h5"
+                  strokeWidth="2.7"
+                  d="M11 11h8M11 16h6.5M11 21h5"
                 />
-                <circle cx="28" cy="27" r="6" className="fill-indigo-50 stroke-indigo-500" strokeWidth="3" />
+                <circle cx="24" cy="24" r="5.3" className="fill-indigo-50 stroke-indigo-500" strokeWidth="2.5" />
                 <path
                   className="stroke-indigo-500"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2.6"
-                  d="M25.3 27l1.8 1.9 3.7-4"
+                  strokeWidth="2.4"
+                  d="M21.7 23.8l1.6 1.7 3-3.2"
                 />
               </svg>
             </span>
             오늘 근무 입력
           </h2>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="8.5" strokeWidth="1.8" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 7.5V12l3 2" />
             </svg>
