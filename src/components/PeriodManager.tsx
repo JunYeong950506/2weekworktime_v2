@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
 import { CreatePeriodPayload, Period } from '../types';
@@ -811,9 +812,9 @@ export default function PeriodManager({
         </div>
       ) : null}
 
-      {isCreateHolidayNoticeOpen ? (
+      {isCreateHolidayNoticeOpen ? createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/35 px-4 pt-14 backdrop-blur-sm sm:pt-16"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               onCloseCreateHolidayNotice();
@@ -841,7 +842,8 @@ export default function PeriodManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </section>
   );
