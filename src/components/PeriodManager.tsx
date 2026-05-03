@@ -56,24 +56,29 @@ function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element
 function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element {
   return (
     <span
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ${className}`}
+      className={`inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-indigo-50 ${className}`}
       aria-hidden="true"
     >
-      <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-        <circle cx="20" cy="20" r="13" className="stroke-indigo-500" strokeWidth="3" />
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 40 40">
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeWidth="3.5"
+          d="M20 10.5v9.5l6 5.2"
+        />
+        <circle cx="20" cy="20" r="2.3" className="fill-indigo-500" />
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="3"
-          d="M20 12v8l5.5 4"
+          strokeWidth="3.5"
+          d="M30.5 27.5a13 13 0 10-5.8 4.5"
         />
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-          d="M10.4 28.7l-2.2.1.1-2.2M29.6 11.3l2.2-.1-.1 2.2"
+          strokeWidth="3.5"
+          d="M29.5 25.5h5M29.5 31.5h5"
         />
       </svg>
     </span>
@@ -424,7 +429,7 @@ export default function PeriodManager({
       <div className="md:hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <AppHeaderIcon className="h-12 w-12 rounded-2xl" />
+            <AppHeaderIcon />
             <div className="min-w-0">
               <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900">
                 2주 자율출퇴근 계산기
