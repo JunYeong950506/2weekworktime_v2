@@ -47,27 +47,36 @@ function formatPeriodLabelDisplay(label: string): string {
 function AppHeaderTitle({ className = '' }: { className?: string }): JSX.Element {
   return (
     <h1 className={`flex items-center gap-3 font-extrabold tracking-tight text-slate-900 ${className}`}>
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50" aria-hidden="true">
-        <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r="13" className="stroke-indigo-500" strokeWidth="3" />
-          <path
-            className="stroke-indigo-500"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            d="M20 12v8l5.5 4"
-          />
-          <path
-            className="stroke-indigo-500"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            d="M10.4 28.7l-2.2.1.1-2.2M29.6 11.3l2.2-.1-.1 2.2"
-          />
-        </svg>
-      </span>
+      <AppHeaderIcon />
       <span>2주 자율출퇴근 계산기</span>
     </h1>
+  );
+}
+
+function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element {
+  return (
+    <span
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ${className}`}
+      aria-hidden="true"
+    >
+      <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="13" className="stroke-indigo-500" strokeWidth="3" />
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+          d="M20 12v8l5.5 4"
+        />
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+          d="M10.4 28.7l-2.2.1.1-2.2M29.6 11.3l2.2-.1-.1 2.2"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -94,7 +103,6 @@ export default function PeriodManager({
 }: PeriodManagerProps): JSX.Element {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDangerMenuOpen, setIsDangerMenuOpen] = useState(false);
-  const [isMobileControlsExpanded, setIsMobileControlsExpanded] = useState(false);
   const [isCodeViewOpen, setIsCodeViewOpen] = useState(false);
   const [isCodeLoadOpen, setIsCodeLoadOpen] = useState(false);
   const [codeInputDraft, setCodeInputDraft] = useState('');
@@ -312,7 +320,39 @@ export default function PeriodManager({
     }
 
     return (
-      <div className="absolute right-0 top-full z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg md:top-auto">
+      <div className="absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl md:top-auto">
+        <div className="border-b border-slate-100 p-2">
+          <p className="px-3 pb-1 pt-2 text-xs font-bold text-slate-500">구간 관리</p>
+          <button
+            type="button"
+            onClick={() => {
+              setIsDangerMenuOpen(false);
+              setIsCreateOpen(true);
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+          >
+            <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
+            </svg>
+            새 구간 생성
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsDangerMenuOpen(false);
+              onDeleteCurrentPeriod();
+            }}
+            disabled={!canDeleteCurrentPeriod}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M6 7h12M9 7V5h6v2m-7 3v8m4-8v8m4-8v8M8 7l1 13h6l1-13" />
+            </svg>
+            현재 구간 삭제
+          </button>
+        </div>
+        <div className="border-b border-slate-100 p-2">
+          <p className="px-3 pb-1 pt-2 text-xs font-bold text-slate-500">데이터 관리</p>
         <button
           type="button"
           onClick={() => {
@@ -321,8 +361,11 @@ export default function PeriodManager({
             setCodeFeedbackTone(null);
             setIsCodeViewOpen(true);
           }}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
         >
+          <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4v10m0-10l-4 4m4-4l4 4M5 13v4a3 3 0 003 3h8a3 3 0 003-3v-4" />
+          </svg>
           동기화 코드 보기
         </button>
         <button
@@ -334,31 +377,12 @@ export default function PeriodManager({
             setCodeInputDraft('');
             setIsCodeLoadOpen(true);
           }}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
         >
+          <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2l1-2z" />
+          </svg>
           코드 입력 / 붙여넣기
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setIsDangerMenuOpen(false);
-            window.location.assign('https://2week-worktime-mobile.vercel.app/download/');
-          }}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-        >
-          모바일 앱 받기
-        </button>
-        <div className="my-1 h-px bg-slate-100" aria-hidden="true" />
-        <button
-          type="button"
-          onClick={() => {
-            setIsDangerMenuOpen(false);
-            onDeleteCurrentPeriod();
-          }}
-          disabled={!canDeleteCurrentPeriod}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          현재 구간 삭제
         </button>
         <button
           type="button"
@@ -367,62 +391,71 @@ export default function PeriodManager({
             onResetAllData();
           }}
           disabled={!canResetAllData}
-          className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M6 6l12 12M18 6L6 18" />
+          </svg>
           데이터 초기화
         </button>
+        </div>
+        <div className="p-2">
+          <p className="px-3 pb-1 pt-2 text-xs font-bold text-slate-500">앱</p>
+        <button
+          type="button"
+          onClick={() => {
+            setIsDangerMenuOpen(false);
+            window.location.assign('https://2week-worktime-mobile.vercel.app/download/');
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 3h6a2 2 0 012 2v14a2 2 0 01-2 2H9a2 2 0 01-2-2V5a2 2 0 012-2zm3 15h.01" />
+          </svg>
+          모바일 앱 받기
+        </button>
+        </div>
       </div>
     );
   }
 
   return (
     <section className="surface-panel relative z-20 overflow-visible">
-      <div
-        className={`md:hidden ${
-          isMobileControlsExpanded ? 'mb-4 border-b border-slate-100 pb-4' : ''
-        }`}
-      >
-        <AppHeaderTitle className="mb-4 text-2xl" />
-        <div className="flex items-center gap-2">
-          <div className="relative min-w-0 flex-1">
-            <button
-              type="button"
-              className="pointer-events-none inline-flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm font-extrabold text-slate-600 shadow-sm"
-              aria-label="2주 시작일 선택"
-            >
-              <svg
-                className="h-5 w-5 shrink-0 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.8}
-                  d="M8 7V4m8 3V4M6 11h12M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"
+      <div className="md:hidden">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <AppHeaderIcon className="h-12 w-12 rounded-2xl" />
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900">
+                2주 자율출퇴근 계산기
+              </h1>
+              <div className="relative mt-0.5 inline-flex max-w-full">
+                <button
+                  type="button"
+                  className="pointer-events-none truncate text-xs font-semibold text-slate-500"
+                  aria-label="2주 시작일 선택"
+                >
+                  {mobilePeriodRangeLabel}
+                </button>
+                <input
+                  type="date"
+                  value={selectedStartDate}
+                  onChange={(event) => onChangeStartDate(event.target.value)}
+                  className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                  aria-label="2주 시작일 선택"
                 />
-              </svg>
-              <span className="truncate">{mobilePeriodRangeLabel}</span>
-            </button>
-            <input
-              type="date"
-              value={selectedStartDate}
-              onChange={(event) => onChangeStartDate(event.target.value)}
-              className="absolute inset-0 z-10 cursor-pointer opacity-0"
-              aria-label="2주 시작일 선택"
-            />
+              </div>
+            </div>
           </div>
 
-          <div ref={mobileDangerMenuRef} className="relative flex shrink-0 items-center gap-1.5">
+          <div ref={mobileDangerMenuRef} className="relative ml-auto flex shrink-0 items-center gap-1.5">
             <button
               type="button"
               onClick={() => {
                 window.location.assign('https://www.hanwha701.com/');
               }}
               aria-label="커피 웹사이트 열기"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-amber-600 shadow-sm transition hover:bg-slate-100"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-amber-600 transition hover:bg-slate-100"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -438,7 +471,7 @@ export default function PeriodManager({
               onClick={() => setIsDangerMenuOpen((prev) => !prev)}
               aria-expanded={isDangerMenuOpen}
               aria-label="설정 메뉴"
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 ${
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 transition hover:bg-slate-100 hover:text-slate-700 ${
                 isDangerMenuOpen ? 'bg-slate-100 text-slate-700' : 'bg-white text-slate-500'
               }`}
             >
@@ -457,33 +490,33 @@ export default function PeriodManager({
                 />
               </svg>
             </button>
-            <button
-              type="button"
-              onClick={() => setIsMobileControlsExpanded((prev) => !prev)}
-              aria-expanded={isMobileControlsExpanded}
-              aria-label={isMobileControlsExpanded ? '상단 제어영역 접기' : '상단 제어영역 펼치기'}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 shadow-sm transition hover:bg-slate-100 hover:text-slate-700 ${
-                isMobileControlsExpanded ? 'bg-slate-100 text-slate-700' : 'bg-white text-slate-500'
-              }`}
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d={isMobileControlsExpanded ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}
-                />
-              </svg>
-            </button>
 
             {renderSettingsMenu()}
           </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
-          <span className="min-w-0 truncate rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 font-extrabold text-indigo-600">
-            {selectedPeriodLabel}
-          </span>
+          <div className="relative min-w-0">
+            <button
+              type="button"
+              className="pointer-events-none min-w-0 truncate rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 font-extrabold text-indigo-600"
+              aria-label="2주 단위 구간 선택"
+            >
+              {selectedPeriodLabel}
+            </button>
+            <select
+              value={selectedPeriodId ?? ''}
+              onChange={(event) => onSelectPeriod(event.target.value)}
+              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+              aria-label="2주 단위 구간 선택"
+            >
+              {sortedPeriods.map((period) => (
+                <option key={period.id} value={period.id}>
+                  {formatPeriodLabelDisplay(period.label)}
+                </option>
+              ))}
+            </select>
+          </div>
           <span
             className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 ${compactSaveStatusClassName}`}
           >
@@ -494,9 +527,7 @@ export default function PeriodManager({
       </div>
 
       <header
-        className={`${
-          isMobileControlsExpanded ? 'flex' : 'hidden'
-        } flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between`}
+        className="hidden flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between"
       >
         <div className="min-w-0 flex-1">
           <AppHeaderTitle className="mb-3 hidden text-2xl md:flex" />
