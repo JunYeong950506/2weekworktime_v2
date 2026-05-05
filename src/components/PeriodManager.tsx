@@ -61,35 +61,34 @@ function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element 
       aria-hidden="true"
     >
       <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
+        <circle cx="15.5" cy="17.5" r="9.5" className="fill-white stroke-indigo-500" strokeWidth="2.8" />
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2.8"
-          d="M18.2 8.2a13.6 13.6 0 00-6.9 25.1"
+          d="M15.5 12.4v5.1h4.4"
         />
         <path
-          className="stroke-indigo-500"
+          className="stroke-indigo-300"
           strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.8"
-          d="M14.2 13.5v7.2h7.3"
+          strokeWidth="2.2"
+          d="M15.5 5.8v2.3M15.5 26.9v2.3M3.8 17.5h2.3M24.9 17.5h2.3M7.1 9.1l1.7 1.7M22.2 24.2l1.7 1.7"
         />
-        <path className="stroke-indigo-400" strokeLinecap="round" strokeWidth="2.6" d="M6.8 20.7h3M9 13.6l2.6 1.5M13.5 8.9l1.5 2.6" />
-        <circle cx="28.8" cy="10.5" r="5.4" className="fill-indigo-100 stroke-indigo-500" strokeWidth="2.4" />
+        <circle cx="29.2" cy="12.4" r="5.2" className="fill-indigo-100 stroke-indigo-500" strokeWidth="2.6" />
         <path
-          className="stroke-indigo-500"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.6"
-          d="M22.7 26.4l6.1-4.3 6.2 4.3"
-        />
-        <path
-          className="stroke-indigo-500"
+          className="fill-indigo-100 stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2.6"
-          d="M18.4 35h18.2l-2.7-9.8H21.1L18.4 35z"
+          d="M20.8 33.5c.8-6.8 4.1-10.5 8.4-10.5s7.6 3.7 8.4 10.5H20.8z"
+        />
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.2"
+          d="M25.3 28.5h7.8"
         />
       </svg>
     </span>
