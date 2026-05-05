@@ -60,26 +60,36 @@ function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element 
       className={`inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-indigo-50 ${className}`}
       aria-hidden="true"
     >
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 40 40">
-        <path
-          className="stroke-indigo-500"
-          strokeLinecap="round"
-          strokeWidth="3.5"
-          d="M20 10.5v9.5l6 5.2"
-        />
-        <circle cx="20" cy="20" r="2.3" className="fill-indigo-500" />
+      <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="3.5"
-          d="M30.5 27.5a13 13 0 10-5.8 4.5"
+          strokeWidth="2.8"
+          d="M18.2 8.2a13.6 13.6 0 00-6.9 25.1"
         />
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
-          strokeWidth="3.5"
-          d="M29.5 25.5h5M29.5 31.5h5"
+          strokeLinejoin="round"
+          strokeWidth="2.8"
+          d="M14.2 13.5v7.2h7.3"
+        />
+        <path className="stroke-indigo-400" strokeLinecap="round" strokeWidth="2.6" d="M6.8 20.7h3M9 13.6l2.6 1.5M13.5 8.9l1.5 2.6" />
+        <circle cx="28.8" cy="10.5" r="5.4" className="fill-indigo-100 stroke-indigo-500" strokeWidth="2.4" />
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.6"
+          d="M22.7 26.4l6.1-4.3 6.2 4.3"
+        />
+        <path
+          className="stroke-indigo-500"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.6"
+          d="M18.4 35h18.2l-2.7-9.8H21.1L18.4 35z"
         />
       </svg>
     </span>
@@ -432,7 +442,7 @@ export default function PeriodManager({
           <div className="flex min-w-0 items-center gap-3">
             <AppHeaderIcon />
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900">
+              <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900">
                 2주 자율출퇴근 계산기
               </h1>
               <div className="relative mt-0.5 inline-flex max-w-full">
@@ -536,7 +546,7 @@ export default function PeriodManager({
         className="hidden flex-col gap-4 pb-4 md:flex md:flex-row md:items-start md:justify-between"
       >
         <div className="min-w-0 flex-1">
-          <AppHeaderTitle className="mb-3 hidden text-2xl md:flex" />
+          <AppHeaderTitle className="mb-3 hidden text-xl md:flex" />
           <div className="mb-3 flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
             <div className="relative hidden min-w-0 w-full flex-1 md:block">
               <button
@@ -717,7 +727,7 @@ export default function PeriodManager({
         </form>
       ) : null}
 
-      {isCodeViewOpen ? (
+      {isCodeViewOpen ? createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
           onClick={(event) => {
@@ -757,10 +767,11 @@ export default function PeriodManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
 
-      {isCodeLoadOpen ? (
+      {isCodeLoadOpen ? createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm"
           onClick={(event) => {
@@ -809,7 +820,8 @@ export default function PeriodManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
 
       {isCreateHolidayNoticeOpen ? createPortal(
