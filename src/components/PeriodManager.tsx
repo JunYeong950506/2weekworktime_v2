@@ -382,7 +382,8 @@ export default function PeriodManager({
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
         >
           <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2l1-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5h6m-6 0a2 2 0 012-2h2a2 2 0 012 2m-6 0H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 11h6M9 15h5" />
           </svg>
           코드 입력 / 붙여넣기
         </button>
