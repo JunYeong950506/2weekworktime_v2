@@ -61,34 +61,21 @@ function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element 
       aria-hidden="true"
     >
       <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
-        <circle cx="15.5" cy="17.5" r="9.5" className="fill-white stroke-indigo-500" strokeWidth="2.8" />
+        <circle cx="17.5" cy="17.5" r="10.5" className="fill-white stroke-indigo-500" strokeWidth="2.8" />
         <path
           className="stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2.8"
-          d="M15.5 12.4v5.1h4.4"
+          d="M17.5 11.8v5.7h4.6"
         />
-        <path
-          className="stroke-indigo-300"
-          strokeLinecap="round"
-          strokeWidth="2.2"
-          d="M15.5 5.8v2.3M15.5 26.9v2.3M3.8 17.5h2.3M24.9 17.5h2.3M7.1 9.1l1.7 1.7M22.2 24.2l1.7 1.7"
-        />
-        <circle cx="29.2" cy="12.4" r="5.2" className="fill-indigo-100 stroke-indigo-500" strokeWidth="2.6" />
+        <circle cx="28.4" cy="23.4" r="4.8" className="fill-indigo-100 stroke-indigo-500" strokeWidth="2.5" />
         <path
           className="fill-indigo-100 stroke-indigo-500"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="2.6"
-          d="M20.8 33.5c.8-6.8 4.1-10.5 8.4-10.5s7.6 3.7 8.4 10.5H20.8z"
-        />
-        <path
-          className="stroke-indigo-500"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.2"
-          d="M25.3 28.5h7.8"
+          strokeWidth="2.5"
+          d="M20.5 35c.7-5.1 3.6-8 7.9-8s7.2 2.9 7.9 8H20.5z"
         />
       </svg>
     </span>
