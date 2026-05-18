@@ -4,7 +4,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
-import { fetchKasiHolidayYear, normalizeKasiItems } from '../api/_holidayApi.js';
+import {
+  fetchHolidaysKrYear,
+  fetchKasiHolidayYear,
+  normalizeHolidaysKrItems,
+  normalizeKasiItems,
+} from '../api/_holidayApi.js';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -59,6 +64,28 @@ await run('KASI item normalization keeps only official holidays', () => {
     ]),
     { '2026-01-01': '신정' },
   );
+});
+
+await run('holidays-kr item normalization converts YYYYMMDD numbers', () => {
+  assert.deepEqual(
+    normalizeHolidaysKrItems([
+      { date: 20260505, name: '어린이날' },
+      { date: 20261009, name: '한글날' },
+      { date: 'invalid', name: '무효' },
+    ]),
+    { '2026-05-05': '어린이날', '2026-10-09': '한글날' },
+  );
+});
+
+await run('holidays-kr year fetch uses keyless primary source', async () => {
+  const cache = await fetchHolidaysKrYear(2026, async (year) => ({
+    success: true,
+    message: 'ok',
+    data: [{ date: Number(`${year}0101`), name: '신정' }],
+  }));
+
+  assert.equal(cache.year, 2026);
+  assert.equal(cache.holidays['2026-01-01'], '신정');
 });
 
 await run('KASI year fetch calls all 12 months and merges items', async () => {

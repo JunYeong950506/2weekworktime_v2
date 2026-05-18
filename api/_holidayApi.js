@@ -1,3 +1,5 @@
+import { holidays as fetchHolidaysKr } from '@kyungseopk1m/holidays-kr';
+
 const KASI_ENDPOINT =
   'http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo';
 
@@ -22,6 +24,22 @@ function normalizeLocDate(value) {
   return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
 }
 
+export function normalizeHolidaysKrItems(items) {
+  const holidays = {};
+
+  for (const item of toArray(items)) {
+    const date = normalizeLocDate(item?.date);
+    const name = typeof item?.name === 'string' && item.name.trim() ? item.name : '공휴일';
+    if (!date) {
+      continue;
+    }
+
+    holidays[date] = name;
+  }
+
+  return holidays;
+}
+
 export function normalizeKasiItems(items) {
   const holidays = {};
 
@@ -39,6 +57,19 @@ export function normalizeKasiItems(items) {
   }
 
   return holidays;
+}
+
+export async function fetchHolidaysKrYear(year, holidaysImpl = fetchHolidaysKr) {
+  const payload = await holidaysImpl(String(year));
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    throw new Error(payload?.message || 'holidays-kr failed');
+  }
+
+  return {
+    year,
+    fetchedAt: new Date().toISOString(),
+    holidays: normalizeHolidaysKrItems(payload.data),
+  };
 }
 
 export async function fetchKasiHolidayYear(year, serviceKey, fetchImpl = fetch) {

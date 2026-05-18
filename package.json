@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@kyungseopk1m/holidays-kr": "^2.0.1",
     "@supabase/supabase-js": "^2.100.1",
     "date-holidays": "^3.26.9",
     "dayjs": "^1.11.13",

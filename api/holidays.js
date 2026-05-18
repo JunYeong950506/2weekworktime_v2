@@ -1,4 +1,4 @@
-import { fetchKasiHolidayYear } from './_holidayApi.js';
+import { fetchHolidaysKrYear, fetchKasiHolidayYear } from './_holidayApi.js';
 
 function getYear(value) {
   const year = Number(value);
@@ -21,9 +21,23 @@ export default async function handler(request, response) {
     return;
   }
 
+  try {
+    const cache = await fetchHolidaysKrYear(year);
+    response.setHeader(
+      'Cache-Control',
+      request.query?.refresh === '1'
+        ? 'no-store'
+        : 'public, s-maxage=31536000, stale-while-revalidate=604800',
+    );
+    response.status(200).json(cache);
+    return;
+  } catch (error) {
+    console.warn('holidays-kr failed, falling back to KASI holiday API', error);
+  }
+
   const serviceKey = getServiceKey();
   if (!serviceKey) {
-    response.status(503).json({ error: 'KASI holiday API key is not configured' });
+    response.status(503).json({ error: 'holiday API fallback key is not configured' });
     return;
   }
 
@@ -38,6 +52,6 @@ export default async function handler(request, response) {
     response.status(200).json(cache);
   } catch (error) {
     console.error(error);
-    response.status(502).json({ error: 'failed to fetch KASI holiday data' });
+    response.status(502).json({ error: 'failed to fetch holiday data' });
   }
 }

@@ -9,7 +9,7 @@ export interface HolidayYearCache {
   holidays: Record<string, string>;
 }
 
-const HOLIDAY_CACHE_VERSION = 'v1';
+const HOLIDAY_CACHE_VERSION = 'v2';
 const krHolidays = new Holidays('KR');
 
 function getHolidayCacheKey(year: number): string {
