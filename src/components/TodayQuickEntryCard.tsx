@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 
+import { DAILY_REGULAR_MINUTES, DINNER_BREAK_MINUTES, MINUTES_PER_HOUR } from '../constants';
 import { AnnualLeaveType, DayRecord, TimeField } from '../types';
-import { formatMinutesAsClock } from '../utils/time';
+import { formatMinutesAsClock, parseTime24 } from '../utils/time';
 
 interface TodayQuickEntryCardProps {
   targetLabel: string;
   isTodayTarget: boolean;
+  earlyLeaveAvailableMinutes: number;
   record: DayRecord | null;
   onPatchRecord: (
     patch: Partial<
@@ -24,6 +26,11 @@ interface TodayQuickEntryCardProps {
   ) => void;
   onSetNow: (field: TimeField) => void;
 }
+
+const LONG_PRESS_DELAY_MS = 650;
+const BREAK_THRESHOLD_MINUTES = 8 * MINUTES_PER_HOUR + 30;
+const SHORT_BREAK_MINUTES = 30;
+const LONG_BREAK_MINUTES = 60;
 
 function isPartialLeave(type: AnnualLeaveType): boolean {
   return type === 'quarter' || type === 'half';
@@ -57,6 +64,26 @@ function formatOfficialLeaveDisplay(minutes: number): string {
   return `${hours}시간 ${remainMinutes}분`;
 }
 
+function formatClockFromTotalMinutes(totalMinutes: number): string {
+  const minutesPerDay = 24 * MINUTES_PER_HOUR;
+  const normalized = ((Math.round(totalMinutes) % minutesPerDay) + minutesPerDay) % minutesPerDay;
+  const hours = Math.floor(normalized / MINUTES_PER_HOUR);
+  const minutes = normalized % MINUTES_PER_HOUR;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function getExpectedStayMinutes(targetWorkMinutes: number, extraDeductionMinutes: number): number {
+  const shortBreakStayMinutes =
+    Math.max(0, Math.round(targetWorkMinutes)) + SHORT_BREAK_MINUTES + extraDeductionMinutes;
+
+  if (shortBreakStayMinutes < BREAK_THRESHOLD_MINUTES) {
+    return shortBreakStayMinutes;
+  }
+
+  return Math.max(0, Math.round(targetWorkMinutes)) + LONG_BREAK_MINUTES + extraDeductionMinutes;
+}
+
 function TimePanel({
   label,
   value,
@@ -65,6 +92,7 @@ function TimePanel({
   disabled,
   onChange,
   onSetNow,
+  onLongPressSetNow,
 }: {
   label: string;
   value: string;
@@ -73,14 +101,52 @@ function TimePanel({
   disabled?: boolean;
   onChange: (value: string) => void;
   onSetNow: () => void;
+  onLongPressSetNow?: () => void;
 }): JSX.Element {
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressHandledRef = useRef(false);
+
+  function clearLongPressTimer(): void {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  function startLongPressTimer(): void {
+    if (disabled || !onLongPressSetNow) {
+      return;
+    }
+
+    clearLongPressTimer();
+    longPressHandledRef.current = false;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressHandledRef.current = true;
+      onLongPressSetNow();
+    }, LONG_PRESS_DELAY_MS);
+  }
+
+  useEffect(() => clearLongPressTimer, []);
+
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
       <div className="mb-1.5 flex items-center justify-between">
         <p className="ml-1 text-xs font-bold text-slate-400">{label}</p>
         <button
           type="button"
-          onClick={onSetNow}
+          onClick={(event) => {
+            if (longPressHandledRef.current) {
+              event.preventDefault();
+              longPressHandledRef.current = false;
+              return;
+            }
+
+            onSetNow();
+          }}
+          onPointerDown={startLongPressTimer}
+          onPointerUp={clearLongPressTimer}
+          onPointerLeave={clearLongPressTimer}
+          onPointerCancel={clearLongPressTimer}
           disabled={disabled}
           className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -131,6 +197,7 @@ function ResultTile({
 export default function TodayQuickEntryCard({
   targetLabel,
   isTodayTarget,
+  earlyLeaveAvailableMinutes,
   record,
   onPatchRecord,
   onSetNow,
@@ -169,6 +236,8 @@ export default function TodayQuickEntryCard({
   const recommendedOtDisplayValue = useRecommendedOtWarningTone
     ? formatMinutesAsClock(record?.overtimeMinutes ?? null)
     : formatMinutesAsClock(record?.recommendedOtMinutes ?? null);
+  const usableEarlyLeaveMinutes =
+    earlyLeaveAvailableMinutes - (record?.earlyLeaveBalanceMinutes ?? 0);
 
   useEffect(() => {
     if (!isOfficialDialogOpen) {
@@ -222,6 +291,30 @@ export default function TodayQuickEntryCard({
 
     onPatchRecord({
       annualLeaveType: nextValue,
+    });
+  }
+
+  function handleSetExpectedClockOut(): void {
+    if (!record || disableTimeAndDeductionInputs) {
+      return;
+    }
+
+    const parsedClockIn = parseTime24(record.clockIn);
+    if (!parsedClockIn) {
+      return;
+    }
+
+    const targetWorkMinutes = Math.max(0, DAILY_REGULAR_MINUTES - usableEarlyLeaveMinutes);
+    const extraDeductionMinutes =
+      (record.dinnerChecked ? DINNER_BREAK_MINUTES : 0) +
+      Math.max(0, Math.round(record.nonWorkMinutes));
+    const expectedStayMinutes = getExpectedStayMinutes(
+      targetWorkMinutes,
+      extraDeductionMinutes,
+    );
+
+    onPatchRecord({
+      clockOut: formatClockFromTotalMinutes(parsedClockIn.totalMinutes + expectedStayMinutes),
     });
   }
 
@@ -332,6 +425,7 @@ export default function TodayQuickEntryCard({
                       disabled={disableTimeAndDeductionInputs}
                       onChange={(value) => onPatchRecord({ clockOut: value })}
                       onSetNow={() => onSetNow('clockOut')}
+                      onLongPressSetNow={handleSetExpectedClockOut}
                     />
                   </div>
                 </>

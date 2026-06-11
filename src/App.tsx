@@ -1261,6 +1261,7 @@ export default function App(): JSX.Element {
         <TodayQuickEntryCard
           targetLabel={targetLabel}
           isTodayTarget={isTodayTarget}
+          earlyLeaveAvailableMinutes={selectedCalc.summary.earlyLeaveAvailableMinutes}
           record={todayRecord}
           onPatchRecord={handlePatchTodayRecord}
           onSetNow={handleSetNowToday}
