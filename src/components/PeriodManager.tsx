@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
-import { CreatePeriodPayload, Period } from '../types';
+import { CreateHolidayNoticePayload, CreatePeriodPayload, Period } from '../types';
 import { buildDefaultPeriodLabel, normalizePeriodCreateStartDate } from '../utils/period';
 import { formatSavedAt } from '../utils/time';
 import { normalizeUserCode } from '../utils/userCode';
@@ -28,6 +28,7 @@ interface PeriodManagerProps {
   onSelectPeriod: (id: string) => void;
   onChangeStartDate: (startDate: string) => void;
   onCreatePeriod: (payload: CreatePeriodPayload) => void;
+  onApplyCreateHolidayNotice: (payload: CreateHolidayNoticePayload) => void;
   onCloseCreateHolidayNotice: () => void;
   onSave: () => void;
   onLoadUserCode: (code: string) => Promise<CodeLoadResult>;
@@ -82,6 +83,18 @@ function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element 
   );
 }
 
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금'];
+
+function buildHolidayNoticeRows(startDate: string): string[][] {
+  const start = dayjs(startDate).startOf('day');
+
+  return [0, 1].map((weekIndex) =>
+    Array.from({ length: 5 }, (_, dayIndex) =>
+      start.add(weekIndex * 7 + dayIndex, 'day').format('YYYY-MM-DD'),
+    ),
+  );
+}
+
 export default function PeriodManager({
   periods,
   selectedPeriodId,
@@ -97,6 +110,7 @@ export default function PeriodManager({
   onSelectPeriod,
   onChangeStartDate,
   onCreatePeriod,
+  onApplyCreateHolidayNotice,
   onCloseCreateHolidayNotice,
   onSave,
   onLoadUserCode,
@@ -115,6 +129,10 @@ export default function PeriodManager({
   const [startDateInput, setStartDateInput] = useState(selectedStartDate);
   const [copyValues, setCopyValues] = useState(false);
   const [isLabelEdited, setIsLabelEdited] = useState(false);
+  const [holidayNoticeDraftDates, setHolidayNoticeDraftDates] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [isHolidayNoticeDraftTouched, setIsHolidayNoticeDraftTouched] = useState(false);
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const dangerMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileDangerMenuRef = useRef<HTMLDivElement | null>(null);
@@ -165,6 +183,35 @@ export default function PeriodManager({
     [periods, selectedPeriodId],
   );
   const selectedPeriodLabel = selectedPeriod ? formatPeriodLabelDisplay(selectedPeriod.label) : '-';
+  const holidayNoticeRows = useMemo(
+    () => buildHolidayNoticeRows(selectedPeriod?.startDate ?? selectedStartDate),
+    [selectedPeriod?.startDate, selectedStartDate],
+  );
+  const holidayNoticeDates = useMemo(
+    () => holidayNoticeRows.flat(),
+    [holidayNoticeRows],
+  );
+  const holidayNoticeRangeLabel = useMemo(() => {
+    const start = dayjs(selectedPeriod?.startDate ?? selectedStartDate);
+    const end = start.add(13, 'day');
+
+    if (!start.isValid() || !end.isValid()) {
+      return '-';
+    }
+
+    return `${start.format('YYYY년 M/D')} - ${end.format('M/D')}`;
+  }, [selectedPeriod?.startDate, selectedStartDate]);
+  const holidayNoticeSourceKey = useMemo(() => {
+    const selectedHolidayDates = new Set(
+      selectedPeriod?.records
+        .filter((record) => record.isHoliday)
+        .map((record) => record.date) ?? [],
+    );
+
+    return holidayNoticeDates
+      .filter((date) => selectedHolidayDates.has(date))
+      .join(',');
+  }, [holidayNoticeDates, selectedPeriod?.records]);
   const mobileSavedTime = useMemo(() => {
     if (!lastSavedAt) {
       return null;
@@ -246,6 +293,21 @@ export default function PeriodManager({
       window.removeEventListener('keydown', handleWindowKeydown);
     };
   }, [isCodeViewOpen, isCodeLoadOpen]);
+
+  useEffect(() => {
+    if (!isCreateHolidayNoticeOpen) {
+      setIsHolidayNoticeDraftTouched(false);
+      return;
+    }
+
+    if (isHolidayNoticeDraftTouched) {
+      return;
+    }
+
+    setHolidayNoticeDraftDates(
+      new Set(holidayNoticeSourceKey ? holidayNoticeSourceKey.split(',') : []),
+    );
+  }, [holidayNoticeSourceKey, isCreateHolidayNoticeOpen, isHolidayNoticeDraftTouched]);
 
   function submitCreate(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -420,6 +482,26 @@ export default function PeriodManager({
         </div>
       </div>
     );
+  }
+
+  function toggleHolidayNoticeDate(date: string): void {
+    setIsHolidayNoticeDraftTouched(true);
+    setHolidayNoticeDraftDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+
+      return next;
+    });
+  }
+
+  function submitHolidayNotice(): void {
+    onApplyCreateHolidayNotice({
+      holidayDates: holidayNoticeDates.filter((date) => holidayNoticeDraftDates.has(date)),
+    });
   }
 
   return (
@@ -820,24 +902,81 @@ export default function PeriodManager({
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
-              새 구간 생성 안내
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              임시 공휴일은 수정이 필요합니다.
-            </p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              최근 2주 근무기록에서 직접 수정해 주세요.
+          <div className="w-full max-w-[540px] rounded-3xl bg-white p-5 shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+                  새 구간 생성 안내
+                </h3>
+                <p className="mt-2 text-sm leading-5 text-slate-700 sm:text-base">
+                  공휴일로 처리할 평일을 확인하고 수정하세요.
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-extrabold text-indigo-700">
+                {holidayNoticeDraftDates.size}개 선택
+              </span>
+            </div>
+
+            <div className="mt-7 flex items-center justify-between gap-3">
+              <p className="text-base font-extrabold text-slate-800 sm:text-lg">
+                {holidayNoticeRangeLabel}
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-5 gap-2 text-center text-xs font-bold text-slate-500 sm:gap-3 sm:text-sm">
+              {WEEKDAY_LABELS.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+
+            <div className="mt-3 space-y-4 sm:space-y-5">
+              {holidayNoticeRows.map((row, rowIndex) => (
+                <div key={rowIndex}>
+                  <p className="mb-2 text-sm font-bold text-slate-500">{rowIndex + 1}주차</p>
+                  <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                    {row.map((date) => {
+                      const selected = holidayNoticeDraftDates.has(date);
+
+                      return (
+                        <button
+                          key={date}
+                          type="button"
+                          onClick={() => toggleHolidayNoticeDate(date)}
+                          className={`aspect-square min-w-0 rounded-xl border text-center transition sm:rounded-2xl ${
+                            selected
+                              ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                              : 'border-slate-200 bg-stone-50 text-slate-900 hover:border-indigo-200 hover:bg-indigo-50'
+                          }`}
+                        >
+                          <span className="block text-lg font-extrabold leading-none sm:text-2xl">
+                            {dayjs(date).format('D')}
+                          </span>
+                          <span
+                            className={`mt-1 block truncate px-0.5 text-[10px] font-bold leading-tight sm:text-xs ${
+                              selected ? 'text-indigo-50' : 'text-transparent'
+                            }`}
+                          >
+                            공휴일
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-slate-500">
+              선택된 날짜는 공휴일로 처리되며, 해제하면 근무일로 계산됩니다.
             </p>
 
-            <div className="mt-5 flex justify-end">
+            <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={onCloseCreateHolidayNotice}
+                onClick={submitHolidayNotice}
                 className="btn-primary min-w-[108px]"
               >
-                확인
+                저장
               </button>
             </div>
           </div>

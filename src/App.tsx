@@ -6,7 +6,7 @@ import SummaryCards from './components/SummaryCards';
 import TimesheetTable from './components/TimesheetTable';
 import TodayQuickEntryCard from './components/TodayQuickEntryCard';
 import { DAYS_PER_PERIOD, MAX_STORED_PERIODS } from './constants';
-import { AppState, CreatePeriodPayload, DayRecord, Period } from './types';
+import { AppState, CreateHolidayNoticePayload, CreatePeriodPayload, DayRecord, Period } from './types';
 import { recalculatePeriod, recalculateRecords } from './utils/calculations';
 import { createEmptyAppState, deleteCurrentPeriod } from './utils/dataManagement';
 import {
@@ -512,6 +512,32 @@ export default function App(): JSX.Element {
       startDate: emptyStartDate,
       copyValues: false,
     });
+  }
+
+  function handleApplyCreateHolidayNotice(payload: CreateHolidayNoticePayload): void {
+    const holidayDates = new Set(payload.holidayDates);
+
+    updateSelectedPeriod((period) => {
+      const editableDates = new Set(
+        [0, 1, 2, 3, 4, 7, 8, 9, 10, 11].map((offset) =>
+          dayjs(period.startDate).add(offset, 'day').format('YYYY-MM-DD'),
+        ),
+      );
+      const records = period.records.map((record) =>
+        editableDates.has(record.date)
+          ? {
+              ...record,
+              isHoliday: holidayDates.has(record.date),
+            }
+          : record,
+      );
+
+      return {
+        ...period,
+        records: recalculateRecords(records).records,
+      };
+    });
+    setIsCreateHolidayNoticeOpen(false);
   }
 
   async function handleCopyUserCode(): Promise<void> {
@@ -1235,6 +1261,7 @@ export default function App(): JSX.Element {
           onSelectPeriod={(id) => setAppState((prev) => ({ ...prev, selectedPeriodId: id }))}
           onChangeStartDate={handleStartDateChange}
           onCreatePeriod={handleCreatePeriod}
+          onApplyCreateHolidayNotice={handleApplyCreateHolidayNotice}
           onCloseCreateHolidayNotice={() => setIsCreateHolidayNoticeOpen(false)}
           onSave={handleSave}
           onLoadUserCode={handleLoadByCode}

@@ -75,3 +75,7 @@ export interface CreatePeriodPayload {
   copyValues: boolean;
 }
 
+export interface CreateHolidayNoticePayload {
+  holidayDates: string[];
+}
+
