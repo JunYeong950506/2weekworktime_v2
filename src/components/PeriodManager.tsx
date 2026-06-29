@@ -909,7 +909,7 @@ export default function PeriodManager({
                   새 구간 생성 안내
                 </h3>
                 <p className="mt-2 text-sm leading-5 text-slate-700 sm:text-base">
-                  공휴일로 처리할 평일을 확인하고 수정하세요.
+                  공휴일을 수정/확인 하고 저장하세요
                 </p>
               </div>
               <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-extrabold text-indigo-700">
