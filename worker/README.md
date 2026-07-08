@@ -31,6 +31,12 @@ CAPTURE_MODE=click
 
 `OCR_PANEL_ROI_*`는 CCTV 이미지 안에서 번호판 전체 영역을 자르는 값입니다. `OCR_MAIN_ROI_*`와 `OCR_LIST_ROI_*`는 잘린 번호판 이미지 안에서 각각 큰 번호와 목록 번호 영역을 자르는 값입니다. 모든 값은 0부터 1까지의 비율입니다.
 
+`CAPTURE_MODE=direct_image`와 `DIRECT_IMAGE_URL`을 함께 설정하면 Playwright 페이지 reload 없이 snapshot 이미지 URL을 직접 받아 OCR합니다. 실제 snapshot URL을 찾기 전에는 `click` 또는 `reload`를 유지합니다.
+
+Worker는 번호판 ROI 이미지가 직전 캡처와 거의 같으면 OCR을 생략합니다. `FORCE_OCR_INTERVAL_SECONDS`마다 한 번은 강제로 OCR을 돌려 변화 감지 누락을 보정합니다.
+
+백엔드 전송은 캡처 루프와 분리된 큐에서 처리합니다. 새 번호를 큐에 넣은 뒤 worker는 API 응답을 기다리지 않고 다음 캡처로 넘어갑니다.
+
 ## 실행
 
 한 번만 캡처해서 확인:

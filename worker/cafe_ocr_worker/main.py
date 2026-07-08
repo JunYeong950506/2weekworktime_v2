@@ -4,11 +4,13 @@ import argparse
 import asyncio
 import logging
 import signal
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .backend_client import BackendClient
+from .backend_client import BackendClient, QueuedBackendSender
 from .browser_capture import create_capture
+from .change_detector import RoiChangeDetector
 from .digit_ocr import create_ocr_engine, detect_board_numbers
 from .image_preprocessor import crop_normalized_roi, save_debug_image
 from .models import DecisionKind
@@ -47,8 +49,19 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
     )
     state = DetectionState()
     backend = BackendClient(settings.backend_url, settings.ocr_worker_token)
+    backend_sender = QueuedBackendSender(backend, settings.backend_queue_size)
     stop_event = asyncio.Event()
-    last_sent_number: int | None = None
+    last_ocr_at: datetime | None = None
+    change_detector = (
+        RoiChangeDetector(
+            resize_width=settings.change_detection_resize_width,
+            mean_threshold=settings.change_detection_mean_threshold,
+            changed_ratio_threshold=settings.change_detection_changed_ratio,
+            pixel_threshold=settings.change_detection_pixel_threshold,
+        )
+        if settings.change_detection_enabled
+        else None
+    )
 
     def request_stop() -> None:
         logger.info("Shutdown requested")
@@ -64,57 +77,116 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
             except (NotImplementedError, RuntimeError):
                 signal.signal(getattr(signal, signal_name), lambda *_: request_stop())
 
-    async with create_capture(settings) as capture:
-        while not stop_event.is_set():
-            captured_at = utc_now()
+    if backend.configured:
+        backend_sender.start()
 
-            try:
-                frame = await capture.capture()
-                panel = crop_normalized_roi(frame, settings.panel_roi)
-                detection = detect_board_numbers(
-                    panel,
-                    engine,
-                    settings.main_roi,
-                    settings.list_roi,
-                    settings.ocr_min_confidence,
-                )
-                decision = validator.validate(detection, state)
+    try:
+        async with create_capture(settings) as capture:
+            while not stop_event.is_set():
+                cycle_started_at = time.perf_counter()
 
-                if decision.accepted and detection is not None and decision.number is not None:
-                    state.accept(decision.number)
-                    logger.info(
-                        "accepted number=%s source=%s confidence=%s list=%s",
-                        detection.current_number,
-                        detection.source,
-                        detection.confidence,
-                        detection.list_numbers,
-                    )
+                try:
+                    frame = await capture.capture()
+                    captured_at = utc_now()
+                    capture_elapsed = time.perf_counter() - cycle_started_at
+                    panel = crop_normalized_roi(frame, settings.panel_roi)
 
-                    if backend.configured and decision.number != last_sent_number:
-                        response = await backend.send_detection(detection, captured_at)
-                        last_sent_number = decision.number
-                        logger.info("backend updated response=%s", response)
-                    elif not backend.configured:
-                        logger.info("backend not configured; skip sending number=%s", decision.number)
+                    skip_ocr = should_skip_ocr(change_detector, panel, captured_at, last_ocr_at, settings)
+                    if skip_ocr:
+                        logger.info("panel unchanged; skip OCR capture_seconds=%.2f", capture_elapsed)
                     else:
-                        logger.info("number=%s already sent; skip duplicate backend update", decision.number)
+                        ocr_started_at = time.perf_counter()
+                        detection = detect_board_numbers(
+                            panel,
+                            engine,
+                            settings.main_roi,
+                            settings.list_roi,
+                            settings.ocr_min_confidence,
+                        )
+                        last_ocr_at = captured_at
+                        decision = validator.validate(detection, state)
+                        ocr_elapsed = time.perf_counter() - ocr_started_at
 
-                elif decision.kind == DecisionKind.CONFIRM:
-                    logger.info("pending candidate number=%s reason=%s", decision.number, decision.reason)
-                else:
-                    logger.warning("rejected candidate number=%s reason=%s", decision.number, decision.reason)
-                    save_debug_image(debug_path(settings, "rejected", captured_at), panel)
+                        if decision.accepted and detection is not None and decision.number is not None:
+                            state.accept(decision.number)
+                            logger.info(
+                                "accepted number=%s source=%s confidence=%s list=%s capture_seconds=%.2f ocr_seconds=%.2f",
+                                detection.current_number,
+                                detection.source,
+                                detection.confidence,
+                                detection.list_numbers,
+                                capture_elapsed,
+                                ocr_elapsed,
+                            )
 
-            except Exception:
-                logger.exception("Cafe OCR cycle failed")
+                            if backend.configured:
+                                queued = backend_sender.enqueue(detection, captured_at)
+                                if queued:
+                                    logger.info("backend enqueue number=%s", decision.number)
+                                else:
+                                    logger.info("number=%s already queued or sent; skip duplicate backend update", decision.number)
+                            else:
+                                logger.info("backend not configured; skip sending number=%s", decision.number)
 
-            if once:
-                break
+                        elif decision.kind == DecisionKind.CONFIRM:
+                            logger.info("pending candidate number=%s reason=%s", decision.number, decision.reason)
+                        else:
+                            logger.warning("rejected candidate number=%s reason=%s", decision.number, decision.reason)
+                            save_debug_image(debug_path(settings, "rejected", captured_at), panel)
 
-            try:
-                await asyncio.wait_for(stop_event.wait(), timeout=settings.poll_interval_seconds)
-            except asyncio.TimeoutError:
-                pass
+                except Exception:
+                    logger.exception("Cafe OCR cycle failed")
+
+                if once:
+                    break
+
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=settings.poll_interval_seconds)
+                except asyncio.TimeoutError:
+                    pass
+    finally:
+        if backend.configured:
+            await backend_sender.stop()
+
+
+def should_skip_ocr(
+    change_detector: RoiChangeDetector | None,
+    panel,
+    captured_at: datetime,
+    last_ocr_at: datetime | None,
+    settings: Settings,
+) -> bool:
+    if change_detector is None:
+        return False
+
+    result = change_detector.check(panel)
+    force_due = (
+        settings.force_ocr_interval_seconds <= 0
+        or last_ocr_at is None
+        or (captured_at - last_ocr_at).total_seconds() >= settings.force_ocr_interval_seconds
+    )
+
+    if result.changed or force_due:
+        logger.info(
+            "panel change check reason=%s mean_diff=%s changed_ratio=%s force_due=%s",
+            result.reason,
+            format_metric(result.mean_diff),
+            format_metric(result.changed_ratio),
+            force_due,
+        )
+        return False
+
+    logger.info(
+        "panel change check reason=%s mean_diff=%s changed_ratio=%s",
+        result.reason,
+        format_metric(result.mean_diff),
+        format_metric(result.changed_ratio),
+    )
+    return True
+
+
+def format_metric(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.4f}"
 
 
 def parse_args() -> argparse.Namespace:

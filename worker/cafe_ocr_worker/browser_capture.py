@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 from typing import Iterable
 
+import httpx
 import numpy as np
 
 from .image_preprocessor import decode_image, load_image
@@ -95,8 +96,44 @@ class BrowserCapture:
         return decode_image(image_bytes)
 
 
-def create_capture(settings: Settings) -> BrowserCapture | FixtureCapture:
+class DirectImageCapture:
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self._client: httpx.AsyncClient | None = None
+
+    async def __aenter__(self) -> "DirectImageCapture":
+        if not self.settings.direct_image_url:
+            raise ValueError("DIRECT_IMAGE_URL is required when CAPTURE_MODE=direct_image")
+
+        self._client = httpx.AsyncClient(
+            timeout=self.settings.direct_image_timeout_seconds,
+            headers={
+                "Referer": self.settings.cafe_cctv_url,
+                "User-Agent": "Mozilla/5.0 CafeOcrWorker/1.0",
+            },
+        )
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        del exc_type, exc, tb
+
+        if self._client:
+            await self._client.aclose()
+
+    async def capture(self) -> np.ndarray:
+        if self._client is None:
+            raise RuntimeError("DirectImageCapture is not initialized")
+
+        response = await self._client.get(self.settings.direct_image_url)
+        response.raise_for_status()
+        return decode_image(response.content)
+
+
+def create_capture(settings: Settings) -> BrowserCapture | DirectImageCapture | FixtureCapture:
     if settings.capture_mode == "fixture" or settings.fixture_image_path or settings.fixture_image_dir:
         return FixtureCapture(settings)
+
+    if settings.capture_mode == "direct_image":
+        return DirectImageCapture(settings)
 
     return BrowserCapture(settings)
