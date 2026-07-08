@@ -28,5 +28,6 @@ android/**/build/
 android/local.properties
 android/app/google-services.json
 firebase-service-account*.json
+*firebase-adminsdk*.json
 
 .vercel-home/
