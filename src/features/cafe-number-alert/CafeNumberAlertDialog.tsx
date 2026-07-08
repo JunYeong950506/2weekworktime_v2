@@ -7,7 +7,6 @@ import {
   getOrCreateCafeDeviceId,
   registerCafePushSubscription,
   registerCafeWatch,
-  sendCafeTestPush,
 } from './cafeNumberApi';
 import {
   isIos,
@@ -206,7 +205,7 @@ export default function CafeNumberAlertDialog({
   const [advanceCount, setAdvanceCount] = useState<AdvanceCount>(5);
   const [uiState, setUiState] = useState<AlertUiState>('INITIAL');
   const [message, setMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<'register' | 'test' | 'cancel' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'register' | 'cancel' | null>(null);
 
   const watch = statusData?.watch ?? null;
   const parsedTargetNumber = useMemo(() => {
@@ -376,25 +375,6 @@ export default function CafeNumberAlertDialog({
     }
   }
 
-  async function handleTestPush(): Promise<void> {
-    if (!deviceId) {
-      return;
-    }
-
-    setPendingAction('test');
-    setMessage(null);
-    try {
-      await sendCafeTestPush(deviceId);
-      setMessage('테스트 알림을 보냈습니다.');
-    } catch (error) {
-      const friendly = toFriendlyError(error);
-      setUiState(friendly.state);
-      setMessage(friendly.message);
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   async function handleCancelWatch(): Promise<void> {
     if (!watch || !deviceId) {
       return;
@@ -543,20 +523,10 @@ export default function CafeNumberAlertDialog({
             <button
               type="button"
               onClick={() => {
-                void handleTestPush();
-              }}
-              disabled={pendingAction !== null || !watch}
-              className="btn-secondary h-11 flex-1 disabled:opacity-50"
-            >
-              {pendingAction === 'test' ? '전송 중' : '테스트 알림'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
                 void handleCancelWatch();
               }}
               disabled={pendingAction !== null || !watch || watch.status !== 'WAITING'}
-              className="btn-quiet h-11 flex-1 disabled:opacity-50"
+              className="btn-quiet h-11 flex-1 border-rose-200 text-rose-600 hover:bg-rose-50 focus-visible:ring-rose-100 disabled:opacity-50"
             >
               {pendingAction === 'cancel' ? '취소 중' : '알림 취소'}
             </button>
