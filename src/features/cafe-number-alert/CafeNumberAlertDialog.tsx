@@ -157,7 +157,11 @@ function statusLabel(state: AlertUiState): string {
 }
 
 function statusClassName(state: AlertUiState): string {
-  if (state === 'REGISTERING' || state === 'CANCELLING') {
+  if (state === 'CANCELLING') {
+    return 'bg-rose-50 text-rose-700';
+  }
+
+  if (state === 'REGISTERING') {
     return 'bg-amber-100 text-amber-700';
   }
 
