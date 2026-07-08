@@ -81,7 +81,10 @@ class BrowserCapture:
             await self._page.reload(wait_until="domcontentloaded")
         elif self.settings.capture_mode == "click":
             refresh = self._page.locator(self.settings.cafe_refresh_button_selector).first
-            await refresh.click(timeout=5000)
+            try:
+                await refresh.click(timeout=5000)
+            except Exception:
+                await self._page.reload(wait_until="domcontentloaded")
 
         if self.settings.capture_settle_ms > 0:
             await asyncio.sleep(self.settings.capture_settle_ms / 1000)
