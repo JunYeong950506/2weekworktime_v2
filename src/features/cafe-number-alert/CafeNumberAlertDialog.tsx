@@ -160,6 +160,10 @@ function statusLabel(state: AlertUiState): string {
 }
 
 function statusClassName(state: AlertUiState): string {
+  if (state === 'REGISTERING') {
+    return 'bg-amber-100 text-amber-700';
+  }
+
   if (state === 'WAITING' || state === 'NOTIFIED') {
     return 'bg-emerald-50 text-emerald-700';
   }
