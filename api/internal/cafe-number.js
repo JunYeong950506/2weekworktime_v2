@@ -12,6 +12,8 @@ import {
   toSafeErrorMessage,
 } from '../_cafeAlertService.js';
 
+const MAX_DETECTION_LOG_ROWS = 300;
+
 function isAuthorized(request) {
   const expectedToken = (process.env.OCR_WORKER_TOKEN || '').trim();
   if (!expectedToken) {
@@ -61,6 +63,33 @@ async function logNotification(supabase, payload) {
 
   if (error) {
     console.warn('failed to write cafe notification log', error.message);
+  }
+}
+
+async function pruneDetectionLogs(supabase) {
+  const { data, error: cutoffError } = await supabase
+    .from('cafe_number_detections')
+    .select('id')
+    .order('id', { ascending: false })
+    .range(MAX_DETECTION_LOG_ROWS, MAX_DETECTION_LOG_ROWS);
+
+  if (cutoffError) {
+    console.warn('failed to find cafe detection prune cutoff', cutoffError.message);
+    return;
+  }
+
+  const cutoffId = data?.[0]?.id;
+  if (!cutoffId) {
+    return;
+  }
+
+  const { error: pruneError } = await supabase
+    .from('cafe_number_detections')
+    .delete()
+    .lte('id', cutoffId);
+
+  if (pruneError) {
+    console.warn('failed to prune cafe detection logs', pruneError.message);
   }
 }
 
@@ -243,6 +272,8 @@ export default async function handler(request, response) {
     if (detectionError) {
       throw new Error(detectionError.message);
     }
+
+    await pruneDetectionLogs(supabase);
 
     await supabase
       .from('cafe_number_watches')
