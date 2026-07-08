@@ -68,6 +68,15 @@ class Settings(BaseSettings):
             raise ValueError("POLL_INTERVAL_SECONDS must be greater than 0")
         return value
 
+    @field_validator("fixture_image_path", "fixture_image_dir", mode="before")
+    @classmethod
+    def empty_path_to_none(cls, value: object) -> object | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @field_validator("backend_url")
     @classmethod
     def trim_backend_url(cls, value: str) -> str:
