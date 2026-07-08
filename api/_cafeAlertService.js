@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import webpush from 'web-push';
 
 const WATCH_TTL_HOURS = 3;
 
 let supabaseAdmin = null;
+let firebaseApp = null;
 
 export function sendJson(response, status, payload) {
   response.status(status).json(payload);
@@ -219,6 +222,26 @@ export function normalizePushSubscription(subscription) {
   };
 }
 
+export function normalizeNativePushSubscription(value) {
+  const token = typeof value === 'string'
+    ? value.trim()
+    : typeof value?.token === 'string'
+      ? value.token.trim()
+      : '';
+
+  if (!token || token.length < 20) {
+    return null;
+  }
+
+  return {
+    endpoint: `fcm:${token}`,
+    subscription: {
+      type: 'fcm',
+      token,
+    },
+  };
+}
+
 export function getWatchExpiresAt(now = new Date()) {
   return new Date(now.getTime() + WATCH_TTL_HOURS * 60 * 60 * 1000).toISOString();
 }
@@ -229,6 +252,49 @@ export function getNotificationType(currentNumber, targetNumber) {
 
 export function getVapidPublicKey() {
   return (process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '').trim();
+}
+
+function getFirebaseServiceAccount() {
+  const rawJson = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+  if (rawJson) {
+    const parsed = JSON.parse(rawJson);
+    return {
+      projectId: parsed.projectId || parsed.project_id,
+      clientEmail: parsed.clientEmail || parsed.client_email,
+      privateKey: (parsed.privateKey || parsed.private_key || '').replace(/\\n/g, '\n'),
+    };
+  }
+
+  const projectId = (process.env.FIREBASE_PROJECT_ID || '').trim();
+  const clientEmail = (process.env.FIREBASE_CLIENT_EMAIL || '').trim();
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n').trim();
+
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error('FCM_NOT_CONFIGURED');
+  }
+
+  return {
+    projectId,
+    clientEmail,
+    privateKey,
+  };
+}
+
+function getFirebaseApp() {
+  if (firebaseApp) {
+    return firebaseApp;
+  }
+
+  const existingApp = getApps()[0];
+  if (existingApp) {
+    firebaseApp = existingApp;
+    return firebaseApp;
+  }
+
+  firebaseApp = initializeApp({
+    credential: cert(getFirebaseServiceAccount()),
+  });
+  return firebaseApp;
 }
 
 function configureWebPush() {
@@ -243,7 +309,53 @@ function configureWebPush() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
+function toFirebaseData(payload) {
+  const data = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined || value === null || key === 'title' || key === 'body') {
+      continue;
+    }
+
+    data[key] = String(value);
+  }
+
+  return data;
+}
+
+async function sendFirebasePush(subscription, payload) {
+  const token = typeof subscription?.token === 'string' ? subscription.token.trim() : '';
+  if (!token) {
+    throw new Error('FCM_TOKEN_MISSING');
+  }
+
+  const messageId = await getMessaging(getFirebaseApp()).send({
+    token,
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
+    data: toFirebaseData(payload),
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'cafe_number_alerts',
+        tag: payload.tag,
+      },
+    },
+  });
+
+  return {
+    provider: 'fcm',
+    messageId,
+  };
+}
+
 export async function sendCafePush(subscription, payload) {
+  if (subscription?.type === 'fcm') {
+    return sendFirebasePush(subscription, payload);
+  }
+
   configureWebPush();
   return webpush.sendNotification(subscription, JSON.stringify(payload));
 }
@@ -254,7 +366,13 @@ export function toProviderStatus(error) {
 
 export function isExpiredPushEndpoint(error) {
   const statusCode = toProviderStatus(error);
-  return statusCode === 404 || statusCode === 410;
+  const code = error?.code || error?.errorInfo?.code || '';
+  return (
+    statusCode === 404 ||
+    statusCode === 410 ||
+    code === 'messaging/registration-token-not-registered' ||
+    code === 'messaging/invalid-registration-token'
+  );
 }
 
 export function toSafeErrorMessage(error) {

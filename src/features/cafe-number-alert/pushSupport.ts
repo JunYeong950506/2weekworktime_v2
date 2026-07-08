@@ -2,6 +2,10 @@ export function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+export function isAndroid(): boolean {
+  return /android/i.test(navigator.userAgent);
+}
+
 export function isStandalone(): boolean {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
@@ -10,12 +14,69 @@ export function isStandalone(): boolean {
   );
 }
 
+declare global {
+  interface Window {
+    CafeAndroidPush?: {
+      requestRegistration: (deviceId: string) => void;
+      isAvailable?: () => boolean;
+    };
+  }
+}
+
+const ANDROID_PUSH_TOKEN_EVENT = 'cafe-android-push-token';
+const ANDROID_PUSH_ERROR_EVENT = 'cafe-android-push-error';
+
 export function isPushSupported(): boolean {
   return (
     'serviceWorker' in navigator &&
     'PushManager' in window &&
     'Notification' in window
   );
+}
+
+export function isNativeAndroidPushSupported(): boolean {
+  return typeof window.CafeAndroidPush?.requestRegistration === 'function';
+}
+
+export function requestNativeAndroidPushToken(deviceId: string): Promise<string> {
+  if (!isNativeAndroidPushSupported()) {
+    return Promise.reject(new Error('ANDROID_PUSH_UNAVAILABLE'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('ANDROID_PUSH_TOKEN_TIMEOUT'));
+    }, 30000);
+
+    function cleanup(): void {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(ANDROID_PUSH_TOKEN_EVENT, handleToken);
+      window.removeEventListener(ANDROID_PUSH_ERROR_EVENT, handleError);
+    }
+
+    function handleToken(event: Event): void {
+      const token = (event as CustomEvent<{ token?: string }>).detail?.token;
+      cleanup();
+
+      if (token) {
+        resolve(token);
+        return;
+      }
+
+      reject(new Error('ANDROID_PUSH_TOKEN_FAILED'));
+    }
+
+    function handleError(event: Event): void {
+      const message = (event as CustomEvent<{ message?: string }>).detail?.message;
+      cleanup();
+      reject(new Error(message || 'ANDROID_PUSH_TOKEN_FAILED'));
+    }
+
+    window.addEventListener(ANDROID_PUSH_TOKEN_EVENT, handleToken);
+    window.addEventListener(ANDROID_PUSH_ERROR_EVENT, handleError);
+    window.CafeAndroidPush?.requestRegistration(deviceId);
+  });
 }
 
 export async function registerCafeServiceWorker(): Promise<ServiceWorkerRegistration> {

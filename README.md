@@ -86,9 +86,12 @@ VAPID_SUBJECT=mailto:admin@example.com
 SUPABASE_SERVICE_ROLE_KEY=...
 OCR_WORKER_TOKEN=...
 CRON_SECRET=...
+FIREBASE_SERVICE_ACCOUNT_JSON=...
 ```
 
-`VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_WORKER_TOKEN`, `CRON_SECRET`은 서버 전용입니다.
+`FIREBASE_SERVICE_ACCOUNT_JSON` 대신 `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`를 나눠서 설정할 수도 있습니다.
+`VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_WORKER_TOKEN`, `CRON_SECRET`, Firebase Admin 키는 서버 전용입니다.
+Android WebView 앱 푸시는 Firebase Cloud Messaging을 사용하므로 APK 빌드에는 `android/app/google-services.json`이 필요합니다.
 Vercel Cron은 매일 18:00 KST에 카페 감지/알림 이력과 등록 대기 데이터를 초기화합니다. 기기 Push 구독 정보는 유지합니다.
 
 OCR Worker가 `/api/internal/cafe-number`로 번호를 보낼 때는 `mainNumber`와

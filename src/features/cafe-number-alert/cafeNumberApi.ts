@@ -70,6 +70,20 @@ export function registerCafePushSubscription(
   });
 }
 
+export function registerCafeNativePushSubscription(
+  deviceId: string,
+  token: string,
+): Promise<RegisterSubscriptionResponse> {
+  return apiFetch<RegisterSubscriptionResponse>('/api/cafe-alert/native-subscriptions', {
+    method: 'POST',
+    body: JSON.stringify({
+      deviceId,
+      token,
+      userAgent: navigator.userAgent,
+    }),
+  });
+}
+
 export function registerCafeWatch(payload: {
   subscriptionId: string;
   targetNumber: number;

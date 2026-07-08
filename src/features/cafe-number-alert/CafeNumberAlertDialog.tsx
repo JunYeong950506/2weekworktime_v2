@@ -5,15 +5,19 @@ import {
   cancelCafeWatch,
   fetchCafeWatchStatus,
   getOrCreateCafeDeviceId,
+  registerCafeNativePushSubscription,
   registerCafePushSubscription,
   registerCafeWatch,
 } from './cafeNumberApi';
 import {
+  isAndroid,
   isIos,
+  isNativeAndroidPushSupported,
   isPushSupported,
   isStandalone,
   registerCafeServiceWorker,
   requestNotificationPermission,
+  requestNativeAndroidPushToken,
   subscribeToCafePush,
 } from './pushSupport';
 import { AdvanceCount, CafeWatchStatus, CafeWatchStatusResponse, RegisterWatchResponse } from './types';
@@ -93,6 +97,24 @@ function toFriendlyError(error: unknown): { state: AlertUiState; message: string
     return {
       state: 'UNSUPPORTED',
       message: '이 브라우저는 웹 알림을 지원하지 않습니다.',
+    };
+  }
+
+  if (rawMessage === 'ANDROID_PUSH_PERMISSION_DENIED') {
+    return {
+      state: 'PERMISSION_DENIED',
+      message: 'Android 앱 알림이 차단되어 있습니다. 앱 설정에서 알림을 허용해 주세요.',
+    };
+  }
+
+  if (
+    rawMessage === 'ANDROID_PUSH_UNAVAILABLE' ||
+    rawMessage === 'ANDROID_PUSH_TOKEN_TIMEOUT' ||
+    rawMessage === 'ANDROID_PUSH_TOKEN_FAILED'
+  ) {
+    return {
+      state: 'UNSUPPORTED',
+      message: 'Android 앱 알림 초기화에 실패했습니다. 앱을 최신 버전으로 업데이트한 뒤 다시 시도해 주세요.',
     };
   }
 
@@ -326,19 +348,25 @@ export default function CafeNumberAlertDialog({
       return;
     }
 
-    if (isIos() && !isStandalone()) {
+    const useNativeAndroidPush = isNativeAndroidPushSupported();
+
+    if (isIos() && !isStandalone() && !useNativeAndroidPush) {
       setUiState('IOS_INSTALL_REQUIRED');
       setMessage('iPhone에서는 홈 화면에 추가한 앱에서 알림 등록을 진행해 주세요.');
       return;
     }
 
-    if (!isPushSupported()) {
+    if (!useNativeAndroidPush && !isPushSupported()) {
       setUiState('UNSUPPORTED');
-      setMessage('이 브라우저는 웹 알림을 지원하지 않습니다.');
+      setMessage(
+        isAndroid()
+          ? 'Android 앱 알림은 최신 앱 업데이트가 필요합니다.'
+          : '이 브라우저는 웹 알림을 지원하지 않습니다.',
+      );
       return;
     }
 
-    if (!VAPID_PUBLIC_KEY) {
+    if (!useNativeAndroidPush && !VAPID_PUBLIC_KEY) {
       setUiState('ERROR');
       setMessage('VITE_VAPID_PUBLIC_KEY 환경변수가 필요합니다.');
       return;
@@ -352,10 +380,17 @@ export default function CafeNumberAlertDialog({
       const nextDeviceId = deviceId || getOrCreateCafeDeviceId();
       setDeviceId(nextDeviceId);
 
-      const registration = await registerCafeServiceWorker();
-      await requestNotificationPermission();
-      const pushSubscription = await subscribeToCafePush(registration, VAPID_PUBLIC_KEY);
-      const { subscriptionId } = await registerCafePushSubscription(nextDeviceId, pushSubscription);
+      const { subscriptionId } = useNativeAndroidPush
+        ? await registerCafeNativePushSubscription(
+          nextDeviceId,
+          await requestNativeAndroidPushToken(nextDeviceId),
+        )
+        : await (async () => {
+          const registration = await registerCafeServiceWorker();
+          await requestNotificationPermission();
+          const pushSubscription = await subscribeToCafePush(registration, VAPID_PUBLIC_KEY);
+          return registerCafePushSubscription(nextDeviceId, pushSubscription);
+        })();
       const watchResponse = await registerCafeWatch({
         subscriptionId,
         targetNumber: parsedTargetNumber,
