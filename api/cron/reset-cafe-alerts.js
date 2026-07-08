@@ -49,10 +49,6 @@ export default async function handler(request, response) {
       'delete number watches',
     );
     await assertNoError(
-      await supabase.from('cafe_push_subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-      'delete push subscriptions',
-    );
-    await assertNoError(
       await supabase.from('cafe_number_state').upsert(
         {
           id: 1,
@@ -71,6 +67,7 @@ export default async function handler(request, response) {
     sendJson(response, 200, {
       ok: true,
       resetAt: nowIso,
+      preservedTables: ['cafe_push_subscriptions'],
     });
   } catch (error) {
     sendError(response, 500, 'CAFE_ALERT_RESET_FAILED', toSafeErrorMessage(error));

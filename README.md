@@ -89,7 +89,7 @@ CRON_SECRET=...
 ```
 
 `VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_WORKER_TOKEN`, `CRON_SECRET`은 서버 전용입니다.
-Vercel Cron은 매일 18:00 KST에 카페 알림 데이터를 초기화합니다.
+Vercel Cron은 매일 18:00 KST에 카페 감지/알림 이력과 등록 대기 데이터를 초기화합니다. 기기 Push 구독 정보는 유지합니다.
 
 OCR Worker가 `/api/internal/cafe-number`로 번호를 보낼 때는 `mainNumber`와
 `listNumbers`를 함께 보낼 수 있습니다. 서버는 `mainNumber`를 우선 사용하고,
