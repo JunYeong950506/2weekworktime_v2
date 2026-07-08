@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     cafe_refresh_button_selector: str = Field(default='button:has-text("새로고침")')
     capture_mode: Literal["click", "reload", "none", "fixture"] = "click"
     capture_settle_ms: int = 800
-    poll_interval_seconds: float = 10.0
+    poll_interval_seconds: float = 1.0
 
     ocr_engine: Literal["rapidocr", "tesseract", "auto", "mock"] = "rapidocr"
     ocr_min_confidence: float = 70.0
