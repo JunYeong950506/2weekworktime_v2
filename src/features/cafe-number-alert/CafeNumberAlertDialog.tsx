@@ -364,7 +364,6 @@ export default function CafeNumberAlertDialog({
 
       setStatusData(toWatchStatus(watchResponse));
       setUiState(stateFromWatchStatus(watchResponse.status));
-      setMessage(`${watchResponse.targetNumber}번 알림을 등록했습니다.`);
     } catch (error) {
       const friendly = toFriendlyError(error);
       setUiState(friendly.state);
