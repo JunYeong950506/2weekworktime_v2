@@ -29,6 +29,7 @@ type AlertUiState =
   | 'IOS_INSTALL_REQUIRED'
   | 'PERMISSION_DENIED'
   | 'REGISTERING'
+  | 'CANCELLING'
   | 'WAITING'
   | 'NOTIFIED'
   | 'EXPIRED'
@@ -144,6 +145,8 @@ function statusLabel(state: AlertUiState): string {
       return '알림 차단됨';
     case 'REGISTERING':
       return '등록 중';
+    case 'CANCELLING':
+      return '취소 중';
     case 'WAITING':
       return '대기 중';
     case 'NOTIFIED':
@@ -160,7 +163,7 @@ function statusLabel(state: AlertUiState): string {
 }
 
 function statusClassName(state: AlertUiState): string {
-  if (state === 'REGISTERING') {
+  if (state === 'REGISTERING' || state === 'CANCELLING') {
     return 'bg-amber-100 text-amber-700';
   }
 
@@ -399,12 +402,11 @@ export default function CafeNumberAlertDialog({
     }
 
     setPendingAction('cancel');
+    setUiState('CANCELLING');
     setMessage(null);
     try {
       await cancelCafeWatch(watch.id, deviceId);
-      setStatusData((prev) => (prev ? { ...prev, watch: null } : prev));
-      setUiState('INITIAL');
-      setMessage('알림 등록을 취소했습니다.');
+      resetToInitial();
     } catch (error) {
       const friendly = toFriendlyError(error);
       setUiState(friendly.state);
