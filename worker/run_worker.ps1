@@ -13,5 +13,5 @@ if (-not (Test-Path -LiteralPath $Python)) {
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 Set-Location -LiteralPath $RootDir
 
-$ErrorActionPreference = "Continue"
-& $Python -m cafe_ocr_worker.main >> $LogFile 2>&1
+$Command = "`"$Python`" -m cafe_ocr_worker.main >> `"$LogFile`" 2>&1"
+& cmd.exe /d /c $Command
