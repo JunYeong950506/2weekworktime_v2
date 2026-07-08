@@ -41,19 +41,19 @@ class Settings(BaseSettings):
     ocr_reset_drop: int = 100
     ocr_confirmation_repeats: int = 2
 
-    ocr_panel_roi_x: float = 0.30
-    ocr_panel_roi_y: float = 0.30
-    ocr_panel_roi_width: float = 0.45
-    ocr_panel_roi_height: float = 0.55
+    ocr_panel_roi_x: float = 0.315
+    ocr_panel_roi_y: float = 0.205
+    ocr_panel_roi_width: float = 0.235
+    ocr_panel_roi_height: float = 0.385
 
     ocr_main_roi_x: float = 0.00
     ocr_main_roi_y: float = 0.00
-    ocr_main_roi_width: float = 0.55
-    ocr_main_roi_height: float = 0.28
+    ocr_main_roi_width: float = 1.00
+    ocr_main_roi_height: float = 0.27
 
     ocr_list_roi_x: float = 0.00
-    ocr_list_roi_y: float = 0.23
-    ocr_list_roi_width: float = 0.55
+    ocr_list_roi_y: float = 0.24
+    ocr_list_roi_width: float = 1.00
     ocr_list_roi_height: float = 0.70
 
     backend_url: str = ""
