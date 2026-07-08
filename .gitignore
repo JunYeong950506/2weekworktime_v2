@@ -13,6 +13,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 worker/.venv/
+worker/.env
 worker/debug/
 supabase/.temp/
 supabase/.tmp_verify.sql
