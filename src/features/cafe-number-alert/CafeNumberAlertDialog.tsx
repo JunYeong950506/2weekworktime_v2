@@ -36,6 +36,7 @@ type AlertUiState =
   | 'ERROR';
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
+const NOTIFIED_RESET_DELAY_MS = 10 * 60 * 1000;
 
 function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse {
   return {
@@ -174,6 +175,20 @@ function statusClassName(state: AlertUiState): string {
   return 'bg-slate-100 text-slate-600';
 }
 
+function getNotifiedAtMs(watch: CafeWatchStatusResponse['watch']): number | null {
+  if (watch?.status !== 'NOTIFIED' || !watch.notifiedAt) {
+    return null;
+  }
+
+  const notifiedAtMs = new Date(watch.notifiedAt).getTime();
+  return Number.isNaN(notifiedAtMs) ? null : notifiedAtMs;
+}
+
+function shouldResetNotifiedWatch(watch: CafeWatchStatusResponse['watch'], nowMs = Date.now()): boolean {
+  const notifiedAtMs = getNotifiedAtMs(watch);
+  return notifiedAtMs !== null && nowMs - notifiedAtMs >= NOTIFIED_RESET_DELAY_MS;
+}
+
 export default function CafeNumberAlertDialog({
   open,
   onClose,
@@ -201,12 +216,35 @@ export default function CafeNumberAlertDialog({
     parsedTargetNumber <= 9999 &&
     parsedTargetNumber > advanceCount;
 
+  function resetToInitial(nextStatus?: CafeWatchStatusResponse | null): void {
+    setStatusData((prev) => {
+      if (nextStatus) {
+        return { ...nextStatus, watch: null };
+      }
+
+      return prev ? { ...prev, watch: null } : prev;
+    });
+    setTargetNumberInput('');
+    setAdvanceCount(5);
+    setUiState('INITIAL');
+    setMessage(null);
+  }
+
+  function applyWatchStatus(nextStatus: CafeWatchStatusResponse): void {
+    if (shouldResetNotifiedWatch(nextStatus.watch)) {
+      resetToInitial(nextStatus);
+      return;
+    }
+
+    setStatusData(nextStatus);
+    setUiState(stateFromWatchStatus(nextStatus.watch?.status ?? null));
+    setMessage(null);
+  }
+
   async function refreshStatus(nextDeviceId: string): Promise<void> {
     try {
       const nextStatus = await fetchCafeWatchStatus(nextDeviceId);
-      setStatusData(nextStatus);
-      setUiState(stateFromWatchStatus(nextStatus.watch?.status ?? null));
-      setMessage(null);
+      applyWatchStatus(nextStatus);
     } catch (error) {
       const friendly = toFriendlyError(error);
       setUiState(friendly.state);
@@ -232,6 +270,31 @@ export default function CafeNumberAlertDialog({
     setTargetNumberInput(String(watch.targetNumber));
     setAdvanceCount(watch.advanceCount);
   }, [watch]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const notifiedAtMs = getNotifiedAtMs(watch);
+    if (notifiedAtMs === null) {
+      return;
+    }
+
+    const remainingMs = notifiedAtMs + NOTIFIED_RESET_DELAY_MS - Date.now();
+    if (remainingMs <= 0) {
+      resetToInitial();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      resetToInitial();
+    }, remainingMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [open, watch]);
 
   useEffect(() => {
     if (!open) {
@@ -377,9 +440,6 @@ export default function CafeNumberAlertDialog({
               <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
                 카페 번호표 알림
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                번호가 가까워지면 이 기기로 알림을 받습니다.
-              </p>
             </div>
           </div>
 
@@ -424,7 +484,6 @@ export default function CafeNumberAlertDialog({
               onChange={(event) => setTargetNumberInput(event.target.value.replace(/\D/g, '').slice(0, 4))}
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="예: 205"
               className="field-input h-12 text-lg"
             />
           </label>
