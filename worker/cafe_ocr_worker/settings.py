@@ -44,17 +44,17 @@ class Settings(BaseSettings):
     ocr_panel_roi_x: float = 0.315
     ocr_panel_roi_y: float = 0.205
     ocr_panel_roi_width: float = 0.235
-    ocr_panel_roi_height: float = 0.385
+    ocr_panel_roi_height: float = 0.295
 
     ocr_main_roi_x: float = 0.00
     ocr_main_roi_y: float = 0.00
     ocr_main_roi_width: float = 1.00
-    ocr_main_roi_height: float = 0.27
+    ocr_main_roi_height: float = 0.34
 
     ocr_list_roi_x: float = 0.00
-    ocr_list_roi_y: float = 0.24
+    ocr_list_roi_y: float = 0.36
     ocr_list_roi_width: float = 1.00
-    ocr_list_roi_height: float = 0.70
+    ocr_list_roi_height: float = 0.62
 
     backend_url: str = ""
     ocr_worker_token: str = ""
