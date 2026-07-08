@@ -12,6 +12,7 @@ dist
 __pycache__/
 *.py[cod]
 *.egg-info/
+debug/
 worker/.venv/
 worker/.env
 worker/debug/
@@ -25,5 +26,7 @@ android-sdk/
 android/.gradle/
 android/**/build/
 android/local.properties
+android/app/google-services.json
+firebase-service-account*.json
 
 .vercel-home/
