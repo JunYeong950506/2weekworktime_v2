@@ -16,12 +16,9 @@ function toWatchResponse(watch, currentState) {
     watchId: watch.id,
     targetNumber: watch.target_number,
     advanceCount: watch.advance_count,
-    triggerNumber: watch.trigger_number,
     currentNumber: currentState?.current_number ?? null,
     capturedAt: currentState?.captured_at ?? null,
-    sourceStatus: currentState?.source_status ?? 'UNKNOWN',
     status: watch.status,
-    expiresAt: watch.expires_at,
   };
 }
 
@@ -76,7 +73,7 @@ export default async function handler(request, response) {
 
     const { data: currentState, error: stateError } = await supabase
       .from('cafe_number_state')
-      .select('current_number,captured_at,source_status')
+      .select('current_number,captured_at')
       .eq('id', 1)
       .maybeSingle();
 
@@ -116,7 +113,7 @@ export default async function handler(request, response) {
           updated_at: nowIso,
         })
         .eq('id', existingWatch.id)
-        .select('id,target_number,advance_count,trigger_number,status,expires_at')
+        .select('id,target_number,advance_count,status')
         .single();
 
       if (updateError) {
@@ -137,7 +134,7 @@ export default async function handler(request, response) {
         status: 'WAITING',
         expires_at: expiresAt,
       })
-      .select('id,target_number,advance_count,trigger_number,status,expires_at')
+      .select('id,target_number,advance_count,status')
       .single();
 
     if (insertError) {

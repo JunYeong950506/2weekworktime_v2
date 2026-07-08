@@ -87,10 +87,3 @@ export function cancelCafeWatch(watchId: string, deviceId: string): Promise<{ ok
     body: JSON.stringify({ watchId, deviceId }),
   });
 }
-
-export function sendCafeTestPush(deviceId: string): Promise<{ ok: true; providerStatus: number | null }> {
-  return apiFetch<{ ok: true; providerStatus: number | null }>('/api/cafe-alert/test-push', {
-    method: 'POST',
-    body: JSON.stringify({ deviceId }),
-  });
-}

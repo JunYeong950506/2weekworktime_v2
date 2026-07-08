@@ -1,4 +1,5 @@
 import {
+  getCafeSubscriptionIdsForDevice,
   getSupabaseAdmin,
   isUuid,
   readJsonBody,
@@ -29,16 +30,7 @@ export default async function handler(request, response) {
     }
 
     const supabase = getSupabaseAdmin();
-    const { data: subscriptions, error: subscriptionsError } = await supabase
-      .from('cafe_push_subscriptions')
-      .select('id')
-      .eq('device_id', deviceId);
-
-    if (subscriptionsError) {
-      throw new Error(subscriptionsError.message);
-    }
-
-    const subscriptionIds = (subscriptions ?? []).map((subscription) => subscription.id);
+    const subscriptionIds = await getCafeSubscriptionIdsForDevice(supabase, deviceId);
     if (subscriptionIds.length === 0) {
       sendError(response, 404, 'WATCH_NOT_FOUND', 'Watch was not found for this device');
       return;

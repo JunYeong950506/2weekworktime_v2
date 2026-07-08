@@ -42,17 +42,12 @@ function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse
   return {
     currentNumber: response.currentNumber,
     capturedAt: response.capturedAt,
-    sourceStatus: response.sourceStatus,
     watch: {
       id: response.watchId,
       targetNumber: response.targetNumber,
       advanceCount: response.advanceCount,
-      triggerNumber: response.triggerNumber,
       status: response.status,
-      notificationType: null,
-      expiresAt: response.expiresAt,
       notifiedAt: null,
-      lastError: null,
     },
   };
 }
