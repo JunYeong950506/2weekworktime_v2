@@ -216,7 +216,6 @@ export default function CafeNumberAlertDialog({
 
     return Number(targetNumberInput);
   }, [targetNumberInput]);
-  const triggerNumber = parsedTargetNumber !== null ? parsedTargetNumber - advanceCount : null;
   const isTargetNumberValid =
     parsedTargetNumber !== null &&
     parsedTargetNumber >= 1 &&
@@ -483,50 +482,35 @@ export default function CafeNumberAlertDialog({
         </div>
 
         <form onSubmit={(event) => void submitRegister(event)} className="mt-5 space-y-4">
-          <label className="field-label">
-            주문번호
-            <input
-              value={targetNumberInput}
-              onChange={(event) => setTargetNumberInput(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="field-input h-12 text-lg"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="field-label min-w-0">
+              주문번호
+              <input
+                value={targetNumberInput}
+                onChange={(event) => setTargetNumberInput(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="field-input h-12 w-full text-lg"
+              />
+            </label>
 
-          <div>
-            <p className="mb-2 text-xs font-bold text-slate-400">알림 시점</p>
-            <div className="grid grid-cols-2 gap-2">
-              {([3, 5] as const).map((count) => (
-                <button
-                  key={count}
-                  type="button"
-                  onClick={() => setAdvanceCount(count)}
-                  className={`h-11 rounded-xl border text-sm font-extrabold transition ${
-                    advanceCount === count
-                      ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-100'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {count}개 전
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs font-bold text-slate-400">알림 기준</p>
-                <p className="mt-1 font-extrabold text-slate-800">
-                  {triggerNumber !== null && triggerNumber > 0 ? `${triggerNumber}번` : '-'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400">만료</p>
-                <p className="mt-1 font-extrabold text-slate-800">
-                  {watch?.expiresAt ? formatDateTime(watch.expiresAt) : '등록 후 3시간'}
-                </p>
+            <div className="min-w-0">
+              <p className="mb-1.5 text-xs font-bold text-slate-400">알림 시점</p>
+              <div className="grid h-12 grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
+                {([3, 5] as const).map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setAdvanceCount(count)}
+                    className={`rounded-lg text-sm font-extrabold transition ${
+                      advanceCount === count
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-100'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {count}개 전
+                  </button>
+                ))}
               </div>
             </div>
           </div>
