@@ -51,3 +51,31 @@ def test_detect_board_numbers_falls_back_to_list_max_when_main_is_empty():
     assert detection.current_number == 203
     assert detection.main_number is None
     assert detection.source == "LIST_MAX"
+
+
+def test_detect_board_numbers_ignores_main_number_lower_than_list_max():
+    image = np.zeros((100, 200, 3), dtype=np.uint8)
+
+    class RegionEngine:
+        name = "region-mock"
+        calls = 0
+
+        def recognize(self, _image):
+            self.calls += 1
+            text = "9" if self.calls <= 6 else "60 59 58 57 56 55"
+            from cafe_ocr_worker.models import OcrTextResult
+
+            return [OcrTextResult(text, 100, self.name)]
+
+    detection = detect_board_numbers(
+        image,
+        RegionEngine(),
+        NormalizedRoi(0, 0, 0.5, 0.3),
+        NormalizedRoi(0, 0.3, 0.5, 0.7),
+        70,
+    )
+
+    assert detection is not None
+    assert detection.current_number == 60
+    assert detection.main_number is None
+    assert detection.source == "LIST_MAX"

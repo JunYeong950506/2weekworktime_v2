@@ -212,6 +212,10 @@ def detect_board_numbers(
     )
 
     main_number = max(main_numbers) if main_numbers else None
+    list_max = max(list_numbers) if list_numbers else None
+    if main_number is not None and list_max is not None and main_number < list_max:
+        main_number = None
+
     if main_number is not None:
         return NumberDetection(
             main_number=main_number,
@@ -222,13 +226,13 @@ def detect_board_numbers(
             source="MAIN_NUMBER",
         )
 
-    if not list_numbers:
+    if list_max is None:
         return None
 
     return NumberDetection(
         main_number=None,
         list_numbers=list_numbers,
-        current_number=max(list_numbers),
+        current_number=list_max,
         raw_text=f"list={list_text}".strip(),
         confidence=list_confidence,
         source="LIST_MAX",

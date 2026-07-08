@@ -156,7 +156,11 @@ export function resolveCafeCurrentNumber(payload) {
     payload?.detectedNumbers ?? payload?.listNumbers ?? payload?.numbers,
   );
 
-  if (mainNumber !== null) {
+  const fallbackNumber = detectedNumbers.length > 0
+    ? Math.max(...detectedNumbers)
+    : null;
+
+  if (mainNumber !== null && (fallbackNumber === null || mainNumber >= fallbackNumber)) {
     return {
       currentNumber: mainNumber,
       detectionSource: 'MAIN_NUMBER',
@@ -176,8 +180,7 @@ export function resolveCafeCurrentNumber(payload) {
     };
   }
 
-  if (detectedNumbers.length > 0) {
-    const fallbackNumber = Math.max(...detectedNumbers);
+  if (fallbackNumber !== null) {
     return {
       currentNumber: fallbackNumber,
       detectionSource: 'LIST_MAX',
