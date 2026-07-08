@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
+import CafeNumberAlertDialog from '../features/cafe-number-alert/CafeNumberAlertDialog';
 import { CreateHolidayNoticePayload, CreatePeriodPayload, Period } from '../types';
 import { buildDefaultPeriodLabel, normalizePeriodCreateStartDate } from '../utils/period';
 import { formatSavedAt } from '../utils/time';
@@ -35,6 +36,8 @@ interface PeriodManagerProps {
   onDeleteCurrentPeriod: () => void;
   onResetAllData: () => void;
 }
+
+const CAFE_CCTV_URL = 'https://www.hanwha701.com/';
 
 function formatPeriodLabelDisplay(label: string): string {
   const match = label.match(/^(\d{4})_(\d{2})_(.+)$/);
@@ -83,6 +86,19 @@ function AppHeaderIcon({ className = '' }: { className?: string }): JSX.Element 
   );
 }
 
+function CafeIcon({ className = 'h-5 w-5' }: { className?: string }): JSX.Element {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+        d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
+      />
+    </svg>
+  );
+}
+
 const WEEKDAY_LABELS = ['월', '화', '수', '목', '금'];
 
 function buildHolidayNoticeRows(startDate: string): string[][] {
@@ -119,6 +135,8 @@ export default function PeriodManager({
 }: PeriodManagerProps): JSX.Element {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDangerMenuOpen, setIsDangerMenuOpen] = useState(false);
+  const [isCafeMenuOpen, setIsCafeMenuOpen] = useState(false);
+  const [isCafeAlertOpen, setIsCafeAlertOpen] = useState(false);
   const [isCodeViewOpen, setIsCodeViewOpen] = useState(false);
   const [isCodeLoadOpen, setIsCodeLoadOpen] = useState(false);
   const [codeInputDraft, setCodeInputDraft] = useState('');
@@ -136,6 +154,8 @@ export default function PeriodManager({
   const startDateInputRef = useRef<HTMLInputElement | null>(null);
   const dangerMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileDangerMenuRef = useRef<HTMLDivElement | null>(null);
+  const cafeMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileCafeMenuRef = useRef<HTMLDivElement | null>(null);
   const codeFeedbackClassName =
     codeFeedbackTone === 'error' ? 'mt-2 text-xs text-rose-600' : 'mt-2 text-xs text-amber-600';
   const suggestedCreateLabel = useMemo(
@@ -277,6 +297,36 @@ export default function PeriodManager({
   }, [isDangerMenuOpen]);
 
   useEffect(() => {
+    if (!isCafeMenuOpen) {
+      return;
+    }
+
+    function handleWindowClick(event: MouseEvent): void {
+      const target = event.target as Node;
+      const isInsideDesktopMenu = cafeMenuRef.current?.contains(target) ?? false;
+      const isInsideMobileMenu = mobileCafeMenuRef.current?.contains(target) ?? false;
+
+      if (!isInsideDesktopMenu && !isInsideMobileMenu) {
+        setIsCafeMenuOpen(false);
+      }
+    }
+
+    function handleWindowKeydown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setIsCafeMenuOpen(false);
+      }
+    }
+
+    window.addEventListener('mousedown', handleWindowClick);
+    window.addEventListener('keydown', handleWindowKeydown);
+
+    return () => {
+      window.removeEventListener('mousedown', handleWindowClick);
+      window.removeEventListener('keydown', handleWindowKeydown);
+    };
+  }, [isCafeMenuOpen]);
+
+  useEffect(() => {
     if (!isCodeViewOpen && !isCodeLoadOpen) {
       return;
     }
@@ -376,6 +426,43 @@ export default function PeriodManager({
     } finally {
       setIsCodeActionPending(false);
     }
+  }
+
+  function renderCafeMenu(): JSX.Element | null {
+    if (!isCafeMenuOpen) {
+      return null;
+    }
+
+    return (
+      <div className="absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl md:top-auto">
+        <button
+          type="button"
+          onClick={() => {
+            setIsCafeMenuOpen(false);
+            setIsCafeAlertOpen(true);
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          <svg className="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 01-6 0" />
+          </svg>
+          알림 등록
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsCafeMenuOpen(false);
+            window.location.assign(CAFE_CCTV_URL);
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+        >
+          <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7h16v10H4zM8 21h8M12 17v4" />
+          </svg>
+          CCTV 보기
+        </button>
+      </div>
+    );
   }
 
   function renderSettingsMenu(): JSX.Element | null {
@@ -533,27 +620,34 @@ export default function PeriodManager({
             </div>
           </div>
 
-          <div ref={mobileDangerMenuRef} className="relative ml-auto flex shrink-0 items-center gap-1.5">
+          <div
+            ref={(node) => {
+              mobileCafeMenuRef.current = node;
+              mobileDangerMenuRef.current = node;
+            }}
+            className="relative ml-auto flex shrink-0 items-center gap-1.5"
+          >
             <button
               type="button"
               onClick={() => {
-                window.location.assign('https://www.hanwha701.com/');
+                setIsDangerMenuOpen(false);
+                setIsCafeMenuOpen((prev) => !prev);
               }}
-              aria-label="커피 웹사이트 열기"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-amber-600 transition hover:bg-slate-100"
+              aria-expanded={isCafeMenuOpen}
+              aria-label="카페 메뉴"
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-amber-600 transition hover:bg-slate-100 ${
+                isCafeMenuOpen ? 'bg-amber-50' : 'bg-slate-50'
+              }`}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.8"
-                  d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
-                />
-              </svg>
+              <CafeIcon />
             </button>
+            {renderCafeMenu()}
             <button
               type="button"
-              onClick={() => setIsDangerMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsCafeMenuOpen(false);
+                setIsDangerMenuOpen((prev) => !prev);
+              }}
               aria-expanded={isDangerMenuOpen}
               aria-label="설정 메뉴"
               className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 transition hover:bg-slate-100 hover:text-slate-700 ${
@@ -691,10 +785,31 @@ export default function PeriodManager({
             <button type="button" onClick={onSave} className="btn-primary">
               전체 저장
             </button>
+            <div ref={cafeMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDangerMenuOpen(false);
+                  setIsCafeMenuOpen((prev) => !prev);
+                }}
+                aria-expanded={isCafeMenuOpen}
+                aria-label="카페 메뉴"
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-amber-600 shadow-sm transition hover:bg-amber-50 ${
+                  isCafeMenuOpen ? 'bg-amber-50' : 'bg-slate-100'
+                }`}
+              >
+                <CafeIcon />
+              </button>
+
+              {renderCafeMenu()}
+            </div>
             <div ref={dangerMenuRef} className="relative hidden md:block">
               <button
                 type="button"
-                onClick={() => setIsDangerMenuOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsCafeMenuOpen(false);
+                  setIsDangerMenuOpen((prev) => !prev);
+                }}
                 aria-expanded={isDangerMenuOpen}
                 aria-label="설정 메뉴"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-500 shadow-sm transition hover:bg-slate-200 hover:text-slate-700"
@@ -983,6 +1098,11 @@ export default function PeriodManager({
         </div>,
         document.body,
       ) : null}
+
+      <CafeNumberAlertDialog
+        open={isCafeAlertOpen}
+        onClose={() => setIsCafeAlertOpen(false)}
+      />
     </section>
   );
 }

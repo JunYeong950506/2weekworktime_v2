@@ -1,0 +1,520 @@
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import {
+  cancelCafeWatch,
+  fetchCafeWatchStatus,
+  getOrCreateCafeDeviceId,
+  registerCafePushSubscription,
+  registerCafeWatch,
+  sendCafeTestPush,
+} from './cafeNumberApi';
+import {
+  isIos,
+  isPushSupported,
+  isStandalone,
+  registerCafeServiceWorker,
+  requestNotificationPermission,
+  subscribeToCafePush,
+} from './pushSupport';
+import { AdvanceCount, CafeWatchStatus, CafeWatchStatusResponse, RegisterWatchResponse } from './types';
+
+interface CafeNumberAlertDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+type AlertUiState =
+  | 'INITIAL'
+  | 'IOS_INSTALL_REQUIRED'
+  | 'PERMISSION_DENIED'
+  | 'REGISTERING'
+  | 'WAITING'
+  | 'NOTIFIED'
+  | 'EXPIRED'
+  | 'UNSUPPORTED'
+  | 'ERROR';
+
+const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
+
+function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse {
+  return {
+    currentNumber: response.currentNumber,
+    capturedAt: response.capturedAt,
+    sourceStatus: response.sourceStatus,
+    watch: {
+      id: response.watchId,
+      targetNumber: response.targetNumber,
+      advanceCount: response.advanceCount,
+      triggerNumber: response.triggerNumber,
+      status: response.status,
+      notificationType: null,
+      expiresAt: response.expiresAt,
+      notifiedAt: null,
+      lastError: null,
+    },
+  };
+}
+
+function stateFromWatchStatus(status: CafeWatchStatus | null): AlertUiState {
+  if (status === 'WAITING' || status === 'PROCESSING') {
+    return 'WAITING';
+  }
+
+  if (status === 'NOTIFIED') {
+    return 'NOTIFIED';
+  }
+
+  if (status === 'EXPIRED') {
+    return 'EXPIRED';
+  }
+
+  if (status === 'FAILED') {
+    return 'ERROR';
+  }
+
+  return 'INITIAL';
+}
+
+function toFriendlyError(error: unknown): { state: AlertUiState; message: string } {
+  const rawMessage = error instanceof Error ? error.message : '';
+
+  if (rawMessage === 'NOTIFICATION_PERMISSION_DENIED') {
+    return {
+      state: 'PERMISSION_DENIED',
+      message: '브라우저 알림이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해 주세요.',
+    };
+  }
+
+  if (rawMessage === 'NOTIFICATION_PERMISSION_NOT_GRANTED') {
+    return {
+      state: 'ERROR',
+      message: '알림 권한이 허용되지 않아 등록을 완료하지 못했습니다.',
+    };
+  }
+
+  if (rawMessage === 'SERVICE_WORKER_NOT_SUPPORTED' || rawMessage === 'NOTIFICATION_NOT_SUPPORTED') {
+    return {
+      state: 'UNSUPPORTED',
+      message: '이 브라우저는 웹 알림을 지원하지 않습니다.',
+    };
+  }
+
+  if (rawMessage === 'WEB_PUSH_NOT_CONFIGURED') {
+    return {
+      state: 'ERROR',
+      message: 'VITE_VAPID_PUBLIC_KEY 환경변수가 필요합니다.',
+    };
+  }
+
+  return {
+    state: 'ERROR',
+    message: rawMessage || '알림 등록 중 오류가 발생했습니다.',
+  };
+}
+
+function formatNumber(value: number | null): string {
+  return typeof value === 'number' ? `${value}번` : '수신 대기';
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return '-';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '-';
+  }
+
+  return parsed.toLocaleString('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function statusLabel(state: AlertUiState): string {
+  switch (state) {
+    case 'IOS_INSTALL_REQUIRED':
+      return '홈 화면 실행 필요';
+    case 'PERMISSION_DENIED':
+      return '알림 차단됨';
+    case 'REGISTERING':
+      return '등록 중';
+    case 'WAITING':
+      return '대기 중';
+    case 'NOTIFIED':
+      return '알림 완료';
+    case 'EXPIRED':
+      return '만료됨';
+    case 'UNSUPPORTED':
+      return '미지원';
+    case 'ERROR':
+      return '오류';
+    default:
+      return '등록 전';
+  }
+}
+
+function statusClassName(state: AlertUiState): string {
+  if (state === 'WAITING' || state === 'NOTIFIED') {
+    return 'bg-emerald-50 text-emerald-700';
+  }
+
+  if (state === 'ERROR' || state === 'PERMISSION_DENIED' || state === 'UNSUPPORTED') {
+    return 'bg-rose-50 text-rose-700';
+  }
+
+  if (state === 'EXPIRED' || state === 'IOS_INSTALL_REQUIRED') {
+    return 'bg-amber-50 text-amber-700';
+  }
+
+  return 'bg-slate-100 text-slate-600';
+}
+
+export default function CafeNumberAlertDialog({
+  open,
+  onClose,
+}: CafeNumberAlertDialogProps): JSX.Element | null {
+  const [deviceId, setDeviceId] = useState('');
+  const [statusData, setStatusData] = useState<CafeWatchStatusResponse | null>(null);
+  const [targetNumberInput, setTargetNumberInput] = useState('');
+  const [advanceCount, setAdvanceCount] = useState<AdvanceCount>(5);
+  const [uiState, setUiState] = useState<AlertUiState>('INITIAL');
+  const [message, setMessage] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<'register' | 'test' | 'cancel' | null>(null);
+
+  const watch = statusData?.watch ?? null;
+  const parsedTargetNumber = useMemo(() => {
+    if (!/^\d+$/.test(targetNumberInput.trim())) {
+      return null;
+    }
+
+    return Number(targetNumberInput);
+  }, [targetNumberInput]);
+  const triggerNumber = parsedTargetNumber !== null ? parsedTargetNumber - advanceCount : null;
+  const isTargetNumberValid =
+    parsedTargetNumber !== null &&
+    parsedTargetNumber >= 1 &&
+    parsedTargetNumber <= 9999 &&
+    parsedTargetNumber > advanceCount;
+
+  async function refreshStatus(nextDeviceId: string): Promise<void> {
+    try {
+      const nextStatus = await fetchCafeWatchStatus(nextDeviceId);
+      setStatusData(nextStatus);
+      setUiState(stateFromWatchStatus(nextStatus.watch?.status ?? null));
+      setMessage(null);
+    } catch (error) {
+      const friendly = toFriendlyError(error);
+      setUiState(friendly.state);
+      setMessage(friendly.message);
+    }
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const nextDeviceId = getOrCreateCafeDeviceId();
+    setDeviceId(nextDeviceId);
+    void refreshStatus(nextDeviceId);
+  }, [open]);
+
+  useEffect(() => {
+    if (!watch) {
+      return;
+    }
+
+    setTargetNumberInput(String(watch.targetNumber));
+    setAdvanceCount(watch.advanceCount);
+  }, [watch]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeydown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [onClose, open]);
+
+  async function submitRegister(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+
+    if (!isTargetNumberValid || parsedTargetNumber === null) {
+      setUiState('ERROR');
+      setMessage('주문번호는 알림 시점보다 큰 1-9999 숫자로 입력해 주세요.');
+      return;
+    }
+
+    if (isIos() && !isStandalone()) {
+      setUiState('IOS_INSTALL_REQUIRED');
+      setMessage('iPhone에서는 홈 화면에 추가한 앱에서 알림 등록을 진행해 주세요.');
+      return;
+    }
+
+    if (!isPushSupported()) {
+      setUiState('UNSUPPORTED');
+      setMessage('이 브라우저는 웹 알림을 지원하지 않습니다.');
+      return;
+    }
+
+    if (!VAPID_PUBLIC_KEY) {
+      setUiState('ERROR');
+      setMessage('VITE_VAPID_PUBLIC_KEY 환경변수가 필요합니다.');
+      return;
+    }
+
+    setPendingAction('register');
+    setUiState('REGISTERING');
+    setMessage(null);
+
+    try {
+      const nextDeviceId = deviceId || getOrCreateCafeDeviceId();
+      setDeviceId(nextDeviceId);
+
+      const registration = await registerCafeServiceWorker();
+      await requestNotificationPermission();
+      const pushSubscription = await subscribeToCafePush(registration, VAPID_PUBLIC_KEY);
+      const { subscriptionId } = await registerCafePushSubscription(nextDeviceId, pushSubscription);
+      const watchResponse = await registerCafeWatch({
+        subscriptionId,
+        targetNumber: parsedTargetNumber,
+        advanceCount,
+      });
+
+      setStatusData(toWatchStatus(watchResponse));
+      setUiState(stateFromWatchStatus(watchResponse.status));
+      setMessage(`${watchResponse.targetNumber}번 알림을 등록했습니다.`);
+    } catch (error) {
+      const friendly = toFriendlyError(error);
+      setUiState(friendly.state);
+      setMessage(friendly.message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleTestPush(): Promise<void> {
+    if (!deviceId) {
+      return;
+    }
+
+    setPendingAction('test');
+    setMessage(null);
+    try {
+      await sendCafeTestPush(deviceId);
+      setMessage('테스트 알림을 보냈습니다.');
+    } catch (error) {
+      const friendly = toFriendlyError(error);
+      setUiState(friendly.state);
+      setMessage(friendly.message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleCancelWatch(): Promise<void> {
+    if (!watch || !deviceId) {
+      return;
+    }
+
+    setPendingAction('cancel');
+    setMessage(null);
+    try {
+      await cancelCafeWatch(watch.id, deviceId);
+      setStatusData((prev) => (prev ? { ...prev, watch: null } : prev));
+      setUiState('INITIAL');
+      setMessage('알림 등록을 취소했습니다.');
+    } catch (error) {
+      const friendly = toFriendlyError(error);
+      setUiState(friendly.state);
+      setMessage(friendly.message);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  if (!open) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/35 px-4 py-6 backdrop-blur-sm sm:py-10"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-xl rounded-[28px] bg-white p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  d="M17 9h1a2 2 0 010 4h-1m0-4H4v4a4 4 0 004 4h5a4 4 0 004-4V9zM7 4v2m4-2v2m4-2v2"
+                />
+              </svg>
+            </span>
+            <div>
+              <h3 className="text-xl font-extrabold tracking-tight text-slate-900">
+                카페 번호표 알림
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                번호가 가까워지면 이 기기로 알림을 받습니다.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="카페 알림 화면 닫기"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-bold text-slate-400">현재 확인 번호</p>
+            <p className="mt-1 text-2xl font-extrabold text-slate-900">
+              {formatNumber(statusData?.currentNumber ?? null)}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {formatDateTime(statusData?.capturedAt ?? null)} 기준
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-bold text-slate-400">알림 상태</p>
+            <span className={`mt-2 inline-flex rounded-xl px-3 py-1.5 text-sm font-extrabold ${statusClassName(uiState)}`}>
+              {statusLabel(uiState)}
+            </span>
+            <p className="mt-2 text-xs text-slate-400">
+              {watch ? `${watch.targetNumber}번 / ${watch.advanceCount}개 전` : '등록된 알림 없음'}
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={(event) => void submitRegister(event)} className="mt-5 space-y-4">
+          <label className="field-label">
+            주문번호
+            <input
+              value={targetNumberInput}
+              onChange={(event) => setTargetNumberInput(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="예: 205"
+              className="field-input h-12 text-lg"
+            />
+          </label>
+
+          <div>
+            <p className="mb-2 text-xs font-bold text-slate-400">알림 시점</p>
+            <div className="grid grid-cols-2 gap-2">
+              {([3, 5] as const).map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setAdvanceCount(count)}
+                  className={`h-11 rounded-xl border text-sm font-extrabold transition ${
+                    advanceCount === count
+                      ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {count}개 전
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs font-bold text-slate-400">알림 기준</p>
+                <p className="mt-1 font-extrabold text-slate-800">
+                  {triggerNumber !== null && triggerNumber > 0 ? `${triggerNumber}번` : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400">만료</p>
+                <p className="mt-1 font-extrabold text-slate-800">
+                  {watch?.expiresAt ? formatDateTime(watch.expiresAt) : '등록 후 3시간'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {uiState === 'IOS_INSTALL_REQUIRED' ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <p className="font-extrabold">iPhone 알림 설정</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-5">
+                <li>Safari 공유 버튼을 누릅니다.</li>
+                <li>홈 화면에 추가를 선택합니다.</li>
+                <li>홈 화면에서 다시 실행한 뒤 알림 등록을 누릅니다.</li>
+              </ol>
+            </div>
+          ) : null}
+
+          {message ? (
+            <p className={`rounded-2xl px-4 py-3 text-sm font-bold ${statusClassName(uiState)}`}>
+              {message}
+            </p>
+          ) : null}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="submit"
+              disabled={pendingAction !== null || !isTargetNumberValid}
+              className="btn-primary h-11 flex-1 disabled:opacity-50"
+            >
+              {pendingAction === 'register' ? '등록 중' : '알림 등록'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void handleTestPush();
+              }}
+              disabled={pendingAction !== null || !watch}
+              className="btn-secondary h-11 flex-1 disabled:opacity-50"
+            >
+              {pendingAction === 'test' ? '전송 중' : '테스트 알림'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void handleCancelWatch();
+              }}
+              disabled={pendingAction !== null || !watch || watch.status !== 'WAITING'}
+              className="btn-quiet h-11 flex-1 disabled:opacity-50"
+            >
+              {pendingAction === 'cancel' ? '취소 중' : '알림 취소'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}

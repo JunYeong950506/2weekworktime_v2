@@ -76,6 +76,23 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
 
+카페 번호표 알림을 사용하려면 Vercel 환경변수에 아래 값을 추가합니다.
+
+```bash
+VITE_VAPID_PUBLIC_KEY=...
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:admin@example.com
+SUPABASE_SERVICE_ROLE_KEY=...
+OCR_WORKER_TOKEN=...
+```
+
+`VAPID_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OCR_WORKER_TOKEN`은 서버 전용입니다.
+
+OCR Worker가 `/api/internal/cafe-number`로 번호를 보낼 때는 `mainNumber`와
+`listNumbers`를 함께 보낼 수 있습니다. 서버는 `mainNumber`를 우선 사용하고,
+메인 번호가 없으면 `listNumbers`의 최댓값을 현재 번호로 사용합니다.
+
 공공데이터포털 한국천문연구원 API를 fallback으로 사용하려면 Vercel 환경변수에 아래 값을 추가합니다.
 
 ```bash
@@ -119,8 +136,10 @@ KASI 키는 1차 소스 실패 시 `/api/holidays` 서버리스 함수에서만 
 - 저장/복구: `src/utils/storage.ts`
 - 서버 동기화: `src/utils/remoteSync.ts`
 - 공휴일 판정: `src/utils/holidayProvider.ts`, `api/holidays.js`
+- 카페 번호표 알림: `src/features/cafe-number-alert/`, `api/cafe-alert/`
 - Supabase client: `src/lib/supabase.ts`
 
 ## Supabase 설정
 - 스키마 파일: `supabase/schema.sql`
+- 카페 알림 migration: `supabase/migrations/20260708_create_cafe_number_alert.sql`
 - 점검 문서: `supabase/SETUP_CHECKLIST.md`
