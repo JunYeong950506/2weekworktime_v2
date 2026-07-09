@@ -135,7 +135,7 @@ function formatNumber(value: number | null): string {
   return typeof value === 'number' ? `${value}번` : '수신 대기';
 }
 
-function formatDateTime(value: string | null): string {
+function formatTime(value: string | null): string {
   if (!value) {
     return '-';
   }
@@ -145,11 +145,10 @@ function formatDateTime(value: string | null): string {
     return '-';
   }
 
-  return parsed.toLocaleString('ko-KR', {
-    month: '2-digit',
-    day: '2-digit',
+  return parsed.toLocaleTimeString('ko-KR', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
 }
 
@@ -251,7 +250,7 @@ export default function CafeNumberAlertDialog({
       return prev ? { ...prev, watch: null } : prev;
     });
     setTargetNumberInput('');
-    setAdvanceCount(5);
+    setAdvanceCount(3);
     setUiState('INITIAL');
     setMessage(null);
   }
@@ -480,7 +479,7 @@ export default function CafeNumberAlertDialog({
               {formatNumber(statusData?.currentNumber ?? null)}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              {formatDateTime(statusData?.capturedAt ?? null)} 기준
+              {formatTime(statusData?.capturedAt ?? null)} 기준
             </p>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
