@@ -22,8 +22,10 @@ import {
 } from './time';
 
 const BREAK_THRESHOLD_MINUTES = 8 * 60 + 30;
+const EXTRA_BREAK_THRESHOLD_MINUTES = 13 * 60;
 const SHORT_BREAK_MINUTES = 30;
 const LONG_BREAK_MINUTES = 60;
+const EXTRA_BREAK_MINUTES = 90;
 const MIN_WORK_MINUTES_FOR_PARTIAL_LEAVE = 4 * 60;
 
 function getDayFlags(dateIso: string): {
@@ -83,6 +85,10 @@ function isPartialLeave(type: AnnualLeaveType): boolean {
 }
 
 function getBreakMinutesFromStayed(stayedMinutes: number): number {
+  if (stayedMinutes >= EXTRA_BREAK_THRESHOLD_MINUTES) {
+    return EXTRA_BREAK_MINUTES;
+  }
+
   return stayedMinutes < BREAK_THRESHOLD_MINUTES
     ? SHORT_BREAK_MINUTES
     : LONG_BREAK_MINUTES;

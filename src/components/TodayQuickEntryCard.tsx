@@ -29,8 +29,10 @@ interface TodayQuickEntryCardProps {
 
 const LONG_PRESS_DELAY_MS = 650;
 const BREAK_THRESHOLD_MINUTES = 8 * MINUTES_PER_HOUR + 30;
+const EXTRA_BREAK_THRESHOLD_MINUTES = 13 * MINUTES_PER_HOUR;
 const SHORT_BREAK_MINUTES = 30;
 const LONG_BREAK_MINUTES = 60;
+const EXTRA_BREAK_MINUTES = 90;
 
 function isPartialLeave(type: AnnualLeaveType): boolean {
   return type === 'quarter' || type === 'half';
@@ -74,14 +76,21 @@ function formatClockFromTotalMinutes(totalMinutes: number): string {
 }
 
 function getExpectedStayMinutes(targetWorkMinutes: number, extraDeductionMinutes: number): number {
+  const safeTargetWorkMinutes = Math.max(0, Math.round(targetWorkMinutes));
   const shortBreakStayMinutes =
-    Math.max(0, Math.round(targetWorkMinutes)) + SHORT_BREAK_MINUTES + extraDeductionMinutes;
+    safeTargetWorkMinutes + SHORT_BREAK_MINUTES + extraDeductionMinutes;
 
   if (shortBreakStayMinutes < BREAK_THRESHOLD_MINUTES) {
     return shortBreakStayMinutes;
   }
 
-  return Math.max(0, Math.round(targetWorkMinutes)) + LONG_BREAK_MINUTES + extraDeductionMinutes;
+  const longBreakStayMinutes =
+    safeTargetWorkMinutes + LONG_BREAK_MINUTES + extraDeductionMinutes;
+  if (longBreakStayMinutes < EXTRA_BREAK_THRESHOLD_MINUTES) {
+    return longBreakStayMinutes;
+  }
+
+  return safeTargetWorkMinutes + EXTRA_BREAK_MINUTES + extraDeductionMinutes;
 }
 
 function TimePanel({
