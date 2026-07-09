@@ -7,7 +7,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .image_preprocessor import crop_normalized_roi, preprocess_variants
+from .image_preprocessor import crop_normalized_roi, pad_with_border_color, preprocess_variants
 from .models import NormalizedRoi, NumberDetection, OcrTextResult
 
 DIGIT_PATTERN = re.compile(r"(?<!\d)\d{1,4}(?!\d)")
@@ -197,7 +197,7 @@ def detect_board_numbers(
     list_roi: NormalizedRoi,
     min_confidence: float,
 ) -> NumberDetection | None:
-    main_image = crop_normalized_roi(panel_image, main_roi)
+    main_image = pad_with_border_color(crop_normalized_roi(panel_image, main_roi), 0.5, 0.6)
     list_image = crop_normalized_roi(panel_image, list_roi)
 
     main_numbers, main_text, main_confidence = recognize_region_numbers(

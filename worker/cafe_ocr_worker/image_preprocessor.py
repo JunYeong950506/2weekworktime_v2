@@ -38,6 +38,32 @@ def crop_normalized_roi(image: np.ndarray, roi: NormalizedRoi) -> np.ndarray:
     return image[y1:y2, x1:x2]
 
 
+def pad_with_border_color(image: np.ndarray, x_ratio: float, y_ratio: float) -> np.ndarray:
+    height, width = image.shape[:2]
+    pad_x = max(1, int(round(width * x_ratio)))
+    pad_y = max(1, int(round(height * y_ratio)))
+
+    if image.ndim == 2:
+        border = np.concatenate([image[0], image[-1], image[:, 0], image[:, -1]])
+        fill = int(np.median(border))
+    else:
+        border = np.concatenate(
+            [image[0, :, :], image[-1, :, :], image[:, 0, :], image[:, -1, :]],
+            axis=0,
+        )
+        fill = np.median(border, axis=0).astype(np.uint8).tolist()
+
+    return cv2.copyMakeBorder(
+        image,
+        pad_y,
+        pad_y,
+        pad_x,
+        pad_x,
+        cv2.BORDER_CONSTANT,
+        value=fill,
+    )
+
+
 def preprocess_variants(image: np.ndarray) -> list[np.ndarray]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
     enlarged = cv2.resize(
