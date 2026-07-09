@@ -223,7 +223,7 @@ export default function CafeNumberAlertDialog({
   const [deviceId, setDeviceId] = useState('');
   const [statusData, setStatusData] = useState<CafeWatchStatusResponse | null>(null);
   const [targetNumberInput, setTargetNumberInput] = useState('');
-  const [advanceCount, setAdvanceCount] = useState<AdvanceCount>(5);
+  const [advanceCount, setAdvanceCount] = useState<AdvanceCount>(3);
   const [uiState, setUiState] = useState<AlertUiState>('INITIAL');
   const [message, setMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<'register' | 'cancel' | null>(null);
