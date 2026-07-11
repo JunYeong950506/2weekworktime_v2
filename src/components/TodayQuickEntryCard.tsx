@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
 import { DAILY_REGULAR_MINUTES, DINNER_BREAK_MINUTES, MINUTES_PER_HOUR } from '../constants';
@@ -80,6 +81,20 @@ function formatClockFromTotalMinutes(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
+function formatClockPickerLabel(value: string): string {
+  const parsed = parseTime24(value);
+  if (!parsed) {
+    return '--:--';
+  }
+
+  const hours24 = Math.floor(parsed.totalMinutes / MINUTES_PER_HOUR);
+  const minutes = parsed.totalMinutes % MINUTES_PER_HOUR;
+  const period = hours24 < 12 ? '오전' : '오후';
+  const hours12 = hours24 % 12 || 12;
+
+  return `${period} ${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
 function clampDurationMinutes(totalMinutes: number, maxMinutes: number): number {
   return Math.min(maxMinutes, Math.max(0, Math.round(totalMinutes)));
 }
@@ -100,6 +115,55 @@ function formatDurationLabel(totalMinutes: number, maxMinutes: number): string {
   return `${hours}시간 ${String(minutes).padStart(2, '0')}분`;
 }
 
+function CenteredTimePicker({
+  ariaLabel,
+  displayValue,
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
+  className,
+}: {
+  ariaLabel: string;
+  displayValue: string;
+  value: string;
+  min: string;
+  max: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  className: string;
+}): JSX.Element {
+  const inputId = useId();
+  const pickerInput = (
+    <input
+      id={inputId}
+      type="time"
+      step={60}
+      min={min}
+      max={max}
+      aria-label={ariaLabel}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      className="fixed left-1/2 top-1/2 h-px w-px -translate-x-1/2 -translate-y-1/2 cursor-pointer opacity-0"
+    />
+  );
+
+  return (
+    <span className={`inline-flex ${className}`}>
+      <label
+        htmlFor={inputId}
+        aria-disabled={disabled}
+        className="flex h-full w-full cursor-pointer items-center justify-center text-center"
+      >
+        {displayValue}
+      </label>
+      {createPortal(pickerInput, document.body)}
+    </span>
+  );
+}
+
 function DurationPicker({
   ariaLabel,
   valueMinutes,
@@ -114,24 +178,18 @@ function DurationPicker({
   className: string;
 }): JSX.Element {
   return (
-    <span className={`relative inline-flex items-center justify-center text-center ${className}`}>
-      <span aria-hidden="true" className="pointer-events-none truncate">
-        {formatDurationLabel(valueMinutes, maxMinutes)}
-      </span>
-      <input
-        type="time"
-        step={60}
-        min="00:00"
-        max={formatDurationInputValue(maxMinutes, maxMinutes)}
-        aria-label={ariaLabel}
-        value={formatDurationInputValue(valueMinutes, maxMinutes)}
-        onChange={(event) => {
-          const parsed = parseTime24(event.target.value);
-          onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
-        }}
-        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-      />
-    </span>
+    <CenteredTimePicker
+      ariaLabel={ariaLabel}
+      displayValue={formatDurationLabel(valueMinutes, maxMinutes)}
+      value={formatDurationInputValue(valueMinutes, maxMinutes)}
+      min="00:00"
+      max={formatDurationInputValue(maxMinutes, maxMinutes)}
+      onChange={(value) => {
+        const parsed = parseTime24(value);
+        onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
+      }}
+      className={className}
+    />
   );
 }
 
@@ -230,23 +288,34 @@ function TimePanel({
           </button>
         ) : null}
       </div>
-      <input
-        type="time"
-        step={60}
-        min={min}
-        max={max}
-        inputMode="numeric"
-        pattern="[0-9:]*"
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        title="HH:mm (24시간 형식)"
-        className={`w-full bg-transparent font-extrabold text-slate-800 outline-none disabled:cursor-not-allowed disabled:text-slate-300 ${
-          compactOnMobile
-            ? 'text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl'
-            : 'text-2xl'
-        }`}
-      />
+      {compactOnMobile ? (
+        <CenteredTimePicker
+          ariaLabel={`${label} 선택`}
+          displayValue={formatClockPickerLabel(value)}
+          value={value}
+          min={min}
+          max={max}
+          disabled={disabled}
+          onChange={onChange}
+          className={`w-full bg-transparent font-extrabold text-slate-800 outline-none ${
+            disabled ? 'cursor-not-allowed text-slate-300' : ''
+          } text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl`}
+        />
+      ) : (
+        <input
+          type="time"
+          step={60}
+          min={min}
+          max={max}
+          inputMode="numeric"
+          pattern="[0-9:]*"
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          title="HH:mm (24시간 형식)"
+          className="w-full bg-transparent text-2xl font-extrabold text-slate-800 outline-none disabled:cursor-not-allowed disabled:text-slate-300"
+        />
+      )}
     </div>
   );
 }
@@ -715,7 +784,7 @@ export default function TodayQuickEntryCard({
               </label>
 
               {isSpecialWorkMode ? (
-                <label className="field-label">
+                <div className="field-label">
                   최종 특근 시간
                   <DurationPicker
                     ariaLabel="최종 특근 시간"
@@ -724,7 +793,7 @@ export default function TodayQuickEntryCard({
                     onChange={handleSpecialWorkFinalChange}
                     className="field-input h-11 w-full px-3 text-base font-extrabold text-indigo-600 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 min-[480px]:px-4 min-[480px]:text-lg"
                   />
-                </label>
+                </div>
               ) : (
                 <label className="field-label">
                   실제 야근결재(분)
