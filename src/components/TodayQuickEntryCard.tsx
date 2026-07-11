@@ -100,49 +100,7 @@ function formatDurationLabel(totalMinutes: number, maxMinutes: number): string {
   return `${hours}시간 ${String(minutes).padStart(2, '0')}분`;
 }
 
-function parseDurationInput(value: string, maxMinutes: number): number | null {
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return 0;
-  }
-
-  const labelMatch = normalized.match(/^(\d+)\s*시간\s*(\d{1,2})?\s*분?$/);
-  if (labelMatch) {
-    return clampDurationMinutes(
-      Number(labelMatch[1]) * MINUTES_PER_HOUR + Number(labelMatch[2] ?? 0),
-      maxMinutes,
-    );
-  }
-
-  const clockMatch = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
-  if (clockMatch) {
-    return clampDurationMinutes(
-      Number(clockMatch[1]) * MINUTES_PER_HOUR + Number(clockMatch[2]),
-      maxMinutes,
-    );
-  }
-
-  const digits = normalized.replace(/\D/g, '');
-  if (digits.length === 0 || digits.length > 4) {
-    return null;
-  }
-
-  if (digits.length <= 2) {
-    const numericValue = Number(digits);
-    const maxHours = Math.floor(maxMinutes / MINUTES_PER_HOUR);
-    return clampDurationMinutes(
-      numericValue <= maxHours ? numericValue * MINUTES_PER_HOUR : numericValue,
-      maxMinutes,
-    );
-  }
-
-  return clampDurationMinutes(
-    Number(digits.slice(0, -2)) * MINUTES_PER_HOUR + Number(digits.slice(-2)),
-    maxMinutes,
-  );
-}
-
-function DurationInput({
+function DurationPicker({
   ariaLabel,
   valueMinutes,
   maxMinutes,
@@ -155,45 +113,25 @@ function DurationInput({
   onChange: (value: number) => void;
   className: string;
 }): JSX.Element {
-  const [draft, setDraft] = useState(() => formatDurationLabel(valueMinutes, maxMinutes));
-  const [isEditing, setIsEditing] = useState(false);
-
-  useEffect(() => {
-    if (!isEditing) {
-      setDraft(formatDurationLabel(valueMinutes, maxMinutes));
-    }
-  }, [isEditing, maxMinutes, valueMinutes]);
-
-  function commit(): void {
-    const parsed = parseDurationInput(draft, maxMinutes);
-    const nextMinutes = parsed ?? clampDurationMinutes(valueMinutes, maxMinutes);
-    onChange(nextMinutes);
-    setDraft(formatDurationLabel(nextMinutes, maxMinutes));
-    setIsEditing(false);
-  }
-
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9:]*"
-      aria-label={ariaLabel}
-      value={draft}
-      onFocus={(event) => {
-        const input = event.currentTarget;
-        setIsEditing(true);
-        setDraft(formatDurationInputValue(valueMinutes, maxMinutes));
-        window.requestAnimationFrame(() => input.select());
-      }}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.currentTarget.blur();
-        }
-      }}
-      className={className}
-    />
+    <span className={`relative inline-flex items-center justify-center text-center ${className}`}>
+      <span aria-hidden="true" className="pointer-events-none truncate">
+        {formatDurationLabel(valueMinutes, maxMinutes)}
+      </span>
+      <input
+        type="time"
+        step={60}
+        min="00:00"
+        max={formatDurationInputValue(maxMinutes, maxMinutes)}
+        aria-label={ariaLabel}
+        value={formatDurationInputValue(valueMinutes, maxMinutes)}
+        onChange={(event) => {
+          const parsed = parseTime24(event.target.value);
+          onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
+        }}
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+      />
+    </span>
   );
 }
 
@@ -614,12 +552,12 @@ export default function TodayQuickEntryCard({
 
                   <div className="col-span-1 rounded-2xl border border-slate-100 bg-slate-50 p-2 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 min-[360px]:p-3 min-[480px]:p-4">
                     <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
-                    <DurationInput
+                    <DurationPicker
                       ariaLabel="신청 시간"
                       valueMinutes={specialWorkRequestMinutes}
                       maxMinutes={8 * MINUTES_PER_HOUR}
                       onChange={handleSpecialWorkRequestChange}
-                      className="w-full bg-transparent text-base font-extrabold text-slate-800 outline-none min-[360px]:text-lg min-[480px]:text-2xl"
+                      className="h-8 w-full bg-transparent text-base font-extrabold text-slate-800 outline-none min-[360px]:text-lg min-[480px]:text-2xl"
                     />
                   </div>
 
@@ -779,12 +717,12 @@ export default function TodayQuickEntryCard({
               {isSpecialWorkMode ? (
                 <label className="field-label">
                   최종 특근 시간
-                  <DurationInput
+                  <DurationPicker
                     ariaLabel="최종 특근 시간"
                     valueMinutes={specialWorkFinalMinutes}
                     maxMinutes={23 * MINUTES_PER_HOUR + 59}
                     onChange={handleSpecialWorkFinalChange}
-                    className="field-input h-11 w-full px-3 text-base font-extrabold text-indigo-600 min-[480px]:px-4 min-[480px]:text-lg"
+                    className="field-input h-11 w-full px-3 text-base font-extrabold text-indigo-600 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 min-[480px]:px-4 min-[480px]:text-lg"
                   />
                 </label>
               ) : (
