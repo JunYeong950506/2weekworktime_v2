@@ -100,6 +100,57 @@ function formatDurationLabel(totalMinutes: number, maxMinutes: number): string {
   return `${hours}시간 ${String(minutes).padStart(2, '0')}분`;
 }
 
+function formatClockPickerLabel(value: string): string {
+  const parsed = parseTime24(value);
+  if (!parsed) {
+    return '--:--';
+  }
+
+  const period = parsed.hours < 12 ? '오전' : '오후';
+  const hour = parsed.hours % 12 || 12;
+
+  return `${period} ${hour}:${String(parsed.minutes).padStart(2, '0')}`;
+}
+
+function NativeTimePickerOverlay({
+  ariaLabel,
+  value,
+  min,
+  max,
+  disabled,
+  displayValue,
+  onChange,
+  className,
+}: {
+  ariaLabel: string;
+  value: string;
+  min: string;
+  max: string;
+  disabled?: boolean;
+  displayValue: string;
+  onChange: (value: string) => void;
+  className: string;
+}): JSX.Element {
+  return (
+    <span className={`relative inline-flex items-center justify-center text-center ${className}`}>
+      <span aria-hidden="true" className="pointer-events-none truncate">
+        {displayValue}
+      </span>
+      <input
+        type="time"
+        step={60}
+        min={min}
+        max={max}
+        aria-label={ariaLabel}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+      />
+    </span>
+  );
+}
+
 function DurationPicker({
   ariaLabel,
   valueMinutes,
@@ -113,25 +164,21 @@ function DurationPicker({
   onChange: (value: number) => void;
   className: string;
 }): JSX.Element {
+  const value = formatDurationInputValue(valueMinutes, maxMinutes);
+
   return (
-    <span className={`relative inline-flex items-center justify-center text-center ${className}`}>
-      <span aria-hidden="true" className="pointer-events-none truncate">
-        {formatDurationLabel(valueMinutes, maxMinutes)}
-      </span>
-      <input
-        type="time"
-        step={60}
-        min="00:00"
-        max={formatDurationInputValue(maxMinutes, maxMinutes)}
-        aria-label={ariaLabel}
-        value={formatDurationInputValue(valueMinutes, maxMinutes)}
-        onChange={(event) => {
-          const parsed = parseTime24(event.target.value);
-          onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
-        }}
-        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-      />
-    </span>
+    <NativeTimePickerOverlay
+      ariaLabel={ariaLabel}
+      value={value}
+      min="00:00"
+      max={formatDurationInputValue(maxMinutes, maxMinutes)}
+      displayValue={formatDurationLabel(valueMinutes, maxMinutes)}
+      onChange={(nextValue) => {
+        const parsed = parseTime24(nextValue);
+        onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
+      }}
+      className={className}
+    />
   );
 }
 
@@ -160,6 +207,7 @@ function TimePanel({
   max,
   disabled,
   compactOnMobile,
+  useNativeOverlay,
   onChange,
   onSetNow,
   onLongPressSetNow,
@@ -170,6 +218,7 @@ function TimePanel({
   max: string;
   disabled?: boolean;
   compactOnMobile?: boolean;
+  useNativeOverlay?: boolean;
   onChange: (value: string) => void;
   onSetNow?: () => void;
   onLongPressSetNow?: () => void;
@@ -230,23 +279,40 @@ function TimePanel({
           </button>
         ) : null}
       </div>
-      <input
-        type="time"
-        step={60}
-        min={min}
-        max={max}
-        inputMode="numeric"
-        pattern="[0-9:]*"
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        title="HH:mm (24시간 형식)"
-        className={`w-full bg-transparent font-extrabold text-slate-800 outline-none disabled:cursor-not-allowed disabled:text-slate-300 ${
-          compactOnMobile
-            ? 'text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl'
-            : 'text-2xl'
-        }`}
-      />
+      {useNativeOverlay ? (
+        <NativeTimePickerOverlay
+          ariaLabel={label}
+          value={value}
+          min={min}
+          max={max}
+          disabled={disabled}
+          displayValue={formatClockPickerLabel(value)}
+          onChange={onChange}
+          className={`h-8 w-full bg-transparent font-extrabold text-slate-800 outline-none disabled:text-slate-300 ${
+            compactOnMobile
+              ? 'text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl'
+              : 'text-2xl'
+          }`}
+        />
+      ) : (
+        <input
+          type="time"
+          step={60}
+          min={min}
+          max={max}
+          inputMode="numeric"
+          pattern="[0-9:]*"
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          title="HH:mm (24시간 형식)"
+          className={`w-full bg-transparent font-extrabold text-slate-800 outline-none disabled:cursor-not-allowed disabled:text-slate-300 ${
+            compactOnMobile
+              ? 'text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl'
+              : 'text-2xl'
+          }`}
+        />
+      )}
     </div>
   );
 }
@@ -545,6 +611,7 @@ export default function TodayQuickEntryCard({
                       min="00:00"
                       max="23:59"
                       compactOnMobile
+                      useNativeOverlay
                       onChange={(value) => onPatchRecord({ clockIn: value })}
                       onSetNow={() => onSetNow('clockIn')}
                     />
