@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
 import { DAILY_REGULAR_MINUTES, DINNER_BREAK_MINUTES, MINUTES_PER_HOUR } from '../constants';
@@ -121,6 +122,8 @@ function NativeTimePickerOverlay({
   displayValue,
   onChange,
   className,
+  pickerAnchor,
+  onAnchorChange,
 }: {
   ariaLabel: string;
   value: string;
@@ -130,23 +133,36 @@ function NativeTimePickerOverlay({
   displayValue: string;
   onChange: (value: string) => void;
   className: string;
+  pickerAnchor?: HTMLSpanElement | null;
+  onAnchorChange?: (element: HTMLSpanElement | null) => void;
 }): JSX.Element {
+  const inputId = useId();
+  const pickerInput = (
+    <input
+      id={inputId}
+      type="time"
+      step={60}
+      min={min}
+      max={max}
+      aria-label={ariaLabel}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      className={`absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed ${
+        pickerAnchor ? 'pointer-events-none' : ''
+      }`}
+    />
+  );
+
   return (
-    <span className={`relative inline-flex items-center justify-center text-center ${className}`}>
-      <span aria-hidden="true" className="pointer-events-none truncate">
+    <span
+      ref={onAnchorChange}
+      className={`relative inline-flex items-center justify-center text-center ${className}`}
+    >
+      <label htmlFor={inputId} className="flex h-full w-full cursor-pointer items-center justify-center truncate">
         {displayValue}
-      </span>
-      <input
-        type="time"
-        step={60}
-        min={min}
-        max={max}
-        aria-label={ariaLabel}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-      />
+      </label>
+      {pickerAnchor ? createPortal(pickerInput, pickerAnchor) : pickerInput}
     </span>
   );
 }
@@ -157,12 +173,16 @@ function DurationPicker({
   maxMinutes,
   onChange,
   className,
+  pickerAnchor,
+  onAnchorChange,
 }: {
   ariaLabel: string;
   valueMinutes: number;
   maxMinutes: number;
   onChange: (value: number) => void;
   className: string;
+  pickerAnchor?: HTMLSpanElement | null;
+  onAnchorChange?: (element: HTMLSpanElement | null) => void;
 }): JSX.Element {
   const value = formatDurationInputValue(valueMinutes, maxMinutes);
 
@@ -178,6 +198,8 @@ function DurationPicker({
         onChange(clampDurationMinutes(parsed?.totalMinutes ?? 0, maxMinutes));
       }}
       className={className}
+      pickerAnchor={pickerAnchor}
+      onAnchorChange={onAnchorChange}
     />
   );
 }
@@ -208,6 +230,7 @@ function TimePanel({
   disabled,
   compactOnMobile,
   useNativeOverlay,
+  pickerAnchor,
   onChange,
   onSetNow,
   onLongPressSetNow,
@@ -219,6 +242,7 @@ function TimePanel({
   disabled?: boolean;
   compactOnMobile?: boolean;
   useNativeOverlay?: boolean;
+  pickerAnchor?: HTMLSpanElement | null;
   onChange: (value: string) => void;
   onSetNow?: () => void;
   onLongPressSetNow?: () => void;
@@ -288,6 +312,7 @@ function TimePanel({
           disabled={disabled}
           displayValue={formatClockPickerLabel(value)}
           onChange={onChange}
+          pickerAnchor={pickerAnchor}
           className={`h-8 w-full bg-transparent font-extrabold text-slate-800 outline-none disabled:text-slate-300 ${
             compactOnMobile
               ? 'text-xs min-[360px]:text-base min-[390px]:text-lg min-[480px]:text-2xl'
@@ -363,6 +388,7 @@ export default function TodayQuickEntryCard({
   const [officialDialogPrevType, setOfficialDialogPrevType] =
     useState<AnnualLeaveType>('none');
   const [currentTime, setCurrentTime] = useState(() => dayjs());
+  const [specialPickerAnchor, setSpecialPickerAnchor] = useState<HTMLSpanElement | null>(null);
 
   const specialWorkRequestMinutes = clampSpecialWorkRequestMinutes(
     record?.specialWorkRequestMinutes ?? 0,
@@ -612,6 +638,7 @@ export default function TodayQuickEntryCard({
                       max="23:59"
                       compactOnMobile
                       useNativeOverlay
+                      pickerAnchor={specialPickerAnchor}
                       onChange={(value) => onPatchRecord({ clockIn: value })}
                       onSetNow={() => onSetNow('clockIn')}
                     />
@@ -624,6 +651,7 @@ export default function TodayQuickEntryCard({
                       valueMinutes={specialWorkRequestMinutes}
                       maxMinutes={8 * MINUTES_PER_HOUR}
                       onChange={handleSpecialWorkRequestChange}
+                      onAnchorChange={setSpecialPickerAnchor}
                       className="h-8 w-full bg-transparent text-base font-extrabold text-slate-800 outline-none min-[360px]:text-lg min-[480px]:text-2xl"
                     />
                   </div>
@@ -789,6 +817,7 @@ export default function TodayQuickEntryCard({
                     valueMinutes={specialWorkFinalMinutes}
                     maxMinutes={23 * MINUTES_PER_HOUR + 59}
                     onChange={handleSpecialWorkFinalChange}
+                    pickerAnchor={specialPickerAnchor}
                     className="field-input h-11 w-full px-3 text-base font-extrabold text-indigo-600 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 min-[480px]:px-4 min-[480px]:text-lg"
                   />
                 </div>
