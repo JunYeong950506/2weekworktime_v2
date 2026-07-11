@@ -844,7 +844,7 @@ export default function TodayQuickEntryCard({
                     className={`relative col-span-2 h-11 overflow-hidden rounded-xl border xl:col-span-4 ${
                       specialWorkSimulation?.completed
                         ? 'border-emerald-100 bg-emerald-50'
-                        : 'border-blue-100 bg-blue-50'
+                        : 'border-indigo-100 bg-indigo-50'
                     }`}
                     role="progressbar"
                     aria-label="특근 신청시간 진행률"
@@ -854,7 +854,7 @@ export default function TodayQuickEntryCard({
                   >
                     <div
                       className={`absolute inset-y-0 left-0 transition-[width] duration-500 ${
-                        specialWorkSimulation?.completed ? 'bg-emerald-200' : 'bg-blue-200'
+                        specialWorkSimulation?.completed ? 'bg-emerald-200' : 'bg-indigo-200'
                       }`}
                       style={{
                         width: `${Math.min(100, specialWorkSimulation?.progressPercent ?? 0)}%`,
@@ -862,7 +862,7 @@ export default function TodayQuickEntryCard({
                     />
                     <div
                       className={`absolute inset-0 flex items-center justify-center px-3 text-[11px] font-extrabold sm:text-xs ${
-                        specialWorkSimulation?.completed ? 'text-emerald-900' : 'text-blue-900'
+                        specialWorkSimulation?.completed ? 'text-emerald-900' : 'text-indigo-900'
                       }`}
                     >
                       {specialWorkSimulation?.completed ? (
@@ -879,7 +879,7 @@ export default function TodayQuickEntryCard({
                             className={
                               specialWorkSimulation?.completed
                                 ? 'text-emerald-500'
-                                : 'text-blue-500'
+                                : 'text-indigo-500'
                             }
                           >
                             /
