@@ -80,6 +80,17 @@ function formatClockFromTotalMinutes(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
+function formatDurationForTimeInput(totalMinutes: number): string {
+  const safeMinutes = Math.min(
+    23 * MINUTES_PER_HOUR + 59,
+    Math.max(0, Math.round(totalMinutes)),
+  );
+  const hours = Math.floor(safeMinutes / MINUTES_PER_HOUR);
+  const minutes = safeMinutes % MINUTES_PER_HOUR;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
 function getExpectedStayMinutes(targetWorkMinutes: number, extraDeductionMinutes: number): number {
   const safeTargetWorkMinutes = Math.max(0, Math.round(targetWorkMinutes));
   const shortBreakStayMinutes =
@@ -236,20 +247,10 @@ export default function TodayQuickEntryCard({
   const specialWorkRequestMinutes = clampSpecialWorkRequestMinutes(
     record?.specialWorkRequestMinutes ?? 0,
   );
-  const specialWorkRequestHours = Math.floor(
-    specialWorkRequestMinutes / MINUTES_PER_HOUR,
-  );
-  const specialWorkRequestMinutePart =
-    specialWorkRequestMinutes % MINUTES_PER_HOUR;
   const specialWorkFinalMinutes = Math.max(
     0,
     Math.round(record?.claimedOtMinutes ?? 0),
   );
-  const specialWorkFinalHours = Math.floor(
-    specialWorkFinalMinutes / MINUTES_PER_HOUR,
-  );
-  const specialWorkFinalMinutePart =
-    specialWorkFinalMinutes % MINUTES_PER_HOUR;
   const specialWorkSimulation = record && isSpecialWorkMode
     ? calculateSpecialWorkSimulation(
         record.date,
@@ -394,42 +395,21 @@ export default function TodayQuickEntryCard({
     });
   }
 
-  function handleSpecialWorkRequestHours(value: number): void {
-    const hours = Math.min(8, Math.max(0, Math.floor(value)));
-    const minutePart = hours >= 8 ? 0 : specialWorkRequestMinutePart;
+  function handleSpecialWorkRequestChange(value: string): void {
+    const parsed = parseTime24(value);
 
     onPatchRecord({
       specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(
-        hours * MINUTES_PER_HOUR + minutePart,
+        parsed?.totalMinutes ?? 0,
       ),
     });
   }
 
-  function handleSpecialWorkRequestMinutes(value: number): void {
-    const minutePart = Math.min(59, Math.max(0, Math.floor(value)));
+  function handleSpecialWorkFinalChange(value: string): void {
+    const parsed = parseTime24(value);
 
     onPatchRecord({
-      specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(
-        specialWorkRequestHours * MINUTES_PER_HOUR + minutePart,
-      ),
-    });
-  }
-
-  function handleSpecialWorkFinalHours(value: number): void {
-    const hours = Math.max(0, Math.floor(value));
-
-    onPatchRecord({
-      claimedOtMinutes:
-        hours * MINUTES_PER_HOUR + specialWorkFinalMinutePart,
-    });
-  }
-
-  function handleSpecialWorkFinalMinutes(value: number): void {
-    const minutePart = Math.min(59, Math.max(0, Math.floor(value)));
-
-    onPatchRecord({
-      claimedOtMinutes:
-        specialWorkFinalHours * MINUTES_PER_HOUR + minutePart,
+      claimedOtMinutes: parsed?.totalMinutes ?? 0,
     });
   }
 
@@ -510,7 +490,7 @@ export default function TodayQuickEntryCard({
             <div
               className={`grid gap-3 xl:grid-cols-4 ${
                 isSpecialWorkMode
-                  ? 'grid-cols-1 min-[360px]:grid-cols-2'
+                  ? 'grid-cols-1 min-[480px]:grid-cols-2'
                   : 'grid-cols-2'
               }`}
             >
@@ -523,55 +503,26 @@ export default function TodayQuickEntryCard({
                       min="00:00"
                       max="23:59"
                       onChange={(value) => onPatchRecord({ clockIn: value })}
+                      onSetNow={() => onSetNow('clockIn')}
                     />
                   </div>
 
                   <div className="col-span-1 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
                     <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="flex min-w-0 items-center gap-1">
-                        <span className="sr-only">신청 시간</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={8}
-                          step={1}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          aria-label="신청 시간"
-                          value={specialWorkRequestHours}
-                          onFocus={(event) => event.currentTarget.select()}
-                          onChange={(event) =>
-                            handleSpecialWorkRequestHours(Number(event.target.value || 0))
-                          }
-                          className="min-w-0 w-full bg-transparent text-right text-2xl font-extrabold text-slate-800 outline-none"
-                        />
-                        <span className="shrink-0 text-xs font-bold text-slate-400">시간</span>
-                      </label>
-                      <label className="flex min-w-0 items-center gap-1">
-                        <span className="sr-only">신청 분</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={specialWorkRequestHours >= 8 ? 0 : 59}
-                          step={1}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          aria-label="신청 분"
-                          value={specialWorkRequestMinutePart}
-                          onFocus={(event) => event.currentTarget.select()}
-                          onChange={(event) =>
-                            handleSpecialWorkRequestMinutes(Number(event.target.value || 0))
-                          }
-                          className="min-w-0 w-full bg-transparent text-right text-2xl font-extrabold text-slate-800 outline-none"
-                        />
-                        <span className="shrink-0 text-xs font-bold text-slate-400">분</span>
-                      </label>
-                    </div>
+                    <input
+                      type="time"
+                      step={60}
+                      min="00:00"
+                      max="08:00"
+                      aria-label="신청 시간"
+                      value={formatDurationForTimeInput(specialWorkRequestMinutes)}
+                      onChange={(event) => handleSpecialWorkRequestChange(event.target.value)}
+                      className="w-full bg-transparent text-2xl font-extrabold text-slate-800 outline-none"
+                    />
                   </div>
 
                   <div
-                    className="relative col-span-1 h-11 overflow-hidden rounded-xl border border-emerald-100 bg-slate-100 min-[360px]:col-span-2 xl:col-span-4"
+                    className="relative col-span-1 h-11 overflow-hidden rounded-xl border border-emerald-100 bg-slate-100 min-[480px]:col-span-2 xl:col-span-4"
                     role="progressbar"
                     aria-label="특근 신청시간 진행률"
                     aria-valuemin={0}
@@ -651,7 +602,7 @@ export default function TodayQuickEntryCard({
             <div
               className={`grid gap-3 xl:grid-cols-4 ${
                 isSpecialWorkMode
-                  ? 'grid-cols-1 min-[360px]:grid-cols-2'
+                  ? 'grid-cols-1 min-[480px]:grid-cols-2'
                   : 'grid-cols-2'
               }`}
             >
@@ -732,43 +683,16 @@ export default function TodayQuickEntryCard({
               {isSpecialWorkMode ? (
                 <label className="field-label">
                   최종 특근 시간
-                  <span className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 transition-colors focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
-                    <span className="flex min-w-0 flex-1 items-center gap-1">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        aria-label="최종 특근 시간"
-                        value={specialWorkFinalHours}
-                        onFocus={(event) => event.currentTarget.select()}
-                        onChange={(event) =>
-                          handleSpecialWorkFinalHours(Number(event.target.value || 0))
-                        }
-                        className="min-w-0 w-full bg-transparent text-right text-lg font-extrabold text-indigo-600 outline-none"
-                      />
-                      <span className="shrink-0 text-[11px] font-bold text-slate-400">시간</span>
-                    </span>
-                    <span className="flex min-w-0 flex-1 items-center gap-1">
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        step={1}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        aria-label="최종 특근 분"
-                        value={specialWorkFinalMinutePart}
-                        onFocus={(event) => event.currentTarget.select()}
-                        onChange={(event) =>
-                          handleSpecialWorkFinalMinutes(Number(event.target.value || 0))
-                        }
-                        className="min-w-0 w-full bg-transparent text-right text-lg font-extrabold text-indigo-600 outline-none"
-                      />
-                      <span className="shrink-0 text-[11px] font-bold text-slate-400">분</span>
-                    </span>
-                  </span>
+                  <input
+                    type="time"
+                    step={60}
+                    min="00:00"
+                    max="23:59"
+                    aria-label="최종 특근 시간"
+                    value={formatDurationForTimeInput(specialWorkFinalMinutes)}
+                    onChange={(event) => handleSpecialWorkFinalChange(event.target.value)}
+                    className="field-input h-11 w-full text-lg font-extrabold text-indigo-600"
+                  />
                 </label>
               ) : (
                 <label className="field-label">
