@@ -34,6 +34,7 @@ interface RemoteWorkRecordRow {
   clock_out: string;
   dinner_checked: boolean;
   non_work_minutes: number;
+  special_work_request_minutes: number;
   actual_overtime_minutes: number;
 }
 
@@ -111,6 +112,7 @@ function isRecordTouched(record: DayRecord): boolean {
     record.clockOut.trim() !== '' ||
     record.dinnerChecked ||
     record.nonWorkMinutes > 0 ||
+    record.specialWorkRequestMinutes > 0 ||
     record.claimedOtMinutes > 0
   );
 }
@@ -206,6 +208,10 @@ function toWorkRecordRows(
         clock_out: record.clockOut,
         dinner_checked: Boolean(record.dinnerChecked),
         non_work_minutes: toNonNegativeInteger(record.nonWorkMinutes),
+        special_work_request_minutes: Math.min(
+          8 * 60,
+          toNonNegativeInteger(record.specialWorkRequestMinutes),
+        ),
         actual_overtime_minutes: toNonNegativeInteger(record.claimedOtMinutes),
       });
     });
@@ -231,6 +237,10 @@ function buildStateFromRemoteRows(
       clockOut: typeof row.clock_out === 'string' ? row.clock_out : '',
       dinnerChecked: Boolean(row.dinner_checked),
       nonWorkMinutes: toNonNegativeInteger(row.non_work_minutes),
+      specialWorkRequestMinutes: Math.min(
+        8 * 60,
+        toNonNegativeInteger(row.special_work_request_minutes),
+      ),
       workMinutes: null,
       regularMinutes: null,
       overtimeMinutes: null,
@@ -479,7 +489,7 @@ export async function loadRemoteState(
   const { data: recordRows, error: recordError } = await supabase
     .from('work_records')
     .select(
-      'id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,dinner_checked,non_work_minutes,actual_overtime_minutes',
+      'id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,dinner_checked,non_work_minutes,special_work_request_minutes,actual_overtime_minutes',
     )
     .eq('user_code', normalized)
     .order('work_date', { ascending: true })

@@ -84,6 +84,10 @@ function normalizeDayRecord(raw: unknown): DayRecord | null {
     dinnerChecked:
       typeof raw.dinnerChecked === 'boolean' ? raw.dinnerChecked : false,
     nonWorkMinutes: toNonNegativeInteger(raw.nonWorkMinutes),
+    specialWorkRequestMinutes: Math.min(
+      8 * 60,
+      toNonNegativeInteger(raw.specialWorkRequestMinutes),
+    ),
     workMinutes: toNullableNumber(raw.workMinutes),
     regularMinutes: toNullableNumber(raw.regularMinutes),
     overtimeMinutes: toNullableNumber(raw.overtimeMinutes),

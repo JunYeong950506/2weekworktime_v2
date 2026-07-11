@@ -64,6 +64,7 @@ export function createRecordsFromStartDate(startDate: string): DayRecord[] {
       clockOut: '',
       dinnerChecked: false,
       nonWorkMinutes: 0,
+      specialWorkRequestMinutes: 0,
       workMinutes: null,
       regularMinutes: null,
       overtimeMinutes: null,
@@ -129,6 +130,7 @@ export function copyRecordsWithNewDate(
       clockOut: source?.clockOut ?? '',
       dinnerChecked: source?.dinnerChecked ?? false,
       nonWorkMinutes: source?.nonWorkMinutes ?? 0,
+      specialWorkRequestMinutes: source?.specialWorkRequestMinutes ?? 0,
       claimedOtMinutes: source?.claimedOtMinutes ?? 0,
     };
   });
@@ -154,6 +156,7 @@ export function rebaseRecordDates(
       clockOut: source?.clockOut ?? '',
       dinnerChecked: source?.dinnerChecked ?? false,
       nonWorkMinutes: source?.nonWorkMinutes ?? 0,
+      specialWorkRequestMinutes: source?.specialWorkRequestMinutes ?? 0,
       claimedOtMinutes: source?.claimedOtMinutes ?? 0,
     };
   });

@@ -3,6 +3,10 @@ import dayjs from 'dayjs';
 
 import { DAILY_REGULAR_MINUTES, DINNER_BREAK_MINUTES, MINUTES_PER_HOUR } from '../constants';
 import { AnnualLeaveType, DayRecord, TimeField } from '../types';
+import {
+  calculateSpecialWorkSimulation,
+  clampSpecialWorkRequestMinutes,
+} from '../utils/specialWork';
 import { formatMinutesAsClock, parseTime24 } from '../utils/time';
 
 interface TodayQuickEntryCardProps {
@@ -20,6 +24,7 @@ interface TodayQuickEntryCardProps {
         | 'clockOut'
         | 'dinnerChecked'
         | 'nonWorkMinutes'
+        | 'specialWorkRequestMinutes'
         | 'claimedOtMinutes'
       >
     >,
@@ -109,7 +114,7 @@ function TimePanel({
   max: string;
   disabled?: boolean;
   onChange: (value: string) => void;
-  onSetNow: () => void;
+  onSetNow?: () => void;
   onLongPressSetNow?: () => void;
 }): JSX.Element {
   const longPressTimerRef = useRef<number | null>(null);
@@ -141,26 +146,28 @@ function TimePanel({
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
       <div className="mb-1.5 flex items-center justify-between">
         <p className="ml-1 text-xs font-bold text-slate-400">{label}</p>
-        <button
-          type="button"
-          onClick={(event) => {
-            if (longPressHandledRef.current) {
-              event.preventDefault();
-              longPressHandledRef.current = false;
-              return;
-            }
+        {onSetNow ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              if (longPressHandledRef.current) {
+                event.preventDefault();
+                longPressHandledRef.current = false;
+                return;
+              }
 
-            onSetNow();
-          }}
-          onPointerDown={startLongPressTimer}
-          onPointerUp={clearLongPressTimer}
-          onPointerLeave={clearLongPressTimer}
-          onPointerCancel={clearLongPressTimer}
-          disabled={disabled}
-          className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          현재
-        </button>
+              onSetNow();
+            }}
+            onPointerDown={startLongPressTimer}
+            onPointerUp={clearLongPressTimer}
+            onPointerLeave={clearLongPressTimer}
+            onPointerCancel={clearLongPressTimer}
+            disabled={disabled}
+            className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            현재
+          </button>
+        ) : null}
       </div>
       <input
         type="time"
@@ -224,6 +231,25 @@ export default function TodayQuickEntryCard({
   const [officialLeaveDraft, setOfficialLeaveDraft] = useState(0);
   const [officialDialogPrevType, setOfficialDialogPrevType] =
     useState<AnnualLeaveType>('none');
+  const [currentTime, setCurrentTime] = useState(() => dayjs());
+
+  const specialWorkRequestMinutes = clampSpecialWorkRequestMinutes(
+    record?.specialWorkRequestMinutes ?? 0,
+  );
+  const specialWorkRequestHours = Math.floor(
+    specialWorkRequestMinutes / MINUTES_PER_HOUR,
+  );
+  const specialWorkRequestMinutePart =
+    specialWorkRequestMinutes % MINUTES_PER_HOUR;
+  const specialWorkSimulation = record && isSpecialWorkMode
+    ? calculateSpecialWorkSimulation(
+        record.date,
+        record.clockIn,
+        specialWorkRequestMinutes,
+        record.nonWorkMinutes,
+        isTodayTarget ? currentTime : dayjs(record.date).startOf('day'),
+      )
+    : null;
 
   const showPartialLeaveNotice =
     record !== null &&
@@ -264,6 +290,38 @@ export default function TodayQuickEntryCard({
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isOfficialDialogOpen, officialDialogPrevType, record, onPatchRecord]);
+
+  useEffect(() => {
+    if (!isSpecialWorkMode || !isTodayTarget) {
+      return;
+    }
+
+    let intervalId: number | null = null;
+    const delayToNextMinute = 60_000 - (Date.now() % 60_000) + 50;
+    const refresh = (): void => setCurrentTime(dayjs());
+    const timeoutId = window.setTimeout(() => {
+      refresh();
+      intervalId = window.setInterval(refresh, 60_000);
+    }, delayToNextMinute);
+
+    const handleVisibilityChange = (): void => {
+      if (!document.hidden) {
+        refresh();
+      }
+    };
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isSpecialWorkMode, isTodayTarget]);
 
   function openOfficialDialog(previousType: AnnualLeaveType): void {
     setOfficialDialogPrevType(previousType);
@@ -327,11 +385,32 @@ export default function TodayQuickEntryCard({
     });
   }
 
+  function handleSpecialWorkRequestHours(value: number): void {
+    const hours = Math.min(8, Math.max(0, Math.floor(value)));
+    const minutePart = hours >= 8 ? 0 : specialWorkRequestMinutePart;
+
+    onPatchRecord({
+      specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(
+        hours * MINUTES_PER_HOUR + minutePart,
+      ),
+    });
+  }
+
+  function handleSpecialWorkRequestMinutes(value: number): void {
+    const minutePart = Math.min(59, Math.max(0, Math.floor(value)));
+
+    onPatchRecord({
+      specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(
+        specialWorkRequestHours * MINUTES_PER_HOUR + minutePart,
+      ),
+    });
+  }
+
   return (
     <>
       <section className="surface-panel">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h2 className="section-heading flex items-center gap-2">
+          <h2 className="section-heading flex items-center gap-2 whitespace-nowrap text-lg min-[360px]:text-xl">
             <span className="section-icon section-icon-blue" aria-hidden="true">
               <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
                 <path
@@ -360,7 +439,7 @@ export default function TodayQuickEntryCard({
             </span>
             오늘 근무 입력
           </h2>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-400">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="8.5" strokeWidth="1.8" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 7.5V12l3 2" />
@@ -401,16 +480,101 @@ export default function TodayQuickEntryCard({
           </p>
         ) : (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div
+              className={`grid gap-3 xl:grid-cols-4 ${
+                isSpecialWorkMode
+                  ? 'grid-cols-1 min-[360px]:grid-cols-2'
+                  : 'grid-cols-2'
+              }`}
+            >
               {isSpecialWorkMode ? (
-                <div className="col-span-2 rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sky-800 xl:col-span-2">
-                  <p className="text-sm font-extrabold">특근/휴일 근무 입력 안내</p>
-                  <p className="mt-2 text-xs font-medium leading-5 text-sky-700">
-                    특근/휴일은 출퇴근 시간을 입력하지 않습니다.
-                    <br />
-                    실제 근무한 시간은 실제 야근결재(분)에 입력해 주세요.
-                  </p>
-                </div>
+                <>
+                  <div className="col-span-1">
+                    <TimePanel
+                      label="출근 시간"
+                      value={record.clockIn}
+                      min="00:00"
+                      max="23:59"
+                      onChange={(value) => onPatchRecord({ clockIn: value })}
+                    />
+                  </div>
+
+                  <div className="col-span-1 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
+                    <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex min-w-0 items-center gap-1">
+                        <span className="sr-only">신청 시간</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={8}
+                          step={1}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          aria-label="신청 시간"
+                          value={specialWorkRequestHours}
+                          onFocus={(event) => event.currentTarget.select()}
+                          onChange={(event) =>
+                            handleSpecialWorkRequestHours(Number(event.target.value || 0))
+                          }
+                          className="min-w-0 w-full bg-transparent text-right text-2xl font-extrabold text-slate-800 outline-none"
+                        />
+                        <span className="shrink-0 text-xs font-bold text-slate-400">시간</span>
+                      </label>
+                      <label className="flex min-w-0 items-center gap-1">
+                        <span className="sr-only">신청 분</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={specialWorkRequestHours >= 8 ? 0 : 59}
+                          step={1}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          aria-label="신청 분"
+                          value={specialWorkRequestMinutePart}
+                          onFocus={(event) => event.currentTarget.select()}
+                          onChange={(event) =>
+                            handleSpecialWorkRequestMinutes(Number(event.target.value || 0))
+                          }
+                          className="min-w-0 w-full bg-transparent text-right text-2xl font-extrabold text-slate-800 outline-none"
+                        />
+                        <span className="shrink-0 text-xs font-bold text-slate-400">분</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div
+                    className="relative col-span-1 h-11 overflow-hidden rounded-xl border border-emerald-100 bg-slate-100 min-[360px]:col-span-2 xl:col-span-4"
+                    role="progressbar"
+                    aria-label="특근 신청시간 진행률"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(specialWorkSimulation?.progressPercent ?? 0)}
+                  >
+                    <div
+                      className="absolute inset-y-0 left-0 bg-emerald-200 transition-[width] duration-500"
+                      style={{
+                        width: `${Math.min(100, specialWorkSimulation?.progressPercent ?? 0)}%`,
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center px-3 text-[11px] font-extrabold text-emerald-900 sm:text-xs">
+                      {specialWorkSimulation?.completed ? (
+                        <span>근무시간을 채웠습니다</span>
+                      ) : (
+                        <span className="flex min-w-0 items-center justify-center gap-2">
+                          <span>
+                            근무시간{' '}
+                            {specialWorkSimulation?.targetClock
+                              ? formatMinutesAsClock(specialWorkSimulation.workedMinutes)
+                              : '-'}
+                          </span>
+                          <span className="text-emerald-500">/</span>
+                          <span>퇴근 시각 {specialWorkSimulation?.targetClock ?? '-'}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="col-span-2 xl:col-span-1">
@@ -440,66 +604,73 @@ export default function TodayQuickEntryCard({
                 </>
               )}
 
-              <ResultTile
-                title="오늘 총 근무시간"
-                value={formatMinutesAsClock(record.workMinutes)}
-                tone="indigo"
-              />
+              {!isSpecialWorkMode ? (
+                <>
+                  <ResultTile
+                    title="오늘 총 근무시간"
+                    value={formatMinutesAsClock(record.workMinutes)}
+                    tone="indigo"
+                  />
 
-              <ResultTile
-                title={useRecommendedOtWarningTone ? '초과 근무 시간' : '권장 야근결재'}
-                value={recommendedOtDisplayValue}
-                tone={useRecommendedOtWarningTone ? 'rose' : 'slate'}
-              />
+                  <ResultTile
+                    title={useRecommendedOtWarningTone ? '초과 근무 시간' : '권장 야근결재'}
+                    value={recommendedOtDisplayValue}
+                    tone={useRecommendedOtWarningTone ? 'rose' : 'slate'}
+                  />
+                </>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <label className="field-label">
-                근무 형태
-                <select
-                  value={annualLeaveValue}
-                  disabled={isSpecialWorkMode}
-                  onChange={(event) =>
-                    handleWorkTypeChange(event.target.value as AnnualLeaveType)
-                  }
-                  className="field-select disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  <option value="none">정상근무</option>
-                  <option value="quarter">반반차 (2시간)</option>
-                  <option value="half">반차 (4시간)</option>
-                  <option value="full">연차 (8시간)</option>
-                  <option value="official">공가</option>
-                </select>
-                {isOfficialLeaveMode && !isSpecialWorkMode ? (
-                  <button
-                    type="button"
-                    onClick={() => openOfficialDialog('official')}
-                    className="mt-1 inline-flex w-fit rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
-                  >
-                    공가 {formatOfficialLeaveDisplay(record.officialLeaveMinutes)} 수정
-                  </button>
-                ) : null}
-              </label>
+              {!isSpecialWorkMode ? (
+                <>
+                  <label className="field-label">
+                    근무 형태
+                    <select
+                      value={annualLeaveValue}
+                      onChange={(event) =>
+                        handleWorkTypeChange(event.target.value as AnnualLeaveType)
+                      }
+                      className="field-select"
+                    >
+                      <option value="none">정상근무</option>
+                      <option value="quarter">반반차 (2시간)</option>
+                      <option value="half">반차 (4시간)</option>
+                      <option value="full">연차 (8시간)</option>
+                      <option value="official">공가</option>
+                    </select>
+                    {isOfficialLeaveMode ? (
+                      <button
+                        type="button"
+                        onClick={() => openOfficialDialog('official')}
+                        className="mt-1 inline-flex w-fit rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
+                      >
+                        공가 {formatOfficialLeaveDisplay(record.officialLeaveMinutes)} 수정
+                      </button>
+                    ) : null}
+                  </label>
 
-              <label className="field-label">
-                석식 여부
-                <span
-                  className={`inline-flex h-11 items-center justify-between rounded-xl border px-3 text-sm font-bold ${
-                    record.dinnerChecked
-                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 bg-white text-slate-600'
-                  } ${disableTimeAndDeductionInputs ? 'opacity-60' : ''}`}
-                >
-                  {record.dinnerChecked ? '석식 먹음' : '석식 없음'}
-                  <input
-                    type="checkbox"
-                    checked={record.dinnerChecked}
-                    disabled={disableTimeAndDeductionInputs}
-                    onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
-                    className="field-check"
-                  />
-                </span>
-              </label>
+                  <label className="field-label">
+                    석식 여부
+                    <span
+                      className={`inline-flex h-11 items-center justify-between rounded-xl border px-3 text-sm font-bold ${
+                        record.dinnerChecked
+                          ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      } ${disableTimeAndDeductionInputs ? 'opacity-60' : ''}`}
+                    >
+                      {record.dinnerChecked ? '석식 먹음' : '석식 없음'}
+                      <input
+                        type="checkbox"
+                        checked={record.dinnerChecked}
+                        disabled={disableTimeAndDeductionInputs}
+                        onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
+                        className="field-check"
+                      />
+                    </span>
+                  </label>
+                </>
+              ) : null}
 
               <label className="field-label">
                 비업무시간(분)
@@ -509,8 +680,8 @@ export default function TodayQuickEntryCard({
                   step={1}
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  value={disableTimeAndDeductionInputs ? 0 : record.nonWorkMinutes}
-                  disabled={disableTimeAndDeductionInputs}
+                  value={isAnnualLeaveFullMode ? 0 : record.nonWorkMinutes}
+                  disabled={isAnnualLeaveFullMode}
                   onFocus={(event) => {
                     if (record.nonWorkMinutes === 0) {
                       event.currentTarget.select();
@@ -526,7 +697,7 @@ export default function TodayQuickEntryCard({
               </label>
 
               <label className="field-label">
-                실제 야근결재(분)
+                {isSpecialWorkMode ? '특근 시간(분)' : '실제 야근결재(분)'}
                 <input
                   type="number"
                   min={0}

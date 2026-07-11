@@ -16,6 +16,7 @@ export interface DayRecord {
   clockOut: string;
   dinnerChecked: boolean;
   nonWorkMinutes: number;
+  specialWorkRequestMinutes: number;
   workMinutes: number | null;
   regularMinutes: number | null;
   overtimeMinutes: number | null;

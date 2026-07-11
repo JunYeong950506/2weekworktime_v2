@@ -24,6 +24,7 @@ interface TimesheetTableProps {
         | 'clockOut'
         | 'dinnerChecked'
         | 'nonWorkMinutes'
+        | 'specialWorkRequestMinutes'
         | 'claimedOtMinutes'
       >
     >,
@@ -122,6 +123,7 @@ function hasRecordInputChanges(source: DayRecord, draft: DayRecord): boolean {
     source.clockOut !== draft.clockOut ||
     source.dinnerChecked !== draft.dinnerChecked ||
     source.nonWorkMinutes !== draft.nonWorkMinutes ||
+    source.specialWorkRequestMinutes !== draft.specialWorkRequestMinutes ||
     source.claimedOtMinutes !== draft.claimedOtMinutes
   );
 }
@@ -187,6 +189,7 @@ export default function TimesheetTable({
       clockOut: draft.clockOut,
       dinnerChecked: draft.dinnerChecked,
       nonWorkMinutes: draft.nonWorkMinutes,
+      specialWorkRequestMinutes: draft.specialWorkRequestMinutes,
       claimedOtMinutes: draft.claimedOtMinutes,
     });
 
