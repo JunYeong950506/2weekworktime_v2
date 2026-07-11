@@ -241,6 +241,15 @@ export default function TodayQuickEntryCard({
   );
   const specialWorkRequestMinutePart =
     specialWorkRequestMinutes % MINUTES_PER_HOUR;
+  const specialWorkFinalMinutes = Math.max(
+    0,
+    Math.round(record?.claimedOtMinutes ?? 0),
+  );
+  const specialWorkFinalHours = Math.floor(
+    specialWorkFinalMinutes / MINUTES_PER_HOUR,
+  );
+  const specialWorkFinalMinutePart =
+    specialWorkFinalMinutes % MINUTES_PER_HOUR;
   const specialWorkSimulation = record && isSpecialWorkMode
     ? calculateSpecialWorkSimulation(
         record.date,
@@ -403,6 +412,24 @@ export default function TodayQuickEntryCard({
       specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(
         specialWorkRequestHours * MINUTES_PER_HOUR + minutePart,
       ),
+    });
+  }
+
+  function handleSpecialWorkFinalHours(value: number): void {
+    const hours = Math.max(0, Math.floor(value));
+
+    onPatchRecord({
+      claimedOtMinutes:
+        hours * MINUTES_PER_HOUR + specialWorkFinalMinutePart,
+    });
+  }
+
+  function handleSpecialWorkFinalMinutes(value: number): void {
+    const minutePart = Math.min(59, Math.max(0, Math.floor(value)));
+
+    onPatchRecord({
+      claimedOtMinutes:
+        specialWorkFinalHours * MINUTES_PER_HOUR + minutePart,
     });
   }
 
@@ -621,7 +648,13 @@ export default function TodayQuickEntryCard({
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div
+              className={`grid gap-3 xl:grid-cols-4 ${
+                isSpecialWorkMode
+                  ? 'grid-cols-1 min-[360px]:grid-cols-2'
+                  : 'grid-cols-2'
+              }`}
+            >
               {!isSpecialWorkMode ? (
                 <>
                   <label className="field-label">
@@ -696,29 +729,72 @@ export default function TodayQuickEntryCard({
                 />
               </label>
 
-              <label className="field-label">
-                {isSpecialWorkMode ? '특근 시간(분)' : '실제 야근결재(분)'}
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={isAnnualLeaveFullMode ? 0 : record.claimedOtMinutes}
-                  disabled={isAnnualLeaveFullMode}
-                  onFocus={(event) => {
-                    if (record.claimedOtMinutes === 0) {
-                      event.currentTarget.select();
+              {isSpecialWorkMode ? (
+                <label className="field-label">
+                  최종 특근 시간
+                  <span className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 transition-colors focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+                    <span className="flex min-w-0 flex-1 items-center gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        aria-label="최종 특근 시간"
+                        value={specialWorkFinalHours}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          handleSpecialWorkFinalHours(Number(event.target.value || 0))
+                        }
+                        className="min-w-0 w-full bg-transparent text-right text-lg font-extrabold text-indigo-600 outline-none"
+                      />
+                      <span className="shrink-0 text-[11px] font-bold text-slate-400">시간</span>
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        step={1}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        aria-label="최종 특근 분"
+                        value={specialWorkFinalMinutePart}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          handleSpecialWorkFinalMinutes(Number(event.target.value || 0))
+                        }
+                        className="min-w-0 w-full bg-transparent text-right text-lg font-extrabold text-indigo-600 outline-none"
+                      />
+                      <span className="shrink-0 text-[11px] font-bold text-slate-400">분</span>
+                    </span>
+                  </span>
+                </label>
+              ) : (
+                <label className="field-label">
+                  실제 야근결재(분)
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={isAnnualLeaveFullMode ? 0 : record.claimedOtMinutes}
+                    disabled={isAnnualLeaveFullMode}
+                    onFocus={(event) => {
+                      if (record.claimedOtMinutes === 0) {
+                        event.currentTarget.select();
+                      }
+                    }}
+                    onChange={(event) =>
+                      onPatchRecord({
+                        claimedOtMinutes: Number(event.target.value || 0),
+                      })
                     }
-                  }}
-                  onChange={(event) =>
-                    onPatchRecord({
-                      claimedOtMinutes: Number(event.target.value || 0),
-                    })
-                  }
-                  className="field-input h-11 w-full text-right text-lg text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
-                />
-              </label>
+                    className="field-input h-11 w-full text-right text-lg text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                  />
+                </label>
+              )}
             </div>
           </div>
         )}
