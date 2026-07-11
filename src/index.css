@@ -120,6 +120,6 @@ body {
   }
 
   .content-reveal {
-    animation: rise-in 0.55s ease both;
+    animation: rise-in 0.55s ease backwards;
   }
 }
