@@ -32,7 +32,6 @@ import {
   getSyncUnavailableMessage,
   isRemoteSyncAvailable,
   loadRemoteState,
-  runWeeklyRemoteCleanup,
   syncRemoteState,
 } from './utils/remoteSync';
 import { isValidUserCode, normalizeUserCode } from './utils/userCode';
@@ -804,8 +803,6 @@ export default function App(): JSX.Element {
 
     async function initializeSync(): Promise<void> {
       try {
-        await runWeeklyRemoteCleanup();
-
         const remote = await loadRemoteState(userCode);
         if (disposed) {
           return;
@@ -1227,7 +1224,7 @@ export default function App(): JSX.Element {
 
               {!syncAvailable ? (
                 <p className="mt-2 text-xs text-amber-600">
-                  서버 동기화를 사용하려면 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+                  서버 동기화를 사용하려면 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
                   환경변수가 필요합니다.
                 </p>
               ) : null}

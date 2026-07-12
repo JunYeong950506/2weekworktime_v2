@@ -66,17 +66,30 @@ begin
   end if;
 end $$;
 
--- No-auth code sync mode: allow anon CRUD on these tables.
--- This app is intentionally code-based (not auth-based), so RLS is disabled.
-alter table public.users disable row level security;
-alter table public.periods disable row level security;
-alter table public.work_records disable row level security;
+-- Server-only code sync: the browser never accesses these tables directly.
+alter table public.users enable row level security;
+alter table public.periods enable row level security;
+alter table public.work_records enable row level security;
 
-grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on table public.users to anon, authenticated;
-grant select, insert, update, delete on table public.periods to anon, authenticated;
-grant select, insert, update, delete on table public.work_records to anon, authenticated;
+revoke all on table public.users from anon, authenticated;
+revoke all on table public.periods from anon, authenticated;
+revoke all on table public.work_records from anon, authenticated;
 
+grant usage on schema public to service_role;
+grant select, insert, update, delete on table public.users to service_role;
+grant select, insert, update, delete on table public.periods to service_role;
+grant select, insert, update, delete on table public.work_records to service_role;
+
+drop policy if exists server_sync_service_role on public.users;
+drop policy if exists server_sync_service_role on public.periods;
+drop policy if exists server_sync_service_role on public.work_records;
+
+create policy server_sync_service_role on public.users
+  for all to service_role using (true) with check (true);
+create policy server_sync_service_role on public.periods
+  for all to service_role using (true) with check (true);
+create policy server_sync_service_role on public.work_records
+  for all to service_role using (true) with check (true);
 -- Weekly cleanup function:
 -- 1) record_count = 0 and last_activity_at older than 14 days => delete user (cascade).
 -- 2) record_count > 0 and last_activity_at older than 30 days => set deleted_candidate_at.
@@ -105,7 +118,7 @@ end;
 $$;
 
 revoke all on function public.cleanup_inactive_user_codes() from public;
-grant execute on function public.cleanup_inactive_user_codes() to anon, authenticated;
+grant execute on function public.cleanup_inactive_user_codes() to service_role;
 
 -- Optional but useful when PostgREST cache is stale.
 select pg_notify('pgrst', 'reload schema');

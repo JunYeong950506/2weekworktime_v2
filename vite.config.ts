@@ -27,15 +27,6 @@ function createAppVersionPlugin(payload: string): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const supabaseUrl =
-    env.VITE_SUPABASE_URL || env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey =
-    env.VITE_SUPABASE_ANON_KEY ||
-    env.SUPABASE_ANON_KEY ||
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    env.SUPABASE_PUBLISHABLE_KEY ||
-    '';
   const buildId =
     env.VERCEL_GIT_COMMIT_SHA ||
     env.VITE_APP_BUILD_ID ||
@@ -52,8 +43,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), createAppVersionPlugin(appVersionPayload)],
     define: {
-      __APP_SUPABASE_URL__: JSON.stringify(supabaseUrl),
-      __APP_SUPABASE_ANON_KEY__: JSON.stringify(supabaseAnonKey),
       __APP_BUILD_ID__: JSON.stringify(buildId),
     },
   };

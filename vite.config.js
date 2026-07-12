@@ -26,13 +26,6 @@ function createAppVersionPlugin(payload) {
 export default defineConfig(function (_a) {
     var mode = _a.mode;
     var env = loadEnv(mode, process.cwd(), '');
-    var supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '';
-    var supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY ||
-        env.SUPABASE_ANON_KEY ||
-        env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-        env.SUPABASE_PUBLISHABLE_KEY ||
-        '';
     var buildId = env.VERCEL_GIT_COMMIT_SHA ||
         env.VITE_APP_BUILD_ID ||
         new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
@@ -43,8 +36,6 @@ export default defineConfig(function (_a) {
     return {
         plugins: [react(), createAppVersionPlugin(appVersionPayload)],
         define: {
-            __APP_SUPABASE_URL__: JSON.stringify(supabaseUrl),
-            __APP_SUPABASE_ANON_KEY__: JSON.stringify(supabaseAnonKey),
             __APP_BUILD_ID__: JSON.stringify(buildId),
         },
     };

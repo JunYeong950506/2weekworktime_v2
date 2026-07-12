@@ -1,11 +1,9 @@
 import dayjs from 'dayjs';
 
-import { REMOTE_CLEANUP_CHECKED_AT_KEY } from '../constants';
-import { getSupabaseClient, getSupabaseEnvError, hasSupabaseEnv } from '../lib/supabase';
 import { AnnualLeaveType, AppState, DayRecord, Period } from '../types';
 import { normalizeUserCode } from './userCode';
 
-const CLEANUP_INTERVAL_DAYS = 7;
+const REMOTE_SYNC_ENDPOINT = '/api/sync';
 
 interface RemoteUserRow {
   user_code: string;
@@ -50,6 +48,14 @@ interface SyncOptions {
   stateRevision: number;
 }
 
+interface RemoteSyncApiResponse {
+  ok: boolean;
+  error?: string;
+  user?: RemoteUserRow | null;
+  periods?: RemotePeriodRow[];
+  workRecords?: RemoteWorkRecordRow[];
+}
+
 function isValidObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -81,26 +87,6 @@ function normalizeSyncRevision(value: unknown): number {
   }
 
   return Math.max(0, Math.round(value));
-}
-
-function isMissingStateRevisionColumnError(error: unknown): boolean {
-  if (!isValidObject(error)) {
-    return false;
-  }
-
-  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
-  const code = typeof error.code === 'string' ? error.code.toLowerCase() : '';
-
-  if (!message.includes('state_revision')) {
-    return false;
-  }
-
-  return (
-    code === '42703' ||
-    code === 'pgrst204' ||
-    message.includes('does not exist') ||
-    message.includes('could not find')
-  );
 }
 
 function isRecordTouched(record: DayRecord): boolean {
@@ -269,93 +255,34 @@ function buildStateFromRemoteRows(
   };
 }
 
-function toErrorMessage(error: unknown): string {
-  const rawMessage =
-    isValidObject(error) && typeof error.message === 'string'
-      ? error.message
-      : null;
+async function requestRemoteSync(payload: Record<string, unknown>): Promise<RemoteSyncApiResponse> {
+  const response = await fetch(REMOTE_SYNC_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
-  if (!rawMessage) {
-    return '서버 동기화 중 오류가 발생했습니다.';
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    throw new Error('SYNC_SERVER_UNAVAILABLE');
   }
 
-  const lower = rawMessage.toLowerCase();
-  if (
-    lower.includes("could not find the table 'public.users'") ||
-    lower.includes('relation "public.users" does not exist') ||
-    lower.includes('relation "users" does not exist')
-  ) {
-    return 'Supabase 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql을 실행해 주세요.';
+  if (!isValidObject(body) || body.ok !== true || !response.ok) {
+    const code = isValidObject(body) && typeof body.error === 'string'
+      ? body.error
+      : 'SYNC_OPERATION_FAILED';
+    throw new Error(code);
   }
 
-  if (
-    lower.includes('permission denied') ||
-    lower.includes('row-level security') ||
-    lower.includes('violates row-level security')
-  ) {
-    return 'Supabase 권한 또는 RLS 설정이 필요합니다. supabase/schema.sql의 GRANT/RLS 구문을 실행해 주세요.';
-  }
-
-  return rawMessage;
-}
-
-async function upsertUserMetadata(
-  userCode: string,
-  options: {
-    markActivity: boolean;
-    touchedRecordCount?: number;
-    stateRevision?: number;
-  },
-): Promise<void> {
-  const nowIso = dayjs().toISOString();
-  const payload: Record<string, unknown> = {
-    user_code: userCode,
-    last_seen_at: nowIso,
-  };
-
-  if (typeof options.touchedRecordCount === 'number') {
-    payload.record_count = options.touchedRecordCount;
-  }
-
-  if (options.markActivity) {
-    payload.last_activity_at = nowIso;
-    payload.deleted_candidate_at = null;
-  }
-
-  if (typeof options.stateRevision === 'number') {
-    payload.state_revision = normalizeSyncRevision(options.stateRevision);
-  }
-
-  const supabase = getSupabaseClient();
-  let { error } = await supabase
-    .from('users')
-    .upsert(payload, { onConflict: 'user_code' });
-
-  if (error && isMissingStateRevisionColumnError(error) && 'state_revision' in payload) {
-    delete payload.state_revision;
-    ({ error } = await supabase
-      .from('users')
-      .upsert(payload, { onConflict: 'user_code' }));
-  }
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  return body as unknown as RemoteSyncApiResponse;
 }
 
 export function isRemoteSyncAvailable(): boolean {
-  return hasSupabaseEnv();
-}
-
-export async function ensureRemoteUser(userCode: string): Promise<void> {
-  if (!hasSupabaseEnv()) {
-    return;
-  }
-
-  const normalized = normalizeUserCode(userCode);
-  await upsertUserMetadata(normalized, {
-    markActivity: false,
-  });
+  return !import.meta.env.DEV;
 }
 
 export async function syncRemoteState(
@@ -363,121 +290,29 @@ export async function syncRemoteState(
   state: AppState,
   options: SyncOptions,
 ): Promise<void> {
-  if (!hasSupabaseEnv()) {
-    return;
-  }
-
   const normalized = normalizeUserCode(userCode);
-  const touchedRecordCount = getTouchedRecordCount(state);
-  const supabase = getSupabaseClient();
 
-  await upsertUserMetadata(normalized, {
-    markActivity: false,
-  });
-
-  const { error: deleteWorkRecordsError } = await supabase
-    .from('work_records')
-    .delete()
-    .eq('user_code', normalized);
-  if (deleteWorkRecordsError) {
-    throw new Error(deleteWorkRecordsError.message);
-  }
-
-  const { error: deletePeriodsError } = await supabase
-    .from('periods')
-    .delete()
-    .eq('user_code', normalized);
-  if (deletePeriodsError) {
-    throw new Error(deletePeriodsError.message);
-  }
-
-  const periodRows = toPeriodRows(normalized, state.periods);
-  if (periodRows.length > 0) {
-    const { error: insertPeriodsError } = await supabase
-      .from('periods')
-      .insert(periodRows);
-    if (insertPeriodsError) {
-      throw new Error(insertPeriodsError.message);
-    }
-  }
-
-  const recordRows = toWorkRecordRows(normalized, state.periods);
-  if (recordRows.length > 0) {
-    const { error: insertWorkRecordsError } = await supabase
-      .from('work_records')
-      .insert(recordRows);
-    if (insertWorkRecordsError) {
-      throw new Error(insertWorkRecordsError.message);
-    }
-  }
-
-  await upsertUserMetadata(normalized, {
+  await requestRemoteSync({
+    action: 'save',
+    userCode: normalized,
+    periods: toPeriodRows(normalized, state.periods),
+    workRecords: toWorkRecordRows(normalized, state.periods),
+    recordCount: getTouchedRecordCount(state),
     markActivity: options.markActivity,
-    touchedRecordCount,
     stateRevision: options.stateRevision,
   });
 }
 
-export async function loadRemoteState(
-  userCode: string,
-): Promise<LoadRemoteStateResult> {
-  if (!hasSupabaseEnv()) {
-    return {
-      appState: null,
-      savedAt: null,
-      syncRevision: 0,
-      hasRemoteUser: false,
-    };
-  }
+export async function loadRemoteState(userCode: string): Promise<LoadRemoteStateResult> {
+  const response = await requestRemoteSync({
+    action: 'load',
+    userCode: normalizeUserCode(userCode),
+  });
+  const periodRows = Array.isArray(response.periods) ? response.periods : [];
+  const workRecordRows = Array.isArray(response.workRecords) ? response.workRecords : [];
+  const userRow = response.user ?? null;
 
-  const normalized = normalizeUserCode(userCode);
-  const supabase = getSupabaseClient();
-  let userRow: RemoteUserRow | null = null;
-
-  {
-    const { data, error } = await supabase
-      .from('users')
-      .select('user_code,last_activity_at,state_revision')
-      .eq('user_code', normalized)
-      .maybeSingle<RemoteUserRow>();
-
-    if (error) {
-      if (isMissingStateRevisionColumnError(error)) {
-        const fallback = await supabase
-          .from('users')
-          .select('user_code,last_activity_at')
-          .eq('user_code', normalized)
-          .maybeSingle<Omit<RemoteUserRow, 'state_revision'>>();
-
-        if (fallback.error) {
-          throw new Error(fallback.error.message);
-        }
-
-        userRow = fallback.data
-          ? {
-              ...fallback.data,
-              state_revision: 0,
-            }
-          : null;
-      } else {
-        throw new Error(error.message);
-      }
-    } else {
-      userRow = data;
-    }
-  }
-
-  const { data: periodRows, error: periodError } = await supabase
-    .from('periods')
-    .select('id,user_code,period_name,start_date,created_at,updated_at')
-    .eq('user_code', normalized)
-    .order('start_date', { ascending: true })
-    .returns<RemotePeriodRow[]>();
-  if (periodError) {
-    throw new Error(periodError.message);
-  }
-
-  if (!periodRows || periodRows.length === 0) {
+  if (periodRows.length === 0) {
     return {
       appState: null,
       savedAt: userRow?.last_activity_at ?? null,
@@ -486,57 +321,24 @@ export async function loadRemoteState(
     };
   }
 
-  const { data: recordRows, error: recordError } = await supabase
-    .from('work_records')
-    .select(
-      'id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,dinner_checked,non_work_minutes,special_work_request_minutes,actual_overtime_minutes',
-    )
-    .eq('user_code', normalized)
-    .order('work_date', { ascending: true })
-    .returns<RemoteWorkRecordRow[]>();
-  if (recordError) {
-    throw new Error(recordError.message);
-  }
-
   return {
-    appState: buildStateFromRemoteRows(periodRows, recordRows ?? []),
+    appState: buildStateFromRemoteRows(periodRows, workRecordRows),
     savedAt: userRow?.last_activity_at ?? null,
     syncRevision: normalizeSyncRevision(userRow?.state_revision),
     hasRemoteUser: true,
   };
 }
 
-export async function runWeeklyRemoteCleanup(): Promise<void> {
-  if (!hasSupabaseEnv()) {
-    return;
-  }
-
-  const lastCheckedAt = localStorage.getItem(REMOTE_CLEANUP_CHECKED_AT_KEY);
-  if (lastCheckedAt) {
-    const diffDays = dayjs().diff(dayjs(lastCheckedAt), 'day');
-    if (diffDays < CLEANUP_INTERVAL_DAYS) {
-      return;
-    }
-  }
-
-  const nowIso = dayjs().toISOString();
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.rpc('cleanup_inactive_user_codes');
-
-  if (error && !/cleanup_inactive_user_codes/i.test(error.message)) {
-    throw new Error(error.message);
-  }
-
-  localStorage.setItem(REMOTE_CLEANUP_CHECKED_AT_KEY, nowIso);
-}
-
 export function getSyncUnavailableMessage(error: unknown): string {
-  if (!hasSupabaseEnv()) {
-    return (
-      getSupabaseEnvError() ??
-      '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.'
-    );
+  const code = error instanceof Error ? error.message : '';
+
+  if (code === 'SYNC_SERVER_UNAVAILABLE') {
+    return '서버 동기화 설정이 없어 코드 불러오기를 사용할 수 없습니다.';
   }
 
-  return toErrorMessage(error);
+  if (code === 'SYNC_INVALID_REQUEST') {
+    return '동기화 요청을 처리하지 못했습니다. 동기화 코드를 다시 확인해 주세요.';
+  }
+
+  return '서버 동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 }

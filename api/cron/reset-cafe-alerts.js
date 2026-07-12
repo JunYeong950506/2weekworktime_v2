@@ -22,6 +22,18 @@ async function assertNoError(result, label) {
   }
 }
 
+async function runWeeklyInactiveUserCleanup(supabase) {
+  if (new Date().getUTCDay() !== 0) {
+    return false;
+  }
+
+  await assertNoError(
+    await supabase.rpc('cleanup_inactive_user_codes'),
+    'cleanup inactive user codes',
+  );
+  return true;
+}
+
 export default async function handler(request, response) {
   if (!requireMethod(request, response, 'GET')) {
     return;
@@ -35,6 +47,7 @@ export default async function handler(request, response) {
   try {
     const supabase = getSupabaseAdmin();
     const nowIso = new Date().toISOString();
+    const inactiveUserCleanupRan = await runWeeklyInactiveUserCleanup(supabase);
 
     await assertNoError(
       await supabase.from('cafe_notification_logs').delete().gt('id', 0),
@@ -68,6 +81,7 @@ export default async function handler(request, response) {
       ok: true,
       resetAt: nowIso,
       preservedTables: ['cafe_push_subscriptions'],
+      inactiveUserCleanupRan,
     });
   } catch (error) {
     sendError(response, 500, 'CAFE_ALERT_RESET_FAILED', toSafeErrorMessage(error));

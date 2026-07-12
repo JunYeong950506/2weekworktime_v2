@@ -72,8 +72,8 @@ npm.cmd run preview
 서버 동기화를 사용하려면 아래 환경변수가 필요합니다.
 
 ```bash
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 카페 번호표 알림을 사용하려면 Vercel 환경변수에 아래 값을 추가합니다.
@@ -142,7 +142,7 @@ KASI 키는 1차 소스 실패 시 `/api/holidays` 서버리스 함수에서만 
 - 서버 동기화: `src/utils/remoteSync.ts`
 - 공휴일 판정: `src/utils/holidayProvider.ts`, `api/holidays.js`
 - 카페 번호표 알림: `src/features/cafe-number-alert/`, `api/cafe-alert/`
-- Supabase client: `src/lib/supabase.ts`
+- Sync API: `api/sync.js`, `src/utils/remoteSync.ts`
 
 ## Supabase 설정
 - 스키마 파일: `supabase/schema.sql`
