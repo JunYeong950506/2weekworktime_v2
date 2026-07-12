@@ -344,6 +344,7 @@ export default async function handler(request, response) {
       return;
     }
 
+    console.error('sync operation failed', error);
     sendError(response, 500, 'SYNC_OPERATION_FAILED', 'Server sync operation failed');
   }
 }
