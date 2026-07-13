@@ -60,8 +60,15 @@ while ($true) {
   New-Item -ItemType Directory -Path $WorkerDebugDir -Force | Out-Null
   Push-Location $RootDir
   try {
-    & $Python -m cafe_ocr_worker.main *>> $LogFile
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+      & $Python -m cafe_ocr_worker.main *>> $LogFile
+      $exitCode = $LASTEXITCODE
+    }
+    finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
   }
   finally {
     Pop-Location
