@@ -4,8 +4,9 @@ import argparse
 import asyncio
 import logging
 import signal
+import shutil
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .backend_client import BackendClient, QueuedBackendSender
@@ -18,10 +19,34 @@ from .number_validator import DetectionState, NumberValidator, ValidatorConfig
 from .settings import Settings
 
 logger = logging.getLogger("cafe_ocr_worker")
+KOREA_TIMEZONE = timezone(timedelta(hours=9), "Asia/Seoul")
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def korea_now() -> datetime:
+    return datetime.now(KOREA_TIMEZONE)
+
+
+def is_capture_window(now: datetime) -> bool:
+    local_now = now.astimezone(KOREA_TIMEZONE)
+    return local_now.weekday() < 5 and 6 <= local_now.hour < 17
+
+
+def clear_debug_directory(directory: Path) -> None:
+    if not directory.exists():
+        return
+
+    for path in directory.iterdir():
+        try:
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+        except OSError:
+            logger.warning("Failed to remove debug artifact path=%s", path)
 
 
 def configure_logging() -> None:
@@ -37,6 +62,11 @@ def debug_path(settings: Settings, prefix: str, captured_at: datetime) -> Path:
 
 
 async def run_worker(settings: Settings, once: bool = False) -> None:
+    if not once and not is_capture_window(korea_now()):
+        logger.info("Outside weekday capture window; skip worker start")
+        clear_debug_directory(settings.debug_image_dir)
+        return
+
     engine = create_ocr_engine(settings.ocr_engine)
     validator = NumberValidator(
         ValidatorConfig(
@@ -52,6 +82,7 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
     backend_sender = QueuedBackendSender(backend, settings.backend_queue_size)
     stop_event = asyncio.Event()
     last_ocr_at: datetime | None = None
+    scheduled_stop = False
     change_detector = (
         RoiChangeDetector(
             resize_width=settings.change_detection_resize_width,
@@ -83,6 +114,11 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
     try:
         async with create_capture(settings) as capture:
             while not stop_event.is_set():
+                if not once and not is_capture_window(korea_now()):
+                    scheduled_stop = True
+                    logger.info("Weekday capture window ended; stopping worker")
+                    break
+
                 cycle_started_at = time.perf_counter()
 
                 try:
@@ -147,6 +183,8 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
     finally:
         if backend.configured:
             await backend_sender.stop()
+        if scheduled_stop:
+            clear_debug_directory(settings.debug_image_dir)
 
 
 def should_skip_ocr(
