@@ -7,7 +7,7 @@ import {
   sendJson,
   toSafeErrorMessage,
 } from '../_cafeAlertService.js';
-import { calculateEstimatedWaitMinutes } from '../_cafeWaitEstimate.js';
+import { calculateEstimatedWaitMinutes, calculateRecentWaitEstimate } from '../_cafeWaitEstimate.js';
 
 function toWatchPayload(watch) {
   if (!watch) {
@@ -41,7 +41,7 @@ export default async function handler(request, response) {
     const supabase = getSupabaseAdmin();
     const { data: currentState, error: stateError } = await supabase
       .from('cafe_number_state')
-      .select('current_number,captured_at,estimated_seconds_per_number,estimate_sample_numbers')
+      .select('current_number,captured_at')
       .eq('id', 1)
       .maybeSingle();
 
@@ -71,14 +71,30 @@ export default async function handler(request, response) {
       watch = latestWatch;
     }
 
+    let waitEstimate = { secondsPerNumber: null, sampleNumbers: 0 };
+    if (watch?.status === 'WAITING') {
+      const { data: detections, error: detectionsError } = await supabase
+        .from('cafe_number_detections')
+        .select('candidate_number,captured_at')
+        .eq('accepted', true)
+        .order('captured_at', { ascending: false })
+        .limit(30);
+
+      if (detectionsError) {
+        throw new Error(detectionsError.message);
+      }
+
+      waitEstimate = calculateRecentWaitEstimate(detections ?? []);
+    }
+
     const currentNumber = currentState?.current_number ?? null;
     const estimatedWaitMinutes = watch?.status === 'WAITING'
       ? calculateEstimatedWaitMinutes({
         currentNumber,
         targetNumber: watch.target_number,
         advanceCount: watch.advance_count,
-        secondsPerNumber: Number(currentState?.estimated_seconds_per_number),
-        sampleNumbers: currentState?.estimate_sample_numbers ?? 0,
+        secondsPerNumber: waitEstimate.secondsPerNumber,
+        sampleNumbers: waitEstimate.sampleNumbers,
       })
       : null;
 
@@ -87,7 +103,7 @@ export default async function handler(request, response) {
       capturedAt: currentState?.captured_at ?? null,
       watch: toWatchPayload(watch),
       estimatedWaitMinutes,
-      estimateSampleNumbers: currentState?.estimate_sample_numbers ?? 0,
+      estimateSampleNumbers: waitEstimate.sampleNumbers,
     });
   } catch (error) {
     sendError(response, 500, 'WATCH_STATUS_FAILED', toSafeErrorMessage(error));

@@ -9,7 +9,6 @@ from typing import Any
 import httpx
 
 from .models import NumberDetection
-from .wait_time_estimator import WaitTimeEstimate
 
 logger = logging.getLogger("cafe_ocr_worker.backend_client")
 
@@ -17,7 +16,6 @@ logger = logging.getLogger("cafe_ocr_worker.backend_client")
 def build_detection_payload(
     detection: NumberDetection,
     captured_at: datetime,
-    wait_estimate: WaitTimeEstimate,
 ) -> dict[str, Any]:
     return {
         "currentNumber": detection.current_number,
@@ -26,8 +24,6 @@ def build_detection_payload(
         "rawOcr": detection.raw_text,
         "confidence": detection.confidence,
         "capturedAt": captured_at.astimezone(timezone.utc).isoformat(),
-        "estimatedSecondsPerNumber": wait_estimate.seconds_per_number,
-        "estimateSampleNumbers": wait_estimate.sample_numbers,
     }
 
 
@@ -50,12 +46,11 @@ class BackendClient:
         self,
         detection: NumberDetection,
         captured_at: datetime,
-        wait_estimate: WaitTimeEstimate,
     ) -> dict[str, Any]:
         if not self.configured:
             raise RuntimeError("BACKEND_URL and OCR_WORKER_TOKEN are required")
 
-        payload = build_detection_payload(detection, captured_at, wait_estimate)
+        payload = build_detection_payload(detection, captured_at)
 
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(
@@ -71,7 +66,6 @@ class BackendClient:
 class QueuedDetection:
     detection: NumberDetection
     captured_at: datetime
-    wait_estimate: WaitTimeEstimate
 
 
 class QueuedBackendSender:
@@ -90,7 +84,6 @@ class QueuedBackendSender:
         self,
         detection: NumberDetection,
         captured_at: datetime,
-        wait_estimate: WaitTimeEstimate,
     ) -> bool:
         number = detection.current_number
         if number in self._pending_numbers or number == self._last_sent_number:
@@ -100,7 +93,7 @@ class QueuedBackendSender:
             self._drop_oldest_pending()
 
         try:
-            self._queue.put_nowait(QueuedDetection(detection, captured_at, wait_estimate))
+            self._queue.put_nowait(QueuedDetection(detection, captured_at))
         except asyncio.QueueFull:
             logger.warning("backend queue is full; skip number=%s", number)
             return False
@@ -129,7 +122,6 @@ class QueuedBackendSender:
                     response = await self.backend.send_detection(
                         item.detection,
                         item.captured_at,
-                        item.wait_estimate,
                     )
                     self._last_sent_number = number
                     logger.info("backend updated number=%s response=%s", number, response)

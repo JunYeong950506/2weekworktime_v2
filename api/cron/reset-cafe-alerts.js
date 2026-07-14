@@ -70,8 +70,6 @@ export default async function handler(request, response) {
           confidence: null,
           source_status: 'UNKNOWN',
           captured_at: null,
-          estimated_seconds_per_number: null,
-          estimate_sample_numbers: 0,
           updated_at: nowIso,
         },
         { onConflict: 'id' },

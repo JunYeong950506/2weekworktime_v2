@@ -14,18 +14,6 @@ import {
 
 const MAX_DETECTION_LOG_ROWS = 300;
 
-function normalizeEstimatedSecondsPerNumber(value) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || value > 7200) {
-    return null;
-  }
-
-  return value;
-}
-
-function normalizeEstimateSampleNumbers(value) {
-  return Number.isInteger(value) && value >= 0 && value <= 5 ? value : 0;
-}
-
 function isAuthorized(request) {
   const expectedToken = (process.env.OCR_WORKER_TOKEN || '').trim();
   if (!expectedToken) {
@@ -238,11 +226,6 @@ export default async function handler(request, response) {
       : detected.rawOcr;
     const confidence = normalizeConfidence(body.confidence);
     const capturedAt = normalizeCapturedAt(body.capturedAt);
-    const estimateSampleNumbers = normalizeEstimateSampleNumbers(body.estimateSampleNumbers);
-    const estimatedSecondsPerNumber = estimateSampleNumbers === 5
-      ? normalizeEstimatedSecondsPerNumber(body.estimatedSecondsPerNumber)
-      : null;
-
     if (currentNumber === null) {
       sendError(
         response,
@@ -266,8 +249,6 @@ export default async function handler(request, response) {
           confidence,
           source_status: confidence === null || confidence >= 70 ? 'HEALTHY' : 'LOW_CONFIDENCE',
           captured_at: capturedAt,
-          estimated_seconds_per_number: estimatedSecondsPerNumber,
-          estimate_sample_numbers: estimateSampleNumbers,
           updated_at: nowIso,
         },
         { onConflict: 'id' },

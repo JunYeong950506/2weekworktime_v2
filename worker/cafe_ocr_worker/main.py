@@ -17,7 +17,6 @@ from .image_preprocessor import crop_normalized_roi, save_debug_image
 from .models import DecisionKind
 from .number_validator import DetectionState, NumberValidator, ValidatorConfig
 from .settings import Settings
-from .wait_time_estimator import WaitTimeEstimator
 
 logger = logging.getLogger("cafe_ocr_worker")
 KOREA_TIMEZONE = timezone(timedelta(hours=9), "Asia/Seoul")
@@ -79,7 +78,6 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
         ),
     )
     state = DetectionState()
-    wait_time_estimator = WaitTimeEstimator(max_number_jump=settings.ocr_max_forward_jump)
     backend = BackendClient(settings.backend_url, settings.ocr_worker_token)
     backend_sender = QueuedBackendSender(backend, settings.backend_queue_size)
     stop_event = asyncio.Event()
@@ -146,7 +144,6 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
                         ocr_elapsed = time.perf_counter() - ocr_started_at
 
                         if decision.accepted and detection is not None and decision.number is not None:
-                            wait_estimate = wait_time_estimator.record(decision.number, captured_at)
                             state.accept(decision.number)
                             logger.info(
                                 "accepted number=%s source=%s confidence=%s list=%s capture_seconds=%.2f ocr_seconds=%.2f",
@@ -159,7 +156,7 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
                             )
 
                             if backend.configured:
-                                queued = backend_sender.enqueue(detection, captured_at, wait_estimate)
+                                queued = backend_sender.enqueue(detection, captured_at)
                                 if queued:
                                     logger.info("backend enqueue number=%s", decision.number)
                                 else:
@@ -170,12 +167,10 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
                         elif decision.kind == DecisionKind.CONFIRM:
                             logger.info("pending candidate number=%s reason=%s", decision.number, decision.reason)
                         else:
-                            wait_time_estimator.reset()
                             logger.warning("rejected candidate number=%s reason=%s", decision.number, decision.reason)
                             save_debug_image(debug_path(settings, "rejected", captured_at), panel)
 
                 except Exception:
-                    wait_time_estimator.reset()
                     logger.exception("Cafe OCR cycle failed")
 
                 if once:
