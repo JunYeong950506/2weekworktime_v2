@@ -515,7 +515,7 @@ export default function CafeNumberAlertDialog({
                 ? typeof statusData?.estimatedWaitMinutes === 'number'
                   ? statusData.estimatedWaitMinutes === 0
                     ? '곧 알림 예정'
-                    : `예상 약 ${statusData.estimatedWaitMinutes}분`
+                    : `예상 대기 약 ${statusData.estimatedWaitMinutes}분`
                   : statusData?.estimateSampleCount
                     ? `계산 중 ${statusData.estimateSampleCount}/5`
                     : '예상 계산 중'
