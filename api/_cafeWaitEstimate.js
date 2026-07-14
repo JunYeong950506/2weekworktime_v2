@@ -1,4 +1,4 @@
-export const WAIT_ESTIMATE_SAMPLE_MEASUREMENTS = 5;
+export const WAIT_ESTIMATE_SAMPLE_MEASUREMENTS = 10;
 
 export function calculateRecentWaitEstimate(detections) {
   const measurements = [];
