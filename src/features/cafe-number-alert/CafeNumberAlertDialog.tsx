@@ -505,20 +505,24 @@ export default function CafeNumberAlertDialog({
             <span className={`mt-2 inline-flex rounded-xl px-3 py-1.5 text-sm font-extrabold ${statusClassName(uiState)}`}>
               {statusLabel(uiState)}
             </span>
-            <p className="mt-2 text-xs text-slate-400">
-              {watch ? `${watch.targetNumber}번 / ${watch.advanceCount}개 전` : '등록된 알림 없음'}
-            </p>
-            {watch?.status === 'WAITING' ? (
-              <p className="mt-1 text-xs font-bold text-indigo-600" aria-live="polite">
-                {typeof statusData?.estimatedWaitMinutes === 'number'
+            <p
+              className={`mt-2 flex h-5 items-center whitespace-nowrap text-xs ${
+                watch?.status === 'WAITING' ? 'font-bold text-indigo-600' : 'text-slate-400'
+              }`}
+              aria-live="polite"
+            >
+              {watch?.status === 'WAITING'
+                ? typeof statusData?.estimatedWaitMinutes === 'number'
                   ? statusData.estimatedWaitMinutes === 0
-                    ? '예상 대기 곧 알림 예정'
-                    : `예상 대기 약 ${statusData.estimatedWaitMinutes}분`
+                    ? '곧 알림 예정'
+                    : `예상 약 ${statusData.estimatedWaitMinutes}분`
                   : statusData?.estimateSampleCount
-                    ? `예상 대기 계산 중 (${statusData.estimateSampleCount}/5)`
-                    : '예상 대기 계산 중'}
-              </p>
-            ) : null}
+                    ? `계산 중 ${statusData.estimateSampleCount}/5`
+                    : '예상 계산 중'
+                : watch
+                  ? '알림 상태 확인 중'
+                  : '등록된 알림 없음'}
+            </p>
           </div>
         </div>
 
