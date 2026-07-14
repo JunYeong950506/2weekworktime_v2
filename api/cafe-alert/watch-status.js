@@ -71,7 +71,7 @@ export default async function handler(request, response) {
       watch = latestWatch;
     }
 
-    let waitEstimate = { secondsPerNumber: null, sampleNumbers: 0 };
+    let waitEstimate = { secondsPerNumber: null, sampleMeasurements: 0 };
     if (watch?.status === 'WAITING') {
       const { data: detections, error: detectionsError } = await supabase
         .from('cafe_number_detections')
@@ -94,7 +94,7 @@ export default async function handler(request, response) {
         targetNumber: watch.target_number,
         advanceCount: watch.advance_count,
         secondsPerNumber: waitEstimate.secondsPerNumber,
-        sampleNumbers: waitEstimate.sampleNumbers,
+        sampleMeasurements: waitEstimate.sampleMeasurements,
       })
       : null;
 
@@ -103,7 +103,7 @@ export default async function handler(request, response) {
       capturedAt: currentState?.captured_at ?? null,
       watch: toWatchPayload(watch),
       estimatedWaitMinutes,
-      estimateSampleNumbers: waitEstimate.sampleNumbers,
+      estimateSampleCount: waitEstimate.sampleMeasurements,
     });
   } catch (error) {
     sendError(response, 500, 'WATCH_STATUS_FAILED', toSafeErrorMessage(error));

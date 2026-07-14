@@ -55,7 +55,7 @@ function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse
       notifiedAt: null,
     },
     estimatedWaitMinutes: null,
-    estimateSampleNumbers: 0,
+    estimateSampleCount: 0,
   };
 }
 
@@ -514,8 +514,8 @@ export default function CafeNumberAlertDialog({
                   ? statusData.estimatedWaitMinutes === 0
                     ? '예상 대기 곧 알림 예정'
                     : `예상 대기 약 ${statusData.estimatedWaitMinutes}분`
-                  : statusData?.estimateSampleNumbers
-                    ? `예상 대기 계산 중 (${statusData.estimateSampleNumbers}/5)`
+                  : statusData?.estimateSampleCount
+                    ? `예상 대기 계산 중 (${statusData.estimateSampleCount}/5)`
                     : '예상 대기 계산 중'}
               </p>
             ) : null}

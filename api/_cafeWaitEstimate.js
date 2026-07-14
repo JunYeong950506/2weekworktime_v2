@@ -1,8 +1,7 @@
-export const WAIT_ESTIMATE_SAMPLE_NUMBERS = 5;
-const MAX_FORWARD_NUMBER_JUMP = 10;
+export const WAIT_ESTIMATE_SAMPLE_MEASUREMENTS = 5;
 
 export function calculateRecentWaitEstimate(detections) {
-  const segments = [];
+  const measurements = [];
   let lastNumber = null;
   let lastCapturedAtMs = null;
 
@@ -17,6 +16,7 @@ export function calculateRecentWaitEstimate(detections) {
     if (lastNumber === null || lastCapturedAtMs === null) {
       lastNumber = number;
       lastCapturedAtMs = capturedAtMs;
+      measurements.push({ number, capturedAtMs });
       continue;
     }
 
@@ -29,38 +29,35 @@ export function calculateRecentWaitEstimate(detections) {
     lastNumber = number;
     lastCapturedAtMs = capturedAtMs;
 
-    if (
-      numberDelta <= 0
-      || numberDelta > MAX_FORWARD_NUMBER_JUMP
-      || elapsedSeconds <= 0
-    ) {
-      segments.length = 0;
+    if (numberDelta <= 0 || elapsedSeconds <= 0) {
+      measurements.length = 0;
+      measurements.push({ number, capturedAtMs });
       continue;
     }
 
-    segments.push({ numberDelta, elapsedSeconds });
+    measurements.push({ number, capturedAtMs });
   }
 
-  let remainingNumbers = WAIT_ESTIMATE_SAMPLE_NUMBERS;
-  let sampleNumbers = 0;
-  let sampleSeconds = 0;
+  const recentMeasurements = measurements.slice(-WAIT_ESTIMATE_SAMPLE_MEASUREMENTS);
+  if (recentMeasurements.length < WAIT_ESTIMATE_SAMPLE_MEASUREMENTS) {
+    return {
+      secondsPerNumber: null,
+      sampleMeasurements: recentMeasurements.length,
+    };
+  }
 
-  for (const segment of [...segments].reverse()) {
-    const usedNumbers = Math.min(remainingNumbers, segment.numberDelta);
-    sampleNumbers += usedNumbers;
-    sampleSeconds += segment.elapsedSeconds * usedNumbers / segment.numberDelta;
-    remainingNumbers -= usedNumbers;
-
-    if (remainingNumbers === 0) {
-      break;
-    }
+  let totalNumberDelta = 0;
+  let totalElapsedSeconds = 0;
+  for (let index = 1; index < recentMeasurements.length; index += 1) {
+    const previous = recentMeasurements[index - 1];
+    const current = recentMeasurements[index];
+    totalNumberDelta += current.number - previous.number;
+    totalElapsedSeconds += (current.capturedAtMs - previous.capturedAtMs) / 1000;
   }
 
   return {
-    secondsPerNumber: sampleNumbers === WAIT_ESTIMATE_SAMPLE_NUMBERS
-      ? sampleSeconds / sampleNumbers
-      : null,
-    sampleNumbers,
+    secondsPerNumber: totalNumberDelta > 0 ? totalElapsedSeconds / totalNumberDelta : null,
+    sampleMeasurements: recentMeasurements.length,
   };
 }
 
@@ -69,7 +66,7 @@ export function calculateEstimatedWaitMinutes({
   targetNumber,
   advanceCount,
   secondsPerNumber,
-  sampleNumbers,
+  sampleMeasurements,
 }) {
   if (
     !Number.isInteger(currentNumber) ||
@@ -77,8 +74,8 @@ export function calculateEstimatedWaitMinutes({
     !Number.isInteger(advanceCount) ||
     !Number.isFinite(secondsPerNumber) ||
     secondsPerNumber <= 0 ||
-    !Number.isInteger(sampleNumbers) ||
-    sampleNumbers < WAIT_ESTIMATE_SAMPLE_NUMBERS
+    !Number.isInteger(sampleMeasurements) ||
+    sampleMeasurements < WAIT_ESTIMATE_SAMPLE_MEASUREMENTS
   ) {
     return null;
   }
