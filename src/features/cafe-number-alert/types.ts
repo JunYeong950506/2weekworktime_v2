@@ -20,6 +20,8 @@ export interface CafeWatchStatusResponse {
   currentNumber: number | null;
   capturedAt: string | null;
   watch: CafeWatch | null;
+  estimatedWaitMinutes: number | null;
+  estimateSampleNumbers: number;
 }
 
 export interface RegisterSubscriptionResponse {

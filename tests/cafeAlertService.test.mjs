@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { resolveCafeCurrentNumber } from '../api/_cafeAlertService.js';
+import { calculateEstimatedWaitMinutes } from '../api/_cafeWaitEstimate.js';
 
 function run(name, testBody) {
   try {
@@ -39,5 +40,31 @@ run('list max wins when OCR main number is lower than list max', () => {
       detectedNumbers: [60, 59, 58, 57, 56, 55],
       rawOcr: 'list=60,59,58,57,56,55',
     },
+  );
+});
+
+run('wait estimate targets the configured alert trigger number', () => {
+  assert.equal(
+    calculateEstimatedWaitMinutes({
+      currentNumber: 100,
+      targetNumber: 110,
+      advanceCount: 3,
+      secondsPerNumber: 90,
+      sampleNumbers: 5,
+    }),
+    11,
+  );
+});
+
+run('wait estimate remains unavailable before five number samples', () => {
+  assert.equal(
+    calculateEstimatedWaitMinutes({
+      currentNumber: 100,
+      targetNumber: 110,
+      advanceCount: 3,
+      secondsPerNumber: 90,
+      sampleNumbers: 4,
+    }),
+    null,
   );
 });

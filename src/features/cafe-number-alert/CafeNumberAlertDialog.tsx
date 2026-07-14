@@ -41,6 +41,7 @@ type AlertUiState =
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
 const NOTIFIED_RESET_DELAY_MS = 10 * 60 * 1000;
+const WAIT_STATUS_REFRESH_MS = 15 * 1000;
 
 function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse {
   return {
@@ -53,6 +54,8 @@ function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse
       status: response.status,
       notifiedAt: null,
     },
+    estimatedWaitMinutes: null,
+    estimateSampleNumbers: 0,
   };
 }
 
@@ -297,6 +300,20 @@ export default function CafeNumberAlertDialog({
   }, [watch]);
 
   useEffect(() => {
+    if (!open || !deviceId || uiState !== 'WAITING') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshStatus(deviceId);
+    }, WAIT_STATUS_REFRESH_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [deviceId, open, uiState]);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
@@ -398,6 +415,7 @@ export default function CafeNumberAlertDialog({
 
       setStatusData(toWatchStatus(watchResponse));
       setUiState(stateFromWatchStatus(watchResponse.status));
+      void refreshStatus(nextDeviceId);
     } catch (error) {
       const friendly = toFriendlyError(error);
       setUiState(friendly.state);
@@ -490,6 +508,17 @@ export default function CafeNumberAlertDialog({
             <p className="mt-2 text-xs text-slate-400">
               {watch ? `${watch.targetNumber}번 / ${watch.advanceCount}개 전` : '등록된 알림 없음'}
             </p>
+            {watch?.status === 'WAITING' ? (
+              <p className="mt-1 text-xs font-bold text-indigo-600" aria-live="polite">
+                {typeof statusData?.estimatedWaitMinutes === 'number'
+                  ? statusData.estimatedWaitMinutes === 0
+                    ? '예상 대기 곧 알림 예정'
+                    : `예상 대기 약 ${statusData.estimatedWaitMinutes}분`
+                  : statusData?.estimateSampleNumbers
+                    ? `예상 대기 계산 중 (${statusData.estimateSampleNumbers}/5)`
+                    : '예상 대기 계산 중'}
+              </p>
+            ) : null}
           </div>
         </div>
 

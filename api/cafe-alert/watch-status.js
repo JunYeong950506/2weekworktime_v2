@@ -7,6 +7,7 @@ import {
   sendJson,
   toSafeErrorMessage,
 } from '../_cafeAlertService.js';
+import { calculateEstimatedWaitMinutes } from '../_cafeWaitEstimate.js';
 
 function toWatchPayload(watch) {
   if (!watch) {
@@ -40,7 +41,7 @@ export default async function handler(request, response) {
     const supabase = getSupabaseAdmin();
     const { data: currentState, error: stateError } = await supabase
       .from('cafe_number_state')
-      .select('current_number,captured_at')
+      .select('current_number,captured_at,estimated_seconds_per_number,estimate_sample_numbers')
       .eq('id', 1)
       .maybeSingle();
 
@@ -70,10 +71,23 @@ export default async function handler(request, response) {
       watch = latestWatch;
     }
 
+    const currentNumber = currentState?.current_number ?? null;
+    const estimatedWaitMinutes = watch?.status === 'WAITING'
+      ? calculateEstimatedWaitMinutes({
+        currentNumber,
+        targetNumber: watch.target_number,
+        advanceCount: watch.advance_count,
+        secondsPerNumber: Number(currentState?.estimated_seconds_per_number),
+        sampleNumbers: currentState?.estimate_sample_numbers ?? 0,
+      })
+      : null;
+
     sendJson(response, 200, {
-      currentNumber: currentState?.current_number ?? null,
+      currentNumber,
       capturedAt: currentState?.captured_at ?? null,
       watch: toWatchPayload(watch),
+      estimatedWaitMinutes,
+      estimateSampleNumbers: currentState?.estimate_sample_numbers ?? 0,
     });
   } catch (error) {
     sendError(response, 500, 'WATCH_STATUS_FAILED', toSafeErrorMessage(error));
