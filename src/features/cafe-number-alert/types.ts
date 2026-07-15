@@ -1,4 +1,4 @@
-export type AdvanceCount = 3 | 5;
+export type AdvanceCount = 3 | 12;
 
 export type CafeWatchStatus =
   | 'WAITING'

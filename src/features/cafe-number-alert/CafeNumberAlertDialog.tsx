@@ -518,7 +518,7 @@ export default function CafeNumberAlertDialog({
                     : `예상 대기 약 ${statusData.estimatedWaitMinutes}분`
                   : statusData?.estimateSampleCount
                     ? `계산 중 ${statusData.estimateSampleCount}/10`
-                    : '예상 계산 중'
+                    : '대기 시간 계산 중'
                 : watch
                   ? '알림 상태 확인 중'
                   : '등록된 알림 없음'}
@@ -542,7 +542,10 @@ export default function CafeNumberAlertDialog({
             <div className="min-w-0">
               <p className="mb-1.5 text-xs font-bold text-slate-400">알림 시점</p>
               <div className="grid h-12 grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
-                {([3, 5] as const).map((count) => (
+                {([
+                  { count: 3, label: '1층 로비' },
+                  { count: 12, label: '사무실' },
+                ] as const).map(({ count, label }) => (
                   <button
                     key={count}
                     type="button"
@@ -553,7 +556,7 @@ export default function CafeNumberAlertDialog({
                         : 'text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    {count}개 전
+                    {label}
                   </button>
                 ))}
               </div>

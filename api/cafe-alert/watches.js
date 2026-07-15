@@ -46,7 +46,7 @@ export default async function handler(request, response) {
     }
 
     if (advanceCount === null) {
-      sendError(response, 400, 'INVALID_ADVANCE_COUNT', 'advanceCount must be 3 or 5');
+      sendError(response, 400, 'INVALID_ADVANCE_COUNT', 'advanceCount must be 3 or 12');
       return;
     }
 

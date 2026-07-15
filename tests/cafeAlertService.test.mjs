@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { resolveCafeCurrentNumber } from '../api/_cafeAlertService.js';
+import { resolveCafeCurrentNumber, validateAdvanceCount } from '../api/_cafeAlertService.js';
 import { calculateEstimatedWaitMinutes, calculateRecentWaitEstimate } from '../api/_cafeWaitEstimate.js';
 
 function run(name, testBody) {
@@ -41,6 +41,12 @@ run('list max wins when OCR main number is lower than list max', () => {
       rawOcr: 'list=60,59,58,57,56,55',
     },
   );
+});
+
+run('allows lobby and office alert trigger counts only', () => {
+  assert.equal(validateAdvanceCount(3), 3);
+  assert.equal(validateAdvanceCount(12), 12);
+  assert.equal(validateAdvanceCount(5), null);
 });
 
 run('wait estimate targets the configured alert trigger number', () => {

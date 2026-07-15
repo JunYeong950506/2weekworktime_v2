@@ -124,7 +124,7 @@ export function validateTargetNumber(value) {
 
 export function validateAdvanceCount(value) {
   const advanceCount = toInteger(value);
-  return advanceCount === 3 || advanceCount === 5 ? advanceCount : null;
+  return advanceCount === 3 || advanceCount === 12 ? advanceCount : null;
 }
 
 export function normalizeDetectedNumberList(value) {
