@@ -586,7 +586,11 @@ export default function CafeNumberAlertDialog({
               disabled={pendingAction !== null || !isTargetNumberValid}
               className="btn-primary h-11 flex-1 disabled:opacity-50"
             >
-              {pendingAction === 'register' ? '등록 중' : '알림 등록'}
+              {pendingAction === 'register'
+                ? '변경 중'
+                : watch?.status === 'WAITING'
+                  ? '알림 시점 변경'
+                  : '알림 등록'}
             </button>
             <button
               type="button"
