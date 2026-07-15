@@ -243,6 +243,7 @@ export default function CafeNumberAlertDialog({
     parsedTargetNumber >= 1 &&
     parsedTargetNumber <= 9999 &&
     parsedTargetNumber > advanceCount;
+  const isAdvanceCountChanged = watch?.status === 'WAITING' && watch.advanceCount !== advanceCount;
 
   function resetToInitial(nextStatus?: CafeWatchStatusResponse | null): void {
     setStatusData((prev) => {
@@ -583,7 +584,11 @@ export default function CafeNumberAlertDialog({
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="submit"
-              disabled={pendingAction !== null || !isTargetNumberValid}
+              disabled={
+                pendingAction !== null ||
+                !isTargetNumberValid ||
+                (watch?.status === 'WAITING' && !isAdvanceCountChanged)
+              }
               className="btn-primary h-11 flex-1 disabled:opacity-50"
             >
               {pendingAction === 'register'
