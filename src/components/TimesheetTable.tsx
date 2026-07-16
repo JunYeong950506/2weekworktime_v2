@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { MINUTES_PER_HOUR } from '../constants';
 import { recalculateDayRecord } from '../utils/calculations';
+import { clampSpecialWorkRequestMinutes } from '../utils/specialWork';
 import { AnnualLeaveType, DayRecord, DayRecordMeta } from '../types';
 import {
   formatDateCell,
@@ -8,6 +10,7 @@ import {
   formatSignedMinutesAsClock,
   isToday,
 } from '../utils/time';
+import { DurationPicker } from './DurationPicker';
 
 interface TimesheetTableProps {
   records: DayRecord[];
@@ -251,6 +254,13 @@ export default function TimesheetTable({
   const modalMeta = preview?.meta ?? null;
   const modalRecord = preview?.record ?? null;
   const modalSpecialMode = modalMeta?.isSpecialWorkMode ?? false;
+  const modalSpecialRequestMinutes = clampSpecialWorkRequestMinutes(
+    modalRecord?.specialWorkRequestMinutes ?? 0,
+  );
+  const modalSpecialFinalMinutes = Math.max(
+    0,
+    Math.round(modalRecord?.claimedOtMinutes ?? 0),
+  );
   const modalAnnualLeaveValue: AnnualLeaveType = modalRecord
     ? modalSpecialMode
       ? 'none'
@@ -720,13 +730,30 @@ export default function TimesheetTable({
               ) : null}
 
               {modalSpecialMode ? (
-                <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3.5 text-sky-800">
-                  <p className="text-sm font-extrabold">특근/휴일 근무 입력 안내</p>
-                  <p className="mt-2 text-xs font-medium leading-5 text-sky-700 sm:text-[13px]">
-                    특근/휴일은 출퇴근 시간을 입력하지 않습니다.
-                    <br />
-                    실제 근무한 시간은 실제 야근결재(분)에 입력해 주세요.
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="min-w-0 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
+                    <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
+                    <DurationPicker
+                      ariaLabel="신청 시간"
+                      valueMinutes={modalSpecialRequestMinutes}
+                      maxMinutes={8 * MINUTES_PER_HOUR}
+                      onChange={(value) =>
+                        patchDraft({ specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(value) })
+                      }
+                      className="h-9 w-full bg-transparent text-lg font-extrabold text-slate-800 sm:text-xl"
+                    />
+                  </div>
+
+                  <div className="min-w-0 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
+                    <p className="mb-1.5 ml-1 text-xs font-bold text-indigo-500">최종 특근 시간</p>
+                    <DurationPicker
+                      ariaLabel="최종 특근 시간"
+                      valueMinutes={modalSpecialFinalMinutes}
+                      maxMinutes={23 * MINUTES_PER_HOUR + 59}
+                      onChange={(value) => patchDraft({ claimedOtMinutes: value })}
+                      className="h-9 w-full bg-transparent text-lg font-extrabold text-indigo-600 sm:text-xl"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -804,6 +831,19 @@ export default function TimesheetTable({
                 </div>
               )}
 
+              {modalSpecialMode ? (
+                <label className="inline-flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600">
+                  <input
+                    id="holiday-checkbox-modal"
+                    type="checkbox"
+                    checked={modalRecord.isHoliday}
+                    onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
+                    className="field-check"
+                  />
+                  공휴일로 처리
+                </label>
+              ) : (
+                <>
               <div className="grid grid-cols-2 gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="min-w-0">
                   <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">연차 사용</label>
@@ -942,6 +982,8 @@ export default function TimesheetTable({
                   {formatMinutesAsClock(modalRecord.workMinutes)}
                 </span>
               </div>
+                </>
+              )}
 
               <div className="pt-1">
                 <button
