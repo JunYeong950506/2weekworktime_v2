@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { MINUTES_PER_HOUR } from '../constants';
 import { recalculateDayRecord } from '../utils/calculations';
@@ -147,8 +147,6 @@ export default function TimesheetTable({
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<DayRecord | null>(null);
-  const modalOverlayRef = useRef<HTMLDivElement | null>(null);
-  const modalPanelRef = useRef<HTMLDivElement | null>(null);
 
   const preview = useMemo(() => {
     if (!draft) {
@@ -211,32 +209,6 @@ export default function TimesheetTable({
     window.addEventListener('keydown', handleEscape);
     return () => {
       window.removeEventListener('keydown', handleEscape);
-    };
-  }, [editingIndex]);
-
-  useEffect(() => {
-    if (editingIndex === null) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'auto',
-      });
-      modalOverlayRef.current?.scrollTo({
-        top: 0,
-        behavior: 'auto',
-      });
-      modalPanelRef.current?.scrollIntoView({
-        block: 'start',
-        inline: 'nearest',
-        behavior: 'auto',
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
     };
   }, [editingIndex]);
 
@@ -598,13 +570,11 @@ export default function TimesheetTable({
 
       {editingIndex !== null && draft && modalRecord ? (
         <div
-          ref={modalOverlayRef}
           className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-slate-900/40 backdrop-blur-sm ${
             modalSpecialMode ? 'items-center p-4' : 'items-start p-1 sm:items-center sm:p-4'
           }`}
         >
           <div
-            ref={modalPanelRef}
             className={`relative flex w-full max-w-md origin-top scale-[0.97] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:scale-100 sm:rounded-[32px] ${
               modalSpecialMode ? 'my-0' : 'my-1 sm:my-0'
             }`}
