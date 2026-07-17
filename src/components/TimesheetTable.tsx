@@ -147,7 +147,6 @@ export default function TimesheetTable({
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<DayRecord | null>(null);
-  const [specialInfoOpenDate, setSpecialInfoOpenDate] = useState<string | null>(null);
   const modalOverlayRef = useRef<HTMLDivElement | null>(null);
   const modalPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -165,7 +164,6 @@ export default function TimesheetTable({
       return;
     }
 
-    setSpecialInfoOpenDate(null);
     setEditingIndex(index);
     setDraft({ ...source });
   }
@@ -248,12 +246,12 @@ export default function TimesheetTable({
     }
 
     window.localStorage.setItem(MOBILE_TIMESHEET_VIEW_KEY, mobileViewMode);
-    setSpecialInfoOpenDate(null);
   }, [mobileViewMode]);
 
   const modalMeta = preview?.meta ?? null;
   const modalRecord = preview?.record ?? null;
   const modalSpecialMode = modalMeta?.isSpecialWorkMode ?? false;
+  const showSpecialHolidayToggle = modalSpecialMode && modalMeta?.isWeekday === true;
   const modalSpecialRequestMinutes = clampSpecialWorkRequestMinutes(
     modalRecord?.specialWorkRequestMinutes ?? 0,
   );
@@ -394,8 +392,6 @@ export default function TimesheetTable({
             const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
             const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
             const isCurrentRow = isToday(record.date);
-            const isSpecialRow = meta?.isSpecialWorkMode ?? false;
-            const isSpecialInfoOpen = specialInfoOpenDate === record.date;
             const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
             const mobileCardClass = hasError
               ? isCurrentRow
@@ -451,59 +447,11 @@ export default function TimesheetTable({
                       ) : null}
                     </div>
                     <div className="relative mt-2">
-                      {isSpecialRow ? (
-                        <div className="inline-flex items-center gap-1.5">
-                          <span
-                            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${workTypeBadgeClass}`}
-                          >
-                            {workType}
-                          </span>
-                          <button
-                            type="button"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSpecialInfoOpenDate((prev) =>
-                                prev === record.date ? null : record.date,
-                              );
-                            }}
-                            aria-label="특근 안내 보기"
-                            aria-expanded={isSpecialInfoOpen}
-                            className="inline-flex h-5 w-5 items-center justify-center text-sky-500 transition hover:text-sky-600"
-                          >
-                            <svg
-                              className="h-[18px] w-[18px]"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                            >
-                              <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.8"
-                                d="M12 10v5m0-8h.01"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <span
-                          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${workTypeBadgeClass}`}
-                        >
-                          {workType}
-                        </span>
-                      )}
-                      {isSpecialRow ? (
-                        <div
-                          className={`pointer-events-none absolute left-0 top-full z-20 mt-2 w-[180px] max-w-[68vw] whitespace-normal rounded-lg border border-sky-100 bg-sky-50 px-2.5 py-2 text-[11px] font-medium leading-snug text-sky-700 shadow-md transition-opacity ${
-                            isSpecialInfoOpen ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        >
-                          특근 시간을 야근결재에 입력하세요.
-                        </div>
-                      ) : null}
+                      <span
+                        className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${workTypeBadgeClass}`}
+                      >
+                        {workType}
+                      </span>
                     </div>
                   </div>
 
@@ -580,8 +528,6 @@ export default function TimesheetTable({
                 const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
                 const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
                 const isCurrentRow = isToday(record.date);
-                const isSpecialRow = meta?.isSpecialWorkMode ?? false;
-                const isSpecialInfoOpen = specialInfoOpenDate === record.date;
                 const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
 
                 return (
@@ -610,45 +556,9 @@ export default function TimesheetTable({
                     </td>
                     <td className="px-4 py-5 text-base font-extrabold text-slate-700">{clockRange}</td>
                     <td className="px-4 py-5 text-center">
-                      {isSpecialRow ? (
-                        <div className="relative inline-flex">
-                          <button
-                            type="button"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (
-                                typeof window !== 'undefined' &&
-                                !window.matchMedia('(hover: none), (pointer: coarse)').matches
-                              ) {
-                                return;
-                              }
-                              setSpecialInfoOpenDate((prev) =>
-                                prev === record.date ? null : record.date,
-                              );
-                            }}
-                            onKeyDown={(event) => event.stopPropagation()}
-                            aria-label="특근 안내 보기"
-                            aria-expanded={isSpecialInfoOpen}
-                            className={`peer rounded-lg border px-3 py-1 text-xs font-bold transition hover:opacity-90 ${workTypeBadgeClass}`}
-                          >
-                            {workType}
-                          </button>
-                          <div
-                            className={`pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-[180px] max-w-[80vw] -translate-x-1/2 whitespace-normal rounded-lg border border-sky-100 bg-sky-50 px-2 py-1 text-[11px] font-medium leading-snug text-sky-700 shadow-md transition-opacity ${
-                              isSpecialInfoOpen
-                                ? 'opacity-100'
-                                : 'opacity-0 md:peer-hover:opacity-100 md:peer-focus-visible:opacity-100'
-                            }`}
-                          >
-                            특근 시간을 야근결재에 입력하세요.
-                          </div>
-                        </div>
-                      ) : (
-                        <span className={`rounded-lg border px-3 py-1 text-xs font-bold ${workTypeBadgeClass}`}>
-                          {workType}
-                        </span>
-                      )}
+                      <span className={`rounded-lg border px-3 py-1 text-xs font-bold ${workTypeBadgeClass}`}>
+                        {workType}
+                      </span>
                     </td>
                     <td className="px-4 py-5 text-center text-base font-bold text-indigo-600">
                       {workLabel}
@@ -760,16 +670,18 @@ export default function TimesheetTable({
                       />
                     </div>
                   </div>
-                  <label className="mt-4 inline-flex h-11 items-center gap-2 px-1 text-sm font-bold text-slate-600">
-                    <input
-                      id="holiday-checkbox-modal"
-                      type="checkbox"
-                      checked={modalRecord.isHoliday}
-                      onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
-                      className="field-check"
-                    />
-                    공휴일로 처리
-                  </label>
+                  {showSpecialHolidayToggle ? (
+                    <label className="mt-4 inline-flex h-11 items-center gap-2 px-1 text-sm font-bold text-slate-600">
+                      <input
+                        id="holiday-checkbox-modal"
+                        type="checkbox"
+                        checked={modalRecord.isHoliday}
+                        onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
+                        className="field-check"
+                      />
+                      공휴일로 처리
+                    </label>
+                  ) : null}
                 </div>
               ) : (
                 <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
