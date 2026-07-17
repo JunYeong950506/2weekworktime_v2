@@ -689,11 +689,15 @@ export default function TimesheetTable({
       {editingIndex !== null && draft && modalRecord ? (
         <div
           ref={modalOverlayRef}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-1 backdrop-blur-sm sm:items-center sm:p-4"
+          className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-slate-900/40 backdrop-blur-sm ${
+            modalSpecialMode ? 'items-center p-4' : 'items-start p-1 sm:items-center sm:p-4'
+          }`}
         >
           <div
             ref={modalPanelRef}
-            className="relative my-1 flex w-full max-w-md origin-top scale-[0.97] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:my-0 sm:scale-100 sm:rounded-[32px]"
+            className={`relative flex w-full max-w-md origin-top scale-[0.97] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:scale-100 sm:rounded-[32px] ${
+              modalSpecialMode ? 'my-0' : 'my-1 sm:my-0'
+            }`}
           >
             <div className="flex items-center justify-between border-b border-slate-100/80 px-5 pb-4 pt-5 sm:px-8 sm:pb-5 sm:pt-8">
               <div>
@@ -730,30 +734,42 @@ export default function TimesheetTable({
               ) : null}
 
               {modalSpecialMode ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="min-w-0 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
-                    <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
-                    <DurationPicker
-                      ariaLabel="신청 시간"
-                      valueMinutes={modalSpecialRequestMinutes}
-                      maxMinutes={8 * MINUTES_PER_HOUR}
-                      onChange={(value) =>
-                        patchDraft({ specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(value) })
-                      }
-                      className="h-9 w-full bg-transparent text-lg font-extrabold text-slate-800 sm:text-xl"
-                    />
-                  </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="min-w-0 rounded-2xl border border-white bg-white p-4 transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+                      <p className="mb-1.5 ml-1 text-xs font-bold text-slate-400">신청 시간</p>
+                      <DurationPicker
+                        ariaLabel="신청 시간"
+                        valueMinutes={modalSpecialRequestMinutes}
+                        maxMinutes={8 * MINUTES_PER_HOUR}
+                        onChange={(value) =>
+                          patchDraft({ specialWorkRequestMinutes: clampSpecialWorkRequestMinutes(value) })
+                        }
+                        className="h-9 w-full bg-transparent text-lg font-extrabold text-slate-800 sm:text-xl"
+                      />
+                    </div>
 
-                  <div className="min-w-0 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
-                    <p className="mb-1.5 ml-1 text-xs font-bold text-indigo-500">최종 특근 시간</p>
-                    <DurationPicker
-                      ariaLabel="최종 특근 시간"
-                      valueMinutes={modalSpecialFinalMinutes}
-                      maxMinutes={23 * MINUTES_PER_HOUR + 59}
-                      onChange={(value) => patchDraft({ claimedOtMinutes: value })}
-                      className="h-9 w-full bg-transparent text-lg font-extrabold text-indigo-600 sm:text-xl"
-                    />
+                    <div className="min-w-0 rounded-2xl border border-white bg-white p-4 transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+                      <p className="mb-1.5 ml-1 text-xs font-bold text-indigo-500">최종 특근 시간</p>
+                      <DurationPicker
+                        ariaLabel="최종 특근 시간"
+                        valueMinutes={modalSpecialFinalMinutes}
+                        maxMinutes={23 * MINUTES_PER_HOUR + 59}
+                        onChange={(value) => patchDraft({ claimedOtMinutes: value })}
+                        className="h-9 w-full bg-transparent text-lg font-extrabold text-indigo-600 sm:text-xl"
+                      />
+                    </div>
                   </div>
+                  <label className="mt-4 inline-flex h-11 items-center gap-2 px-1 text-sm font-bold text-slate-600">
+                    <input
+                      id="holiday-checkbox-modal"
+                      type="checkbox"
+                      checked={modalRecord.isHoliday}
+                      onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
+                      className="field-check"
+                    />
+                    공휴일로 처리
+                  </label>
                 </div>
               ) : (
                 <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -831,18 +847,7 @@ export default function TimesheetTable({
                 </div>
               )}
 
-              {modalSpecialMode ? (
-                <label className="inline-flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600">
-                  <input
-                    id="holiday-checkbox-modal"
-                    type="checkbox"
-                    checked={modalRecord.isHoliday}
-                    onChange={(event) => patchDraft({ isHoliday: event.target.checked })}
-                    className="field-check"
-                  />
-                  공휴일로 처리
-                </label>
-              ) : (
+              {!modalSpecialMode ? (
                 <>
               <div className="grid grid-cols-2 gap-5 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="min-w-0">
@@ -983,7 +988,7 @@ export default function TimesheetTable({
                 </span>
               </div>
                 </>
-              )}
+              ) : null}
 
               <div className="pt-1">
                 <button
