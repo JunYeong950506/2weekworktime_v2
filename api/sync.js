@@ -10,7 +10,7 @@ const USER_CODE_PATTERN = /^(WT|WORK)-[A-Z0-9]{6,8}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^(?:|(?:[01]\d|2[0-3]):[0-5]\d)$/;
 const WORK_TYPES = new Set(['none', 'quarter', 'half', 'full', 'official']);
-const MAX_PERIODS = 10;
+const MAX_PERIODS = 5;
 const MAX_WORK_RECORDS = MAX_PERIODS * 14;
 
 class SyncRequestError extends Error {

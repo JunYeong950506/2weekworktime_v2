@@ -85,13 +85,13 @@ function hydrateAppState(
   source: AppState,
   preferredSelectedPeriodId?: string | null,
 ): AppState {
-  const periods = source.periods.map((period) => {
+  const periods = trimPeriodsToLimit(source.periods.map((period) => {
     const calc = recalculatePeriod(period);
     return {
       ...period,
       records: calc.records,
     };
-  });
+  }));
 
   const periodIds = new Set(periods.map((period) => period.id));
   const fallbackSelectedPeriodId = periods.length > 0 ? periods[periods.length - 1].id : null;
@@ -120,10 +120,21 @@ function getInitialState(): InitialState {
     };
   }
 
+  const appState = hydrateAppState(loaded);
+  const didTrimPeriods = appState.periods.length < loaded.periods.length;
+  const syncRevision = didTrimPeriods ? loaded.syncRevision + 1 : loaded.syncRevision;
+
+  if (didTrimPeriods) {
+    saveAppState(appState, {
+      savedAt: loaded.savedAt,
+      syncRevision,
+    });
+  }
+
   return {
-    appState: hydrateAppState(loaded),
+    appState,
     savedAt: loaded.savedAt,
-    syncRevision: loaded.syncRevision,
+    syncRevision,
   };
 }
 
@@ -849,16 +860,27 @@ export default function App(): JSX.Element {
 
         setIsServerDataMissingForCode(false);
         const hydrated = hydrateAppState(remote.appState, appState.selectedPeriodId);
+        const syncRevision = remote.syncRevision + (
+          hydrated.periods.length < remote.appState.periods.length ? 1 : 0
+        );
         setAppState(hydrated);
         const persisted = saveAppState(hydrated, {
           savedAt: remote.savedAt,
-          syncRevision: remote.syncRevision,
+          syncRevision,
         });
         setLastSavedAt(persisted.savedAt);
         setLocalSyncRevision(persisted.syncRevision);
         setIsDirty(false);
         setSyncAlert(null);
         setCodeStatusMessage(null);
+
+        if (persisted.syncRevision > remote.syncRevision) {
+          clearPendingRemoteSync();
+          triggerRemoteSync({
+            appState: hydrated,
+            syncRevision: persisted.syncRevision,
+          });
+        }
       } catch (error) {
         if (!disposed) {
           const message = getSyncUnavailableMessage(error);
