@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/cafe-alert",
+      "destination": "/index.html"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/reset-cafe-alerts",
