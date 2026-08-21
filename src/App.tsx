@@ -929,6 +929,12 @@ export default function App(): JSX.Element {
     if (autoPeriodCheckedRef.current === checkKey) {
       return;
     }
+
+    if (appState.periods.length === 0) {
+      autoPeriodCheckedRef.current = checkKey;
+      return;
+    }
+
     autoPeriodCheckedRef.current = checkKey;
 
     const existingPeriod = findPeriodCoveringRange(appState.periods, startDate);
