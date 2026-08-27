@@ -1321,7 +1321,7 @@ export default function App(): JSX.Element {
       </div>
 
       <div className="content-reveal">
-        <SummaryCards summary={selectedCalc.summary} />
+        <SummaryCards summary={selectedCalc.summary} periods={appState.periods} />
       </div>
 
       <div className="content-reveal">

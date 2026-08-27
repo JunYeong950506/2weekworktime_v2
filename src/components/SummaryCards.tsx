@@ -1,8 +1,12 @@
-import { SummaryValues } from '../types';
+import { useState } from 'react';
+
+import { Period, SummaryValues } from '../types';
 import { formatMinutesAsClock, formatSignedMinutesAsClock } from '../utils/time';
+import OvertimeAllowanceDialog from './OvertimeAllowanceDialog';
 
 interface SummaryCardsProps {
   summary: SummaryValues;
+  periods: Period[];
 }
 
 function splitClock(value: string): { hours: string; minutes: string } {
@@ -10,7 +14,8 @@ function splitClock(value: string): { hours: string; minutes: string } {
   return { hours, minutes };
 }
 
-export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Element {
+export default function SummaryCards({ summary, periods }: SummaryCardsProps): JSX.Element {
+  const [isAllowanceDialogOpen, setIsAllowanceDialogOpen] = useState(false);
   const requiredLabel = formatMinutesAsClock(summary.requiredMinutes);
   const remainingLabel = formatMinutesAsClock(summary.remainingMinutes);
   const additionalLabel = formatMinutesAsClock(summary.additionalOvertimeAvailableMinutes);
@@ -83,8 +88,21 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
             <p className="mb-1.5 text-xs font-bold text-slate-400">조기퇴근 가능시간</p>
             <p className="text-2xl font-extrabold text-pink-500">{earlyLeaveLabel}</p>
           </div>
-          <div>
-            <p className="mb-1.5 text-xs font-bold text-slate-400">야근결재 합계</p>
+          <div className="relative">
+            <div className="mb-1.5 flex items-center gap-2">
+              <p className="text-xs font-bold text-slate-400">야근결재 합계</p>
+              <button
+                type="button"
+                onClick={() => setIsAllowanceDialogOpen(true)}
+                aria-label="예상 잔업수당 계산기 열기"
+                title="예상 잔업수당"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7.5h16v9H4zM7 10.5h.01M17 13.5h.01M12 14.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                </svg>
+              </button>
+            </div>
             <p className="text-2xl font-extrabold text-orange-500">{approvalTotalLabel}</p>
           </div>
           <div>
@@ -99,6 +117,12 @@ export default function SummaryCards({ summary }: SummaryCardsProps): JSX.Elemen
           필수 근무시간이 0으로 계산되어 진행률은 100%로 표시됩니다.
         </p>
       ) : null}
+
+      <OvertimeAllowanceDialog
+        open={isAllowanceDialogOpen}
+        periods={periods}
+        onClose={() => setIsAllowanceDialogOpen(false)}
+      />
     </section>
   );
 }
