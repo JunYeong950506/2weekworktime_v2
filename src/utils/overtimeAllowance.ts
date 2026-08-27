@@ -1,16 +1,20 @@
 import dayjs from 'dayjs';
 
 import { Period } from '../types';
+import { estimateSinglePersonWithholding } from './withholdingTax';
 
 export const ORDINARY_HOURLY_WAGE_STORAGE_KEY =
   'flex-work-2week-ordinary-hourly-wage-v1';
 export const OVERTIME_PAY_MULTIPLIER = 1.5;
+export const MONTHLY_ORDINARY_HOURS = 216;
 
 export interface OvertimeAllowanceEstimate {
   payMonth: string;
   workMonth: string;
   overtimeMinutes: number;
   estimatedPay: number;
+  estimatedAfterTaxPay: number;
+  estimatedWithholdingIncrease: number;
 }
 
 function sanitizeNonNegativeInteger(value: unknown): number {
@@ -95,6 +99,28 @@ export function calculateEstimatedOvertimePay(
   return Math.round(rawAmount / 10) * 10;
 }
 
+export function calculateEstimatedAfterTaxOvertimePay(
+  estimatedPay: number,
+  ordinaryHourlyWage: number,
+): { estimatedAfterTaxPay: number; estimatedWithholdingIncrease: number } {
+  const pay = sanitizeNonNegativeInteger(estimatedPay);
+  const wage = sanitizeNonNegativeInteger(ordinaryHourlyWage);
+  const monthlyOrdinaryPay = wage * MONTHLY_ORDINARY_HOURS;
+  const withholdingBefore = estimateSinglePersonWithholding(monthlyOrdinaryPay);
+  const withholdingAfter = estimateSinglePersonWithholding(
+    monthlyOrdinaryPay + pay,
+  );
+  const estimatedWithholdingIncrease = Math.max(
+    0,
+    withholdingAfter - withholdingBefore,
+  );
+
+  return {
+    estimatedAfterTaxPay: Math.max(0, pay - estimatedWithholdingIncrease),
+    estimatedWithholdingIncrease,
+  };
+}
+
 export function buildOvertimeAllowanceEstimates(
   periods: Period[],
   ordinaryHourlyWage: number,
@@ -107,15 +133,21 @@ export function buildOvertimeAllowanceEstimates(
     const workMonth = payMonth.subtract(1, 'month');
     const workMonthKey = workMonth.format('YYYY-MM');
     const overtimeMinutes = getMonthlyClaimedOvertimeMinutes(periods, workMonthKey);
+    const estimatedPay = calculateEstimatedOvertimePay(
+      overtimeMinutes,
+      ordinaryHourlyWage,
+    );
+    const afterTaxEstimate = calculateEstimatedAfterTaxOvertimePay(
+      estimatedPay,
+      ordinaryHourlyWage,
+    );
 
     return {
       payMonth: payMonth.format('YYYY-MM'),
       workMonth: workMonthKey,
       overtimeMinutes,
-      estimatedPay: calculateEstimatedOvertimePay(
-        overtimeMinutes,
-        ordinaryHourlyWage,
-      ),
+      estimatedPay,
+      ...afterTaxEstimate,
     };
   });
 

@@ -95,7 +95,7 @@ export default function OvertimeAllowanceDialog({
               <h3 id="overtime-allowance-title" className="text-xl font-extrabold tracking-tight text-slate-900">
                 예상 잔업수당
               </h3>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">전체 저장 데이터 기준 · 세전</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">전체 저장 데이터 기준 · 세전/간이 세후</p>
             </div>
           </div>
 
@@ -159,6 +159,9 @@ export default function OvertimeAllowanceDialog({
                 <p className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">
                   {hasWage ? formatWon(estimate.estimatedPay) : '-'}
                 </p>
+                <p className="mt-2 text-sm font-extrabold text-emerald-700">
+                  세금 반영 후 약 {hasWage ? formatWon(estimate.estimatedAfterTaxPay) : '-'}
+                </p>
                 <p className="mt-1.5 text-xs font-semibold text-slate-500">
                   {formatMonthLabel(estimate.workMonth)} 근무 {formatMinutesAsClock(estimate.overtimeMinutes)} 기준
                 </p>
@@ -168,7 +171,7 @@ export default function OvertimeAllowanceDialog({
         </div>
 
         <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-          실제 야근결재 시간 × 통상시급 × 1.5로 계산합니다. 회사 승인 및 비업무시간 처리에 따라 실제 지급액과 달라질 수 있습니다.
+          세전은 실제 야근결재 시간 × 통상시급 × 1.5로 계산합니다. 세금 반영 후 금액은 월 통상임금(통상시급 × 216시간), 본인 1명·자녀 0명·100% 원천징수 기준의 소득세·지방소득세 증가분만 반영하며 4대보험은 제외합니다.
         </div>
       </div>
     </div>
