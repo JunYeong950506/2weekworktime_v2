@@ -121,7 +121,6 @@ export default function OvertimeAllowanceDialog({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              autoFocus
               value={ordinaryHourlyWage > 0 ? ordinaryHourlyWage.toLocaleString('ko-KR') : ''}
               placeholder="예: 10,320"
               onFocus={(event) => event.currentTarget.select()}
