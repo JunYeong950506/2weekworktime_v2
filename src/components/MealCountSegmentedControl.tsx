@@ -21,7 +21,7 @@ export function MealCountSegmentedControl({
     <div
       role="radiogroup"
       aria-label="조식/석식 여부"
-      className={`grid h-11 grid-cols-3 rounded-xl border border-slate-200 bg-white p-1 ${
+      className={`grid h-11 grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 ${
         disabled ? 'opacity-60' : ''
       }`}
     >
@@ -36,10 +36,10 @@ export function MealCountSegmentedControl({
             aria-checked={selected}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className={`min-w-0 rounded-lg px-1 text-[11px] font-bold whitespace-nowrap transition-all duration-200 sm:text-xs ${
+            className={`min-w-0 rounded-lg border px-1 text-[11px] font-bold whitespace-nowrap transition-all duration-200 sm:text-xs ${
               selected
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                ? 'border-indigo-200 bg-indigo-100 text-indigo-700 shadow-sm'
+                : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:text-slate-700'
             } disabled:cursor-not-allowed`}
           >
             {option.label}
