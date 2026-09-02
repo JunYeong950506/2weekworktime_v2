@@ -2,8 +2,8 @@ import type { MealCount } from '../types';
 
 const MEAL_OPTIONS: Array<{ value: MealCount; label: string }> = [
   { value: 0, label: '없음' },
-  { value: 1, label: '1끼 식사' },
-  { value: 2, label: '2끼 식사' },
+  { value: 1, label: '1끼' },
+  { value: 2, label: '2끼' },
 ];
 
 interface MealCountSegmentedControlProps {
