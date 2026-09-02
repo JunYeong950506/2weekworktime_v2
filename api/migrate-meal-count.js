@@ -50,6 +50,12 @@ async function migrateMealCount(client) {
   await client.query("select pg_notify('pgrst', 'reload schema')");
 }
 
+function withoutSslMode(connectionString) {
+  const databaseUrl = new URL(connectionString);
+  databaseUrl.searchParams.delete('sslmode');
+  return databaseUrl.toString();
+}
+
 export default async function handler(request, response) {
   if (!requireMethod(request, response, 'POST')) {
     return;
@@ -67,7 +73,7 @@ export default async function handler(request, response) {
   }
 
   const client = new Client({
-    connectionString,
+    connectionString: withoutSslMode(connectionString),
     ssl: { rejectUnauthorized: false },
   });
 
