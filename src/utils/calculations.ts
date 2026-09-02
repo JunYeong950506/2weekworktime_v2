@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 
 import {
   DAILY_REGULAR_MINUTES,
-  DINNER_BREAK_MINUTES,
   MAX_ADDITIONAL_OVERTIME_MINUTES,
   OVERTIME_APPROVAL_UNIT_MINUTES,
   REGULAR_TARGET_MINUTES_2WEEK,
@@ -20,6 +19,7 @@ import {
   normalizeOvernightCheckout,
   parseTime24,
 } from './time';
+import { getMealBreakMinutes } from './meal';
 
 const BREAK_THRESHOLD_MINUTES = 8 * 60 + 30;
 const EXTRA_BREAK_THRESHOLD_MINUTES = 13 * 60;
@@ -195,11 +195,11 @@ export function recalculateDayRecord(source: DayRecord): {
       );
       const stayedMinutes = Math.max(0, normalizedClockOutMinutes - clockInMinutes);
       const breakMinutes = getBreakMinutesFromStayed(stayedMinutes);
-      const dinnerDeductionMinutes = source.dinnerChecked ? DINNER_BREAK_MINUTES : 0;
+      const mealDeductionMinutes = getMealBreakMinutes(source.mealCount);
 
       actualWorkedMinutes = Math.max(
         0,
-        stayedMinutes - breakMinutes - dinnerDeductionMinutes - nonWorkMinutes,
+        stayedMinutes - breakMinutes - mealDeductionMinutes - nonWorkMinutes,
       );
       workMinutes = actualWorkedMinutes;
     } else if (effectiveAnnualLeaveType === 'official' && !hasClockIn && !hasClockOut) {

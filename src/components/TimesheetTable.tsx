@@ -11,6 +11,7 @@ import {
   isToday,
 } from '../utils/time';
 import { DurationPicker } from './DurationPicker';
+import { MealCountSegmentedControl } from './MealCountSegmentedControl';
 
 interface TimesheetTableProps {
   records: DayRecord[];
@@ -25,7 +26,7 @@ interface TimesheetTableProps {
         | 'officialLeaveMinutes'
         | 'clockIn'
         | 'clockOut'
-        | 'dinnerChecked'
+        | 'mealCount'
         | 'nonWorkMinutes'
         | 'specialWorkRequestMinutes'
         | 'claimedOtMinutes'
@@ -124,7 +125,7 @@ function hasRecordInputChanges(source: DayRecord, draft: DayRecord): boolean {
     source.officialLeaveMinutes !== draft.officialLeaveMinutes ||
     source.clockIn !== draft.clockIn ||
     source.clockOut !== draft.clockOut ||
-    source.dinnerChecked !== draft.dinnerChecked ||
+    source.mealCount !== draft.mealCount ||
     source.nonWorkMinutes !== draft.nonWorkMinutes ||
     source.specialWorkRequestMinutes !== draft.specialWorkRequestMinutes ||
     source.claimedOtMinutes !== draft.claimedOtMinutes
@@ -186,7 +187,7 @@ export default function TimesheetTable({
       officialLeaveMinutes: draft.officialLeaveMinutes,
       clockIn: draft.clockIn,
       clockOut: draft.clockOut,
-      dinnerChecked: draft.dinnerChecked,
+      mealCount: draft.mealCount,
       nonWorkMinutes: draft.nonWorkMinutes,
       specialWorkRequestMinutes: draft.specialWorkRequestMinutes,
       claimedOtMinutes: draft.claimedOtMinutes,
@@ -751,23 +752,14 @@ export default function TimesheetTable({
                 </div>
 
                 <div className="min-w-0 flex flex-col justify-center">
-                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">석식 여부</label>
-                  <label
-                    className={`ml-1 inline-flex h-11 items-center justify-between rounded-xl border px-3 text-sm font-bold ${
-                      modalRecord.dinnerChecked
-                        ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                        : 'border-slate-200 bg-white text-slate-600'
-                    } ${disableTimeAndDeduction ? 'opacity-60' : ''}`}
-                  >
-                    {modalRecord.dinnerChecked ? '석식 먹음' : '석식 없음'}
-                    <input
-                      type="checkbox"
-                      checked={modalRecord.dinnerChecked}
+                  <label className="mb-2 ml-1 block text-xs font-bold text-slate-400">조식/석식 여부</label>
+                  <div className="ml-1">
+                    <MealCountSegmentedControl
+                      value={modalRecord.mealCount}
                       disabled={disableTimeAndDeduction}
-                      onChange={(event) => patchDraft({ dinnerChecked: event.target.checked })}
-                      className="field-check"
+                      onChange={(mealCount) => patchDraft({ mealCount })}
                     />
-                  </label>
+                  </div>
                 </div>
 
                 <div className="col-span-2 flex items-center gap-2">

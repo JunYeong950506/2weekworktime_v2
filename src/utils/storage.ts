@@ -16,6 +16,7 @@ import {
   isValidUserCode,
   normalizeUserCode,
 } from './userCode';
+import { normalizeMealCount } from './meal';
 
 const APP_STORAGE_KEYS = [APP_STORAGE_KEY, USER_CODE_STORAGE_KEY] as const;
 
@@ -81,8 +82,7 @@ function normalizeDayRecord(raw: unknown): DayRecord | null {
     officialLeaveMinutes: clampOfficialLeaveMinutes(raw.officialLeaveMinutes),
     clockIn: typeof raw.clockIn === 'string' ? raw.clockIn : '',
     clockOut: typeof raw.clockOut === 'string' ? raw.clockOut : '',
-    dinnerChecked:
-      typeof raw.dinnerChecked === 'boolean' ? raw.dinnerChecked : false,
+    mealCount: normalizeMealCount(raw.mealCount, raw.dinnerChecked === true),
     nonWorkMinutes: toNonNegativeInteger(raw.nonWorkMinutes),
     specialWorkRequestMinutes: Math.min(
       8 * 60,

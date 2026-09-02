@@ -9,6 +9,7 @@ dist
 .npm-cache-cli/
 .npm-cache-cli2/
 *.tsbuildinfo
+tests/.tmp/
 __pycache__/
 *.py[cod]
 *.egg-info/

@@ -4,6 +4,7 @@ import { DAYS_PER_PERIOD } from '../constants';
 import { DayRecord, Period } from '../types';
 import { recalculateRecords } from './calculations';
 import { isKoreanPublicHoliday } from './holidays';
+import { normalizeMealCount } from './meal';
 
 export const AUTO_PERIOD_ANCHOR_DATE = '2026-05-04';
 
@@ -62,7 +63,7 @@ export function createRecordsFromStartDate(startDate: string): DayRecord[] {
       officialLeaveMinutes: 0,
       clockIn: '',
       clockOut: '',
-      dinnerChecked: false,
+      mealCount: 0,
       nonWorkMinutes: 0,
       specialWorkRequestMinutes: 0,
       workMinutes: null,
@@ -128,7 +129,7 @@ export function copyRecordsWithNewDate(
       officialLeaveMinutes: source?.officialLeaveMinutes ?? 0,
       clockIn: source?.clockIn ?? '',
       clockOut: source?.clockOut ?? '',
-      dinnerChecked: source?.dinnerChecked ?? false,
+      mealCount: normalizeMealCount(source?.mealCount),
       nonWorkMinutes: source?.nonWorkMinutes ?? 0,
       specialWorkRequestMinutes: source?.specialWorkRequestMinutes ?? 0,
       claimedOtMinutes: source?.claimedOtMinutes ?? 0,
@@ -154,7 +155,7 @@ export function rebaseRecordDates(
       officialLeaveMinutes: source?.officialLeaveMinutes ?? 0,
       clockIn: source?.clockIn ?? '',
       clockOut: source?.clockOut ?? '',
-      dinnerChecked: source?.dinnerChecked ?? false,
+      mealCount: normalizeMealCount(source?.mealCount),
       nonWorkMinutes: source?.nonWorkMinutes ?? 0,
       specialWorkRequestMinutes: source?.specialWorkRequestMinutes ?? 0,
       claimedOtMinutes: source?.claimedOtMinutes ?? 0,

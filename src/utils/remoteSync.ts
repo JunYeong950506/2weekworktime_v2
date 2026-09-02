@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 
 import { AnnualLeaveType, AppState, DayRecord, Period } from '../types';
+import { normalizeMealCount } from './meal';
 import { normalizeUserCode } from './userCode';
 
 const REMOTE_SYNC_ENDPOINT = '/api/sync';
@@ -30,7 +31,7 @@ interface RemoteWorkRecordRow {
   gongga_minutes: number;
   clock_in: string;
   clock_out: string;
-  dinner_checked: boolean;
+  meal_count: number;
   non_work_minutes: number;
   special_work_request_minutes: number;
   actual_overtime_minutes: number;
@@ -96,7 +97,7 @@ function isRecordTouched(record: DayRecord): boolean {
     record.officialLeaveMinutes > 0 ||
     record.clockIn.trim() !== '' ||
     record.clockOut.trim() !== '' ||
-    record.dinnerChecked ||
+    record.mealCount > 0 ||
     record.nonWorkMinutes > 0 ||
     record.specialWorkRequestMinutes > 0 ||
     record.claimedOtMinutes > 0
@@ -192,7 +193,7 @@ function toWorkRecordRows(
         gongga_minutes: toNonNegativeInteger(record.officialLeaveMinutes),
         clock_in: record.clockIn,
         clock_out: record.clockOut,
-        dinner_checked: Boolean(record.dinnerChecked),
+        meal_count: record.mealCount,
         non_work_minutes: toNonNegativeInteger(record.nonWorkMinutes),
         special_work_request_minutes: Math.min(
           8 * 60,
@@ -221,7 +222,7 @@ function buildStateFromRemoteRows(
       officialLeaveMinutes: toNonNegativeInteger(row.gongga_minutes),
       clockIn: typeof row.clock_in === 'string' ? row.clock_in : '',
       clockOut: typeof row.clock_out === 'string' ? row.clock_out : '',
-      dinnerChecked: Boolean(row.dinner_checked),
+      mealCount: normalizeMealCount(row.meal_count),
       nonWorkMinutes: toNonNegativeInteger(row.non_work_minutes),
       specialWorkRequestMinutes: Math.min(
         8 * 60,

@@ -38,7 +38,7 @@ DayRecord {
   officialLeaveMinutes: number;
   clockIn: string;        // HH:mm | ""
   clockOut: string;       // HH:mm | ""
-  dinnerChecked: boolean;
+  mealCount: 0 | 1 | 2;
   nonWorkMinutes: number;
   claimedOtMinutes: number;
   workMinutes: number | null;

@@ -7,6 +7,8 @@ export type AnnualLeaveType =
   | 'full'
   | 'official';
 
+export type MealCount = 0 | 1 | 2;
+
 export interface DayRecord {
   date: string;
   isHoliday: boolean;
@@ -14,7 +16,7 @@ export interface DayRecord {
   officialLeaveMinutes: number;
   clockIn: string;
   clockOut: string;
-  dinnerChecked: boolean;
+  mealCount: MealCount;
   nonWorkMinutes: number;
   specialWorkRequestMinutes: number;
   workMinutes: number | null;

@@ -45,6 +45,18 @@ function toNonNegativeInteger(value) {
     : 0;
 }
 
+function normalizeMealCount(value, legacyDinnerChecked = false) {
+  if (value === 2) {
+    return 2;
+  }
+
+  if (value === 1) {
+    return 1;
+  }
+
+  return legacyDinnerChecked ? 1 : 0;
+}
+
 function toIsoTimestamp(value, fallback) {
   if (typeof value !== 'string') {
     return fallback;
@@ -143,7 +155,7 @@ function normalizeWorkRecordRows(value, userCode, periodIds) {
       gongga_minutes: toNonNegativeInteger(row.gongga_minutes),
       clock_in: clockIn,
       clock_out: clockOut,
-      dinner_checked: Boolean(row.dinner_checked),
+      meal_count: normalizeMealCount(row.meal_count, row.dinner_checked === true),
       non_work_minutes: toNonNegativeInteger(row.non_work_minutes),
       special_work_request_minutes: Math.min(
         8 * 60,
@@ -159,6 +171,18 @@ function isMissingStateRevisionColumnError(error) {
   const code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
 
   return message.includes('state_revision') && (
+    code === '42703' ||
+    code === 'pgrst204' ||
+    message.includes('does not exist') ||
+    message.includes('could not find')
+  );
+}
+
+function isMissingMealCountColumnError(error) {
+  const message = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+  const code = typeof error?.code === 'string' ? error.code.toLowerCase() : '';
+
+  return message.includes('meal_count') && (
     code === '42703' ||
     code === 'pgrst204' ||
     message.includes('does not exist') ||
@@ -251,16 +275,33 @@ async function loadState(supabase, userCode) {
     return { user, periods: [], workRecords: [] };
   }
 
-  const { data: workRecords, error: workRecordError } = await supabase
+  let { data: workRecords, error: workRecordError } = await supabase
     .from('work_records')
-    .select('id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,dinner_checked,non_work_minutes,special_work_request_minutes,actual_overtime_minutes')
+    .select('id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,meal_count,non_work_minutes,special_work_request_minutes,actual_overtime_minutes')
     .eq('user_code', userCode)
     .order('work_date', { ascending: true });
+  if (workRecordError && isMissingMealCountColumnError(workRecordError)) {
+    ({ data: workRecords, error: workRecordError } = await supabase
+      .from('work_records')
+      .select('id,period_id,user_code,work_date,holiday,work_type,gongga_minutes,clock_in,clock_out,dinner_checked,non_work_minutes,special_work_request_minutes,actual_overtime_minutes')
+      .eq('user_code', userCode)
+      .order('work_date', { ascending: true }));
+
+    workRecords = (workRecords ?? []).map((record) => ({
+      ...record,
+      meal_count: record.dinner_checked ? 1 : 0,
+    }));
+  }
   if (workRecordError) {
     throw workRecordError;
   }
 
-  return { user, periods, workRecords: workRecords ?? [] };
+  const normalizedWorkRecords = (workRecords ?? []).map((record) => ({
+    ...record,
+    dinner_checked: record.meal_count > 0,
+  }));
+
+  return { user, periods, workRecords: normalizedWorkRecords };
 }
 
 async function saveState(supabase, userCode, payload) {
@@ -297,7 +338,14 @@ async function saveState(supabase, userCode, payload) {
   }
 
   if (workRecords.length > 0) {
-    const { error } = await supabase.from('work_records').insert(workRecords);
+    let { error } = await supabase.from('work_records').insert(workRecords);
+    if (error && isMissingMealCountColumnError(error)) {
+      const legacyWorkRecords = workRecords.map(({ meal_count, ...record }) => ({
+        ...record,
+        dinner_checked: meal_count > 0,
+      }));
+      ({ error } = await supabase.from('work_records').insert(legacyWorkRecords));
+    }
     if (error) {
       throw error;
     }

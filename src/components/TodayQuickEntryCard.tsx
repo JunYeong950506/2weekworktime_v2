@@ -2,14 +2,16 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 
-import { DAILY_REGULAR_MINUTES, DINNER_BREAK_MINUTES, MINUTES_PER_HOUR } from '../constants';
+import { DAILY_REGULAR_MINUTES, MINUTES_PER_HOUR } from '../constants';
 import { AnnualLeaveType, DayRecord, TimeField } from '../types';
+import { getMealBreakMinutes } from '../utils/meal';
 import {
   calculateSpecialWorkSimulation,
   clampSpecialWorkRequestMinutes,
 } from '../utils/specialWork';
 import { formatMinutesAsClock, parseTime24 } from '../utils/time';
 import { DurationPicker } from './DurationPicker';
+import { MealCountSegmentedControl } from './MealCountSegmentedControl';
 
 interface TodayQuickEntryCardProps {
   targetLabel: string;
@@ -24,7 +26,7 @@ interface TodayQuickEntryCardProps {
         | 'officialLeaveMinutes'
         | 'clockIn'
         | 'clockOut'
-        | 'dinnerChecked'
+        | 'mealCount'
         | 'nonWorkMinutes'
         | 'specialWorkRequestMinutes'
         | 'claimedOtMinutes'
@@ -472,7 +474,7 @@ export default function TodayQuickEntryCard({
 
     const targetWorkMinutes = Math.max(0, DAILY_REGULAR_MINUTES - usableEarlyLeaveMinutes);
     const extraDeductionMinutes =
-      (record.dinnerChecked ? DINNER_BREAK_MINUTES : 0) +
+      getMealBreakMinutes(record.mealCount) +
       Math.max(0, Math.round(record.nonWorkMinutes));
     const expectedStayMinutes = getExpectedStayMinutes(
       targetWorkMinutes,
@@ -725,23 +727,12 @@ export default function TodayQuickEntryCard({
                   </label>
 
                   <label className="field-label">
-                    석식 여부
-                    <span
-                      className={`inline-flex h-11 items-center justify-between rounded-xl border px-3 text-sm font-bold ${
-                        record.dinnerChecked
-                          ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                          : 'border-slate-200 bg-white text-slate-600'
-                      } ${disableTimeAndDeductionInputs ? 'opacity-60' : ''}`}
-                    >
-                      {record.dinnerChecked ? '석식 먹음' : '석식 없음'}
-                      <input
-                        type="checkbox"
-                        checked={record.dinnerChecked}
-                        disabled={disableTimeAndDeductionInputs}
-                        onChange={(event) => onPatchRecord({ dinnerChecked: event.target.checked })}
-                        className="field-check"
-                      />
-                    </span>
+                    조식/석식 여부
+                    <MealCountSegmentedControl
+                      value={record.mealCount}
+                      disabled={disableTimeAndDeductionInputs}
+                      onChange={(mealCount) => onPatchRecord({ mealCount })}
+                    />
                   </label>
                 </>
               ) : null}

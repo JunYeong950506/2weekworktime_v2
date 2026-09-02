@@ -31,7 +31,7 @@ create table if not exists public.work_records (
   gongga_minutes integer not null default 0,
   clock_in text not null default '',
   clock_out text not null default '',
-  dinner_checked boolean not null default false,
+  meal_count smallint not null default 0 check (meal_count between 0 and 2),
   non_work_minutes integer not null default 0,
   special_work_request_minutes integer not null default 0,
   actual_overtime_minutes integer not null default 0,
