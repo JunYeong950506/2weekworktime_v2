@@ -660,6 +660,7 @@ export default function TodayQuickEntryCard({
                       min="06:00"
                       max="23:59"
                       disabled={disableTimeAndDeductionInputs}
+                      useNativeOverlay
                       onChange={(value) => onPatchRecord({ clockIn: value })}
                       onSetNow={() => onSetNow('clockIn')}
                     />
@@ -672,6 +673,7 @@ export default function TodayQuickEntryCard({
                       min="00:00"
                       max="23:59"
                       disabled={disableTimeAndDeductionInputs}
+                      useNativeOverlay
                       onChange={(value) => onPatchRecord({ clockOut: value })}
                       onSetNow={() => onSetNow('clockOut')}
                       onLongPressSetNow={handleSetExpectedClockOut}
