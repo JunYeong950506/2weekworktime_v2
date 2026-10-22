@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 
 import { MINUTES_PER_HOUR } from '../constants';
 import { recalculateDayRecord } from '../utils/calculations';
@@ -116,6 +117,23 @@ function hasPartialLeaveWarning(record: DayRecord): boolean {
     record.workMinutes !== null &&
     record.workMinutes < 4 * 60
   );
+}
+
+function getRecordTimeLabels(record: DayRecord, isSpecialWork: boolean) {
+  const hasWorkRecord = record.workMinutes !== null || Boolean(record.clockIn || record.clockOut);
+  const hasRequest = record.specialWorkRequestMinutes > 0;
+  const showZeroClaim = isSpecialWork
+    ? hasRequest && dayjs(record.date).isBefore(dayjs(), 'day')
+    : hasWorkRecord;
+
+  return {
+    workLabel: formatMinutesAsClock(isSpecialWork
+      ? hasRequest ? record.specialWorkRequestMinutes : null
+      : record.workMinutes),
+    claimedLabel: formatMinutesAsClock(record.claimedOtMinutes > 0 || showZeroClaim
+      ? record.claimedOtMinutes
+      : null),
+  };
 }
 
 function hasRecordInputChanges(source: DayRecord, draft: DayRecord): boolean {
@@ -362,8 +380,7 @@ export default function TimesheetTable({
             const dateToneClass = getDateToneClass(record, meta);
             const workType = getWorkTypeLabel(record, meta);
             const isSpecialWork = Boolean(meta?.isSpecialWorkMode);
-            const workLabel = formatMinutesAsClock(isSpecialWork ? record.specialWorkRequestMinutes : record.workMinutes);
-            const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
+            const { workLabel, claimedLabel } = getRecordTimeLabels(record, isSpecialWork);
             const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
             const isCurrentRow = isToday(record.date);
             const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
@@ -499,8 +516,7 @@ export default function TimesheetTable({
                 const workType = getWorkTypeLabel(record, meta);
                 const clockRange = formatClockRange(record, meta);
                 const isSpecialWork = Boolean(meta?.isSpecialWorkMode);
-                const workLabel = formatMinutesAsClock(isSpecialWork ? record.specialWorkRequestMinutes : record.workMinutes);
-                const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
+                const { workLabel, claimedLabel } = getRecordTimeLabels(record, isSpecialWork);
                 const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
                 const isCurrentRow = isToday(record.date);
                 const workTypeBadgeClass = getWorkTypeBadgeClass(record, meta);
