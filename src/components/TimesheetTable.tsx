@@ -431,14 +431,14 @@ export default function TimesheetTable({
 
                   <div className={`grid min-w-0 gap-2 text-center ${isSpecialWork ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     <div className="min-w-0">
-                      <p className={`whitespace-nowrap text-[11px] font-bold ${isSpecialWork ? 'text-teal-600' : 'text-slate-400'}`}>{isSpecialWork ? '신청시간' : '근무시간'}</p>
-                      <p className={`mt-1 truncate text-[15px] font-extrabold ${isSpecialWork ? 'text-teal-700' : 'text-indigo-600'}`}>
+                      <p className="whitespace-nowrap text-[11px] font-bold text-slate-400">{isSpecialWork ? '신청시간' : '근무시간'}</p>
+                      <p className="mt-1 truncate text-[15px] font-extrabold text-indigo-600">
                         {workLabel}
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className={`whitespace-nowrap text-[11px] font-bold ${isSpecialWork ? 'text-violet-500' : 'text-slate-400'}`}>{isSpecialWork ? '특근 시간' : '야근결재'}</p>
-                      <p className={`mt-1 truncate text-[15px] font-extrabold ${isSpecialWork ? 'text-violet-600' : 'text-orange-500'}`}>
+                      <p className="whitespace-nowrap text-[11px] font-bold text-slate-400">{isSpecialWork ? '특근 시간' : '야근결재'}</p>
+                      <p className="mt-1 truncate text-[15px] font-extrabold text-orange-500">
                         {claimedLabel}
                       </p>
                     </div>
@@ -535,12 +535,12 @@ export default function TimesheetTable({
                         {workType}
                       </span>
                     </td>
-                    <td className={`px-4 py-5 text-center text-base font-bold ${isSpecialWork ? 'text-teal-700' : 'text-indigo-600'}`}>
-                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-teal-600">신청시간</span> : null}
+                    <td className="px-4 py-5 text-center text-base font-bold text-indigo-600">
+                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-slate-400">신청시간</span> : null}
                       {workLabel}
                     </td>
-                    <td className={`px-4 py-5 text-center text-base font-bold ${isSpecialWork ? 'text-violet-600' : 'text-orange-500'}`}>
-                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-violet-500">특근 시간</span> : null}
+                    <td className="px-4 py-5 text-center text-base font-bold text-orange-500">
+                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-slate-400">특근 시간</span> : null}
                       {claimedLabel}
                     </td>
                     <td className="px-4 py-5 text-center text-base font-bold text-pink-500">
