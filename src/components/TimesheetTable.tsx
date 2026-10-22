@@ -361,7 +361,8 @@ export default function TimesheetTable({
               (meta?.validationErrors.length ?? 0) > 0 || hasPartialLeaveWarning(record);
             const dateToneClass = getDateToneClass(record, meta);
             const workType = getWorkTypeLabel(record, meta);
-            const workLabel = formatMinutesAsClock(record.workMinutes);
+            const isSpecialWork = Boolean(meta?.isSpecialWorkMode);
+            const workLabel = formatMinutesAsClock(isSpecialWork ? record.specialWorkRequestMinutes : record.workMinutes);
             const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
             const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
             const isCurrentRow = isToday(record.date);
@@ -428,25 +429,25 @@ export default function TimesheetTable({
                     </div>
                   </div>
 
-                  <div className="grid min-w-0 grid-cols-3 gap-2 text-center">
+                  <div className={`grid min-w-0 gap-2 text-center ${isSpecialWork ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-slate-400">근무시간</p>
-                      <p className="mt-1 truncate text-[15px] font-extrabold text-indigo-600">
+                      <p className={`whitespace-nowrap text-[11px] font-bold ${isSpecialWork ? 'text-teal-600' : 'text-slate-400'}`}>{isSpecialWork ? '신청시간' : '근무시간'}</p>
+                      <p className={`mt-1 truncate text-[15px] font-extrabold ${isSpecialWork ? 'text-teal-700' : 'text-indigo-600'}`}>
                         {workLabel}
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-slate-400">야근결재</p>
-                      <p className="mt-1 truncate text-[15px] font-extrabold text-orange-500">
+                      <p className={`whitespace-nowrap text-[11px] font-bold ${isSpecialWork ? 'text-violet-500' : 'text-slate-400'}`}>{isSpecialWork ? '특근 시간' : '야근결재'}</p>
+                      <p className={`mt-1 truncate text-[15px] font-extrabold ${isSpecialWork ? 'text-violet-600' : 'text-orange-500'}`}>
                         {claimedLabel}
                       </p>
                     </div>
-                    <div className="min-w-0">
+                    {!isSpecialWork ? <div className="min-w-0">
                       <p className="text-[11px] font-bold text-slate-400">조기/초과</p>
                       <p className="mt-1 truncate text-[15px] font-extrabold text-pink-500">
                         {balanceLabel}
                       </p>
-                    </div>
+                    </div> : null}
                   </div>
 
                   <div className="pt-1 text-right text-slate-300">
@@ -497,7 +498,8 @@ export default function TimesheetTable({
                 const dateToneClass = getDateToneClass(record, meta);
                 const workType = getWorkTypeLabel(record, meta);
                 const clockRange = formatClockRange(record, meta);
-                const workLabel = formatMinutesAsClock(record.workMinutes);
+                const isSpecialWork = Boolean(meta?.isSpecialWorkMode);
+                const workLabel = formatMinutesAsClock(isSpecialWork ? record.specialWorkRequestMinutes : record.workMinutes);
                 const claimedLabel = formatMinutesAsClock(record.claimedOtMinutes);
                 const balanceLabel = formatSignedMinutesAsClock(record.earlyLeaveBalanceMinutes);
                 const isCurrentRow = isToday(record.date);
@@ -533,14 +535,16 @@ export default function TimesheetTable({
                         {workType}
                       </span>
                     </td>
-                    <td className="px-4 py-5 text-center text-base font-bold text-indigo-600">
+                    <td className={`px-4 py-5 text-center text-base font-bold ${isSpecialWork ? 'text-teal-700' : 'text-indigo-600'}`}>
+                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-teal-600">신청시간</span> : null}
                       {workLabel}
                     </td>
-                    <td className="px-4 py-5 text-center text-base font-bold text-orange-500">
+                    <td className={`px-4 py-5 text-center text-base font-bold ${isSpecialWork ? 'text-violet-600' : 'text-orange-500'}`}>
+                      {isSpecialWork ? <span className="mb-1 block text-[11px] text-violet-500">특근 시간</span> : null}
                       {claimedLabel}
                     </td>
                     <td className="px-4 py-5 text-center text-base font-bold text-pink-500">
-                      {balanceLabel}
+                      {isSpecialWork ? null : balanceLabel}
                     </td>
                     <td className="px-6 py-5 text-right text-slate-300 transition group-hover:text-indigo-500">
                       <span className="mr-1 text-xs font-bold opacity-0 transition group-hover:opacity-100">
