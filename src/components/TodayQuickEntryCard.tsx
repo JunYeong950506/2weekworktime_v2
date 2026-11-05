@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AutoFitText } from './AutoFitText';
 import dayjs from 'dayjs';
 
 import { DAILY_REGULAR_MINUTES, MINUTES_PER_HOUR } from '../constants';
@@ -502,7 +503,7 @@ export default function TodayQuickEntryCard({
     <>
       <section className="surface-panel">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h2 className="section-heading flex items-center gap-2 whitespace-nowrap text-lg min-[360px]:text-xl">
+          <h2 className="section-heading flex min-w-0 flex-1 items-center gap-2">
             <span className="section-icon section-icon-blue" aria-hidden="true">
               <svg className="h-7 w-7" fill="none" viewBox="0 0 32 32">
                 <path
@@ -529,7 +530,7 @@ export default function TodayQuickEntryCard({
                 />
               </svg>
             </span>
-            오늘 근무 입력
+            <AutoFitText>오늘 근무 입력</AutoFitText>
           </h2>
           <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-400">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

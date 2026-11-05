@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AutoFitText } from './AutoFitText';
 import dayjs from 'dayjs';
 
 import CafeNumberAlertDialog from '../features/cafe-number-alert/CafeNumberAlertDialog';
@@ -598,8 +599,8 @@ export default function PeriodManager({
           <div className="flex min-w-0 items-center gap-3">
             <AppHeaderIcon />
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900">
-                2주 자율출퇴근 계산기
+              <h1 className="text-xl font-extrabold text-slate-900">
+                <AutoFitText>2주 자율출퇴근 계산기</AutoFitText>
               </h1>
               <div className="relative mt-0.5 inline-flex max-w-full">
                 <button

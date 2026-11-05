@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
+import { AutoFitText } from './AutoFitText';
 
 import { MINUTES_PER_HOUR } from '../constants';
 import { recalculateDayRecord } from '../utils/calculations';
@@ -288,7 +289,7 @@ export default function TimesheetTable({
       <section className="surface-panel overflow-hidden px-0 py-0">
         <div className="border-b border-slate-100 px-8 py-6">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="section-heading flex items-center gap-2">
+            <h3 className="section-heading flex min-w-0 flex-1 items-center gap-2">
               <span className="section-icon section-icon-indigo" aria-hidden="true">
                 <svg className="h-8 w-8 overflow-visible" fill="none" viewBox="0 0 40 40">
                   <path
@@ -304,7 +305,7 @@ export default function TimesheetTable({
                   <path className="stroke-indigo-400" strokeLinecap="round" strokeWidth="2.7" d="M18.5 30.3h10.5" />
                 </svg>
               </span>
-              근무 기록
+              <AutoFitText>근무 기록</AutoFitText>
             </h3>
 
             <div className="shrink-0 rounded-2xl bg-slate-100 p-1 shadow-inner md:hidden">

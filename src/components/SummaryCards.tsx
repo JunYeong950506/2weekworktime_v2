@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AutoFitText } from './AutoFitText';
 
 import { Period, SummaryValues } from '../types';
 import { formatMinutesAsClock, formatSignedMinutesAsClock } from '../utils/time';
@@ -52,12 +53,12 @@ export default function SummaryCards({ summary, periods }: SummaryCardsProps): J
             />
           </svg>
         </span>
-        <h2 className="section-heading">2주 누적 요약</h2>
+        <h2 className="section-heading min-w-0 flex-1"><AutoFitText>2주 누적 요약</AutoFitText></h2>
       </div>
 
       <div className="flex flex-col gap-10 md:flex-row md:items-center">
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-slate-500">이번 2주 남은 근무시간</h3>
+          <h3 className="text-sm font-bold text-slate-500"><AutoFitText>이번 2주 남은 근무시간</AutoFitText></h3>
           <div className="mb-4 mt-2 flex items-baseline gap-2">
             <span className="text-5xl font-extrabold tracking-tight text-indigo-600">
               {remaining.hours}
