@@ -7,7 +7,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .image_preprocessor import crop_normalized_roi, pad_with_border_color, preprocess_variants
+from .image_preprocessor import crop_normalized_roi, pad_with_border_color, iter_preprocess_variants
 from .models import NormalizedRoi, NumberDetection, OcrTextResult
 from .board_validator import coherent_list_numbers
 
@@ -165,16 +165,24 @@ def recognize_region_numbers(
     image: np.ndarray,
     engine: OcrEngine,
     min_confidence: float,
+    fast_min_numbers: int | None = None,
 ) -> tuple[list[int], str, float | None]:
     all_results: list[OcrTextResult] = []
 
-    variants = preprocess_variants(image)
     counts: Counter[int] = Counter()
-    for variant in variants:
+    fast_votes: list[set[int]] = []
+    for variant in iter_preprocess_variants(image):
         results = [result for result in engine.recognize(variant)
                    if result.confidence is None or result.confidence >= min_confidence]
         all_results.extend(results)
         counts.update({number for result in results for number in extract_numbers(result.text)})
+        fast_votes.append({number for result in results for number in extract_numbers(result.text)})
+        if len(fast_votes) == 3 and fast_min_numbers is not None:
+            agreed = fast_votes[0]
+            confident = all(result.confidence is not None and result.confidence >= 90 for result in all_results)
+            valid_shape = len(agreed) == 1 if fast_min_numbers == 1 else len(coherent_list_numbers(list(agreed))) == len(agreed) >= fast_min_numbers
+            if confident and valid_shape and all(vote == agreed for vote in fast_votes):
+                return sorted(agreed, reverse=True), " ".join(result.text for result in all_results), average_confidence(all_results)
 
     accepted_results = [
         result
@@ -186,7 +194,7 @@ def recognize_region_numbers(
     numbers = [
         number
         for number, count in sorted(counts.items(), key=lambda item: (-item[1], -item[0]))
-        if count >= max(2, (len(variants) + 1) // 2)
+        if count >= max(2, (len(fast_votes) + 1) // 2)
     ]
     return numbers, raw_text, confidence
 
@@ -205,11 +213,13 @@ def detect_board_numbers(
         main_image,
         engine,
         min_confidence,
+        fast_min_numbers=1,
     )
     list_numbers, list_text, list_confidence = recognize_region_numbers(
         list_image,
         engine,
         min_confidence,
+        fast_min_numbers=3,
     )
 
     list_numbers = coherent_list_numbers(list_numbers)

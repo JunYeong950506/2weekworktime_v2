@@ -41,7 +41,7 @@ type AlertUiState =
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
 const NOTIFIED_RESET_DELAY_MS = 10 * 60 * 1000;
-const WAIT_STATUS_REFRESH_MS = 15 * 1000;
+const WAIT_STATUS_REFRESH_MS = 5 * 1000;
 
 function toWatchStatus(response: RegisterWatchResponse): CafeWatchStatusResponse {
   return {

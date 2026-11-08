@@ -135,11 +135,12 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
                         state.recovery_number = None
                         state.recovery_count = 0
                         logger.warning("not a number board; skip OCR and backend update")
-                    elif skip_ocr:
+                    elif skip_ocr and state.pending_number is None and state.recovery_number is None:
                         logger.info("panel unchanged; skip OCR capture_seconds=%.2f", capture_elapsed)
                     else:
                         ocr_started_at = time.perf_counter()
-                        detection = detect_board_numbers(
+                        detection = await asyncio.to_thread(
+                            detect_board_numbers,
                             panel,
                             engine,
                             settings.main_roi,

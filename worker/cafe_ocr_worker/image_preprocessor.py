@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Iterator
 
 import cv2
 import numpy as np
@@ -65,6 +66,11 @@ def pad_with_border_color(image: np.ndarray, x_ratio: float, y_ratio: float) -> 
 
 
 def preprocess_variants(image: np.ndarray) -> list[np.ndarray]:
+    return list(iter_preprocess_variants(image))
+
+
+def iter_preprocess_variants(image: np.ndarray) -> Iterator[np.ndarray]:
+    yield image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
     enlarged = cv2.resize(
         gray,
@@ -73,9 +79,11 @@ def preprocess_variants(image: np.ndarray) -> list[np.ndarray]:
         fy=3.0,
         interpolation=cv2.INTER_CUBIC,
     )
+    yield enlarged
 
     denoised = cv2.fastNlMeansDenoising(enlarged, None, h=8)
     clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8)).apply(denoised)
+    yield clahe
 
     _, otsu = cv2.threshold(
         clahe,
@@ -83,12 +91,14 @@ def preprocess_variants(image: np.ndarray) -> list[np.ndarray]:
         255,
         cv2.THRESH_BINARY + cv2.THRESH_OTSU,
     )
+    yield otsu
     _, otsu_inv = cv2.threshold(
         clahe,
         0,
         255,
         cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
     )
+    yield otsu_inv
 
     blurred = cv2.GaussianBlur(enlarged, (3, 3), 0)
     adaptive = cv2.adaptiveThreshold(
@@ -100,5 +110,4 @@ def preprocess_variants(image: np.ndarray) -> list[np.ndarray]:
         7,
     )
 
-    normalized = cv2.normalize(enlarged, None, 0, 255, cv2.NORM_MINMAX)
-    return [enlarged, clahe, otsu, otsu_inv, adaptive, normalized]
+    yield adaptive

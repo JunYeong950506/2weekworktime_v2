@@ -4,6 +4,38 @@ from cafe_ocr_worker.digit_ocr import MockOcrEngine, detect_board_numbers, extra
 from cafe_ocr_worker.models import NormalizedRoi
 
 
+def test_fast_path_stops_after_three_agreeing_high_confidence_images():
+    from cafe_ocr_worker.models import OcrTextResult
+
+    class Engine:
+        calls = 0
+
+        def recognize(self, image):
+            self.calls += 1
+            return [OcrTextResult("76", 99, "mock")]
+
+    engine = Engine()
+    numbers, _, _ = recognize_region_numbers(np.zeros((100, 200, 3), dtype=np.uint8), engine, 70, fast_min_numbers=1)
+    assert numbers == [76]
+    assert engine.calls == 3
+
+
+def test_uncertain_fast_path_uses_all_variants():
+    from cafe_ocr_worker.models import OcrTextResult
+
+    class Engine:
+        calls = 0
+
+        def recognize(self, image):
+            self.calls += 1
+            return [OcrTextResult("99" if self.calls == 1 else "76", 99, "mock")]
+
+    engine = Engine()
+    numbers, _, _ = recognize_region_numbers(np.zeros((100, 200, 3), dtype=np.uint8), engine, 70, fast_min_numbers=1)
+    assert numbers == [76]
+    assert engine.calls == 6
+
+
 def test_region_discards_outlier_seen_in_only_two_variants():
     from cafe_ocr_worker.models import OcrTextResult
 
@@ -85,7 +117,7 @@ def test_detect_board_numbers_ignores_main_number_lower_than_list_max():
 
         def recognize(self, _image):
             self.calls += 1
-            text = "9" if self.calls <= 6 else "60 59 58 57 56 55"
+            text = "9" if self.calls <= 3 else "60 59 58 57 56 55"
             from cafe_ocr_worker.models import OcrTextResult
 
             return [OcrTextResult(text, 100, self.name)]
