@@ -63,3 +63,23 @@ def test_large_backward_reset_requires_confirmation():
     assert not first.accepted
     assert first.reason == "RESET_CONFIRMATION"
     assert second.accepted
+
+
+def test_false_high_number_recovers_from_consistent_main_and_list():
+    state = DetectionState(last_accepted=99)
+    validator = make_validator()
+    for number in (76, 77, 78):
+        detection = NumberDetection(number, list(range(number - 6, number)), number, str(number), 99, "MAIN_NUMBER")
+        decision = validator.validate(detection, state)
+        assert decision.accepted == (number == 78)
+    assert decision.reason == "BACKWARD_RECOVERY"
+
+
+def test_backward_recovery_requires_consecutive_coherent_detections():
+    state = DetectionState(last_accepted=99)
+    validator = make_validator()
+    detection = NumberDetection(76, [75, 74, 73], 76, "76", 99, "MAIN_NUMBER")
+    assert not validator.validate(detection, state).accepted
+    validator.validate(make_detection(99), state)
+    assert not validator.validate(detection, state).accepted
+    assert not validator.validate(detection, state).accepted

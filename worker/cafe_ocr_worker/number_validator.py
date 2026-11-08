@@ -10,11 +10,15 @@ class DetectionState:
     last_accepted: int | None = None
     pending_number: int | None = None
     pending_count: int = 0
+    recovery_number: int | None = None
+    recovery_count: int = 0
 
     def accept(self, number: int) -> None:
         self.last_accepted = number
         self.pending_number = None
         self.pending_count = 0
+        self.recovery_number = None
+        self.recovery_count = 0
 
     def mark_pending(self, number: int) -> int:
         if self.pending_number == number:
@@ -54,6 +58,24 @@ class NumberValidator:
             return self._accept_or_confirm(candidate, state, "INITIAL_CONFIRMATION")
 
         diff = candidate - state.last_accepted
+        coherent_main = (
+            detection.main_number == candidate
+            and len(detection.list_numbers) >= 3
+            and 0 < candidate - max(detection.list_numbers) <= self.config.max_forward_jump
+            and confidence is not None
+            and confidence >= self.config.high_confidence
+        )
+        if diff < 0 and abs(diff) < self.config.reset_drop and coherent_main:
+            if state.recovery_number is not None and 0 <= candidate - state.recovery_number <= self.config.max_forward_jump:
+                state.recovery_count += 1
+            else:
+                state.recovery_count = 1
+            state.recovery_number = candidate
+            if state.recovery_count >= max(3, self.config.confirmation_repeats):
+                return ValidationDecision(DecisionKind.ACCEPT, candidate, "BACKWARD_RECOVERY")
+            return ValidationDecision(DecisionKind.CONFIRM, candidate, "BACKWARD_RECOVERY_CONFIRMATION")
+        state.recovery_number = None
+        state.recovery_count = 0
         if diff == 0:
             return ValidationDecision(DecisionKind.ACCEPT, candidate, "SAME_NUMBER")
 

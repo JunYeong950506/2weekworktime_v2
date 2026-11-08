@@ -9,6 +9,7 @@ import numpy as np
 
 from .image_preprocessor import crop_normalized_roi, pad_with_border_color, preprocess_variants
 from .models import NormalizedRoi, NumberDetection, OcrTextResult
+from .board_validator import coherent_list_numbers
 
 DIGIT_PATTERN = re.compile(r"(?<!\d)\d{1,4}(?!\d)")
 
@@ -167,8 +168,13 @@ def recognize_region_numbers(
 ) -> tuple[list[int], str, float | None]:
     all_results: list[OcrTextResult] = []
 
-    for variant in preprocess_variants(image):
-        all_results.extend(engine.recognize(variant))
+    variants = preprocess_variants(image)
+    counts: Counter[int] = Counter()
+    for variant in variants:
+        results = [result for result in engine.recognize(variant)
+                   if result.confidence is None or result.confidence >= min_confidence]
+        all_results.extend(results)
+        counts.update({number for result in results for number in extract_numbers(result.text)})
 
     accepted_results = [
         result
@@ -177,15 +183,10 @@ def recognize_region_numbers(
     ]
     raw_text = " ".join(result.text for result in accepted_results).strip()
     confidence = average_confidence(accepted_results)
-    counts: Counter[int] = Counter()
-
-    for result in accepted_results:
-        for number in extract_numbers(result.text):
-            counts[number] += 1
-
     numbers = [
         number
-        for number, _ in sorted(counts.items(), key=lambda item: (-item[1], -item[0]))
+        for number, count in sorted(counts.items(), key=lambda item: (-item[1], -item[0]))
+        if count >= max(2, (len(variants) + 1) // 2)
     ]
     return numbers, raw_text, confidence
 
@@ -211,9 +212,13 @@ def detect_board_numbers(
         min_confidence,
     )
 
-    main_number = max(main_numbers) if main_numbers else None
+    list_numbers = coherent_list_numbers(list_numbers)
+    if not list_numbers:
+        return None
+
+    main_number = main_numbers[0] if main_numbers else None
     list_max = max(list_numbers) if list_numbers else None
-    if main_number is not None and list_max is not None and main_number < list_max:
+    if main_number is not None and list_max is not None and not 0 <= main_number - list_max <= 12:
         main_number = None
 
     if main_number is not None:

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .backend_client import BackendClient, QueuedBackendSender
 from .browser_capture import create_capture
+from .board_validator import is_number_board
 from .change_detector import RoiChangeDetector
 from .digit_ocr import create_ocr_engine, detect_board_numbers
 from .image_preprocessor import crop_normalized_roi, save_debug_image
@@ -128,7 +129,13 @@ async def run_worker(settings: Settings, once: bool = False) -> None:
                     panel = crop_normalized_roi(frame, settings.panel_roi)
 
                     skip_ocr = should_skip_ocr(change_detector, panel, captured_at, last_ocr_at, settings)
-                    if skip_ocr:
+                    if not is_number_board(panel):
+                        state.pending_number = None
+                        state.pending_count = 0
+                        state.recovery_number = None
+                        state.recovery_count = 0
+                        logger.warning("not a number board; skip OCR and backend update")
+                    elif skip_ocr:
                         logger.info("panel unchanged; skip OCR capture_seconds=%.2f", capture_elapsed)
                     else:
                         ocr_started_at = time.perf_counter()

@@ -1,7 +1,30 @@
 import numpy as np
 
-from cafe_ocr_worker.digit_ocr import MockOcrEngine, detect_board_numbers, extract_numbers
+from cafe_ocr_worker.digit_ocr import MockOcrEngine, detect_board_numbers, extract_numbers, recognize_region_numbers
 from cafe_ocr_worker.models import NormalizedRoi
+
+
+def test_region_discards_outlier_seen_in_only_two_variants():
+    from cafe_ocr_worker.models import OcrTextResult
+
+    class Engine:
+        calls = 0
+
+        def recognize(self, image):
+            self.calls += 1
+            text = "66 65 64 63 62 61" + (" 99" if self.calls <= 2 else "")
+            return [OcrTextResult(text, 99, "mock")]
+
+    numbers, _, _ = recognize_region_numbers(np.zeros((100, 200, 3), dtype=np.uint8), Engine(), 70)
+    assert numbers == [66, 65, 64, 63, 62, 61]
+
+
+def test_non_board_numeric_text_cannot_produce_detection():
+    image = np.zeros((100, 200, 3), dtype=np.uint8)
+    assert detect_board_numbers(
+        image, MockOcrEngine("1600 2040 44 1440", 99),
+        NormalizedRoi(0, 0, 1, 0.4), NormalizedRoi(0, 0.4, 1, 0.6), 70,
+    ) is None
 
 
 def test_extract_numbers_keeps_valid_unique_numbers():
