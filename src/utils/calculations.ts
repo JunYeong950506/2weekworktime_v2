@@ -158,7 +158,7 @@ export function recalculateDayRecord(source: DayRecord): {
     effectiveAnnualLeaveType === 'official' &&
     effectiveOfficialLeaveMinutes <= 0
   ) {
-    leaveNotice = '\uACF5\uAC00 \uC2DC\uAC04\uC740 \uBD84 \uB2E8\uC704\uB85C \uC785\uB825\uD558\uC138\uC694.';
+    leaveNotice = '\uACF5\uAC00\u2022\uC678\uCD9C \uC2DC\uAC04\uC740 \uBD84 \uB2E8\uC704\uB85C \uC785\uB825\uD558\uC138\uC694.';
   }
 
   if (isPartialLeave(effectiveAnnualLeaveType) && !isAnnualLeaveFullMode) {
