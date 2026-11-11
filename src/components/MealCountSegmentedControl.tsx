@@ -8,8 +8,8 @@ const MEAL_OPTIONS: Array<{ value: MealCount; label: string }> = [
 
 const SELECTED_TONES: Record<MealCount, string> = {
   0: 'border-slate-300 bg-slate-200 text-slate-700 shadow-sm',
-  1: 'border-indigo-300 bg-indigo-100 text-indigo-700 shadow-sm',
-  2: 'border-indigo-600 bg-indigo-600 text-white shadow-sm',
+  1: 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm',
+  2: 'border-indigo-300 bg-indigo-200 text-indigo-800 shadow-sm',
 };
 
 interface MealCountSegmentedControlProps {
