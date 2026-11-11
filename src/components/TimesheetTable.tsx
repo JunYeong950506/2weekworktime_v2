@@ -42,7 +42,7 @@ const ANNUAL_LEAVE_OPTIONS: Array<{ value: AnnualLeaveType; label: string }> = [
   { value: 'quarter', label: '반반차 (2시간)' },
   { value: 'half', label: '반차 (4시간)' },
   { value: 'full', label: '연차 (8시간)' },
-  { value: 'official', label: '공가' },
+  { value: 'official', label: '공가•외출' },
 ];
 const MOBILE_TIMESHEET_VIEW_KEY = 'worktime_mobile_timesheet_view';
 
@@ -71,7 +71,7 @@ function getWorkTypeLabel(record: DayRecord, meta?: DayRecordMeta): string {
     case 'full':
       return '연차';
     case 'official':
-      return '공가';
+      return '공가•외출';
     default:
       return '정상근무';
   }
@@ -853,7 +853,7 @@ export default function TimesheetTable({
               {showOfficialInput ? (
                 <div>
                   <label className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">
-                    공가 시간 (분)
+                    공가•외출 시간 (분)
                   </label>
                   <input
                     type="number"

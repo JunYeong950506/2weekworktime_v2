@@ -91,9 +91,8 @@ create policy server_sync_service_role on public.periods
 create policy server_sync_service_role on public.work_records
   for all to service_role using (true) with check (true);
 -- Weekly cleanup function:
--- 1) record_count = 0 and last_activity_at older than 14 days => delete user (cascade).
--- 2) record_count > 0 and last_activity_at older than 30 days => set deleted_candidate_at.
--- 3) record_count > 0 and last_activity_at older than 50 days => delete user (cascade).
+-- 1) record_count > 0 and last_activity_at older than 14 days => set deleted_candidate_at.
+-- 2) last_activity_at older than 30 days => delete user (cascade).
 create or replace function public.cleanup_inactive_user_codes()
 returns void
 language plpgsql
@@ -104,16 +103,11 @@ begin
   update public.users
   set deleted_candidate_at = now()
   where record_count > 0
-    and last_activity_at < now() - interval '30 days'
+    and last_activity_at < now() - interval '14 days'
     and deleted_candidate_at is null;
 
   delete from public.users
-  where record_count = 0
-    and last_activity_at < now() - interval '14 days';
-
-  delete from public.users
-  where record_count > 0
-    and last_activity_at < now() - interval '50 days';
+  where last_activity_at < now() - interval '30 days';
 end;
 $$;
 

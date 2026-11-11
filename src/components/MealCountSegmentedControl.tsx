@@ -6,6 +6,12 @@ const MEAL_OPTIONS: Array<{ value: MealCount; label: string }> = [
   { value: 2, label: '2끼' },
 ];
 
+const SELECTED_TONES: Record<MealCount, string> = {
+  0: 'border-slate-300 bg-slate-200 text-slate-700 shadow-sm',
+  1: 'border-indigo-300 bg-indigo-100 text-indigo-700 shadow-sm',
+  2: 'border-indigo-600 bg-indigo-600 text-white shadow-sm',
+};
+
 interface MealCountSegmentedControlProps {
   value: MealCount;
   disabled?: boolean;
@@ -38,7 +44,7 @@ export function MealCountSegmentedControl({
             onClick={() => onChange(option.value)}
             className={`min-w-0 rounded-lg border px-1 text-[11px] font-bold whitespace-nowrap transition-all duration-200 sm:text-xs ${
               selected
-                ? 'border-indigo-200 bg-indigo-100 text-indigo-700 shadow-sm'
+                ? SELECTED_TONES[option.value]
                 : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:text-slate-700'
             } disabled:cursor-not-allowed`}
           >

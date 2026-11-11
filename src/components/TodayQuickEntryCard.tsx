@@ -552,7 +552,7 @@ export default function TodayQuickEntryCard({
         ) : null}
 
         {record && isOfficialLeaveMode && record.officialLeaveMinutes <= 0 ? (
-          <p className="mb-2 text-xs text-slate-500">공가 시간은 팝업에서 분 단위로 입력하세요.</p>
+          <p className="mb-2 text-xs text-slate-500">공가•외출 시간은 팝업에서 분 단위로 입력하세요.</p>
         ) : null}
 
         {record && showPartialLeaveNotice ? (
@@ -716,7 +716,7 @@ export default function TodayQuickEntryCard({
                       <option value="quarter">반반차 (2시간)</option>
                       <option value="half">반차 (4시간)</option>
                       <option value="full">연차 (8시간)</option>
-                      <option value="official">공가</option>
+                      <option value="official">공가•외출</option>
                     </select>
                     {isOfficialLeaveMode ? (
                       <button
@@ -724,7 +724,7 @@ export default function TodayQuickEntryCard({
                         onClick={() => openOfficialDialog('official')}
                         className="mt-1 inline-flex w-fit rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
                       >
-                        공가 {formatOfficialLeaveDisplay(record.officialLeaveMinutes)} 수정
+                        공가•외출 {formatOfficialLeaveDisplay(record.officialLeaveMinutes)} 수정
                       </button>
                     ) : null}
                   </label>
@@ -815,11 +815,11 @@ export default function TodayQuickEntryCard({
           }}
         >
           <div className="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">공가 시간 입력</h3>
-            <p className="mt-1 text-sm text-slate-500">근무 형태: 공가 (분 단위 입력)</p>
+            <h3 className="text-xl font-extrabold tracking-tight text-slate-900">공가•외출 시간 입력</h3>
+            <p className="mt-1 text-sm text-slate-500">근무 형태: 공가•외출 (분 단위 입력)</p>
 
             <label className="mt-4 block">
-              <span className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">공가시간(분)</span>
+              <span className="mb-1.5 ml-1 block text-xs font-bold text-slate-400">공가•외출 시간(분)</span>
               <input
                 type="number"
                 min={0}
